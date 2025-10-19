@@ -103,6 +103,12 @@ export function MainHeader() {
                        <span>Forums</span>
                      </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                     <Link href="/users">
+                       <Users className="mr-2 h-4 w-4" />
+                       <span>Users</span>
+                     </Link>
+                  </DropdownMenuItem>
                    <DropdownMenuItem asChild>
                      <Link href="/profile/settings">
                        <Settings className="mr-2 h-4 w-4" />
