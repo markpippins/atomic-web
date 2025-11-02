@@ -1,6 +1,6 @@
 import type { ApiRequest, ApiResponse } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/fs';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4040/fs';
 
 async function callApi(payload: ApiRequest): Promise<ApiResponse> {
   try {

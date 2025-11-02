@@ -8,9 +8,9 @@ export async function POST(request: Request) {
     console.log('FS request received:', body);
 
     // This would be the URL of your actual backend service.
-    // Updated to match the working fs-utils service on port 8000
+    // Updated to match the working fs-utils service on port 4040
     const backendUrl =
-      process.env.FS_SERVICE_URL || 'http://127.0.0.1:8000/fs';
+      process.env.FS_SERVICE_URL || 'http://127.0.0.1:4040/fs';
 
     const backendResponse = await fetch(backendUrl, {
       method: 'POST',
