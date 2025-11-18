@@ -17,7 +17,6 @@ import {
   Settings,
 } from 'lucide-react';
 import { useAuth } from './auth-provider';
-import { logoutAction } from '@/lib/actions';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useChat } from './chat/chat-provider';
@@ -47,14 +46,13 @@ function Logo() {
 }
 
 export function MainHeader() {
-  const { user, checkAuth } = useAuth();
+  const { user, logout } = useAuth();
   const { toggleChat } = useChat();
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogout = async () => {
-    await logoutAction();
-    await checkAuth();
+  const handleLogout = () => {
+    logout();
     toast({
       title: 'Logged Out',
       description: 'You have been successfully logged out.',

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, UserFormValues } from './types';
-import { createUser, getAllUsers, updateUser, deleteUser, findUserById } from './api';
+import { createUser, getAllUsers, updateUser, deleteUser } from './api';
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);

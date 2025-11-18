@@ -24,6 +24,7 @@ interface User {
   alias: string;
   email: string;
   avatarUrl?: string;
+  token?: string;
 }
 
 interface AuthContextType {
@@ -52,7 +53,7 @@ const dummyUser: User = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(isDebugMode ? dummyUser : null);
+    const [user, setUser] = useState<(User & { token?: string }) | null>(isDebugMode ? dummyUser : null);
     const { setActiveSection, setCurrentRoute } = useNavigation();
     const router = useRouter();
 

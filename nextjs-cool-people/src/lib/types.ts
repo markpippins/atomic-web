@@ -4,6 +4,9 @@ export type User = {
   username: string;
   avatar: string; 
   bio: string;
+  alias?: string; // For token-based auth
+  email?: string; // For token-based auth
+  profileId?: string; // For token-based auth
 };
 
 export type Post = {
@@ -39,3 +42,9 @@ export type ForumThread = {
     createdAt: string;
   } | null;
 };
+
+export interface ApiResponse {
+  ok: boolean;
+  error?: string;
+  [key: string]: any; // Allow additional properties as needed by different API calls
+}

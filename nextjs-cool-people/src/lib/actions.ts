@@ -7,8 +7,8 @@ import { users } from './data';
 import type { User } from './types';
 import { redirect } from 'next/navigation';
 
-const IS_DEBUG_MODE = process.env.NEXT_PUBLIC_DEBUG_MODE === 'true';
-const AUTH_COOKIE_NAME = 'coolpeople-auth';
+const IS_USER_CREATE_MODE = process.env.NEXT_PUBLIC_USER_CREATE_MODE === 'true';
+const IS_USER_LOGIN_MODE = process.env.NEXT_PUBLIC_USER_LOGIN_MODE === 'true';
 
 // Mock function to "save" a post
 async function savePost(post: { content: string; tags: string[] }) {
@@ -50,8 +50,8 @@ export async function suggestTagsAction(postContent: string) {
 }
 
 export async function loginAction(prevState: any, formData: FormData) {
-  if (!IS_DEBUG_MODE) {
-    return { message: 'Login is only available in debug mode.', type: 'error' };
+  if (!IS_USER_LOGIN_MODE) {
+    return { message: 'Login is only available when USER_LOGIN_MODE is enabled.', type: 'error' };
   }
 
   const email = formData.get('email') as string;
@@ -61,21 +61,75 @@ export async function loginAction(prevState: any, formData: FormData) {
     return { message: 'Email and password are required.', type: 'error' };
   }
 
-  // In debug mode, any email/password is valid. We'll just use the first user for the session.
-  const user = users[0];
+  // Use the alias as the email for login purposes
+  const alias = email; // Use email as alias for login
+  const identifier = password; // Use password as identifier
 
-  cookies().set(AUTH_COOKIE_NAME, JSON.stringify(user), {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24, // 1 day
-  });
+  // Generate a unique request ID
+  const requestId = typeof crypto !== 'undefined' && crypto.randomUUID 
+    ? crypto.randomUUID() 
+    : `req-${Date.now()}`;
 
-  return { message: 'Logged in successfully!', type: 'success' };
+  const requestBody = {
+    service: "loginService",
+    operation: "login",
+    params: { alias, identifier },
+    requestId
+  };
+
+  try {
+    const backendUrl =
+      process.env.BROKER_SERVICE_URL ||
+      'http://localhost:8080/api/broker/submitRequest';
+
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok || !data.ok || !data.token) {
+      const errorDetails = data.errors?.[0]?.message || data.message || "Login failed";
+      return { message: errorDetails, type: 'error' };
+    }
+
+    // Store the token in a cookie for client-side access
+    const cookieStore = await cookies();
+    await cookieStore.set('coolpeople-token', data.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24, // 1 day
+      path: '/',
+    });
+
+    // Store user info in cookie as well
+    const userInfo = {
+      id: data.user?.id || `user-${Date.now()}`,
+      alias: alias,
+      email: alias,
+    };
+    await cookieStore.set('coolpeople-user', JSON.stringify(userInfo), {
+      httpOnly: false, // This can be accessible by client-side JavaScript if needed
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24, // 1 day
+      path: '/',
+    });
+
+    return { message: 'Logged in successfully!', type: 'success' };
+  } catch (error) {
+    console.error('Login error:', error);
+    return { message: 'Login failed due to network error.', type: 'error' };
+  }
 }
 
 export async function signupAction(prevState: any, formData: FormData) {
-  if (!IS_DEBUG_MODE) {
+  if (!IS_USER_CREATE_MODE) {
     return {
-      message: 'Signup is only available in debug mode.',
+      message: 'Signup is only available when USER_CREATE_MODE is enabled.',
       type: 'error',
     };
   }
@@ -89,40 +143,97 @@ export async function signupAction(prevState: any, formData: FormData) {
     return { message: 'All fields are required.', type: 'error' };
   }
 
-  // In a real app, you would create a new user in your database.
-  // For debug mode, we'll create a temporary user object.
-  const newUser: User = {
-    id: `user-${Date.now()}`,
-    name,
-    username,
-    avatar: 'avatar4', // default avatar
-    bio: `Just joined CoolPeople!`,
+  // Generate a unique request ID
+  const requestId = typeof crypto !== 'undefined' && crypto.randomUUID 
+    ? crypto.randomUUID() 
+    : `req-${Date.now()}`;
+
+  // Call the user service to create a new user via the broker
+  const requestBody = {
+    service: "userService",
+    operation: "createUser",
+    params: { email, alias: name, identifier: password },
+    requestId
   };
 
-  // Automatically log the user in by setting the session cookie.
-  cookies().set(AUTH_COOKIE_NAME, JSON.stringify(newUser), {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24, // 1 day
-  });
+  try {
+    const backendUrl =
+      process.env.BROKER_SERVICE_URL ||
+      'http://localhost:8080/api/broker/submitRequest';
 
-  // We don't return a state here because we are redirecting.
-  // The redirect needs to be outside the try/catch to be detected by Next.js.
-  redirect('/feed');
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok || !data.ok) {
+      const errorDetails = data.errors?.[0]?.message || data.message || "User creation failed";
+      return { message: errorDetails, type: 'error' };
+    }
+
+    // Automatically log the user in by storing the token
+    if (data.token) {
+      const cookieStore = await cookies();
+      await cookieStore.set('coolpeople-token', data.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24, // 1 day
+        path: '/',
+      });
+
+      const userInfo = {
+        id: data.user?.id || `user-${Date.now()}`,
+        alias: name,
+        email: email,
+      };
+      await cookieStore.set('coolpeople-user', JSON.stringify(userInfo), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24, // 1 day
+        path: '/',
+      });
+      
+      // Store in localStorage for client-side access (if needed by client components)
+      // This will be handled by the auth context, so we don't need to store here
+    }
+
+    // We don't return a state here because we are redirecting.
+    // The redirect needs to be outside the try/catch to be detected by Next.js.
+    redirect('/feed');
+  } catch (error) {
+    console.error('Signup error:', error);
+    return { message: 'Signup failed due to network error.', type: 'error' };
+  }
 }
 
 export async function logoutAction() {
-  cookies().delete(AUTH_COOKIE_NAME);
+  const cookieStore = await cookies();
+  await cookieStore.delete('coolpeople-token');
+  await cookieStore.delete('coolpeople-user');
+  
+  // In the token-based system, we also want to invalidate the token on the server side
+  // if there's an endpoint for that. For now, we just clear the cookies.
 }
 
-export async function getSessionAction(): Promise<{ user: User | null }> {
-  const cookie = cookies().get(AUTH_COOKIE_NAME);
-  if (!cookie) {
-    return { user: null };
+export async function getSessionAction(): Promise<{ user: any; token: string | null }> {
+  const cookieStore = await cookies();
+  const tokenCookie = await cookieStore.get('coolpeople-token');
+  const userCookie = await cookieStore.get('coolpeople-user');
+  
+  if (!tokenCookie) {
+    return { user: null, token: null };
   }
+  
   try {
-    const user = JSON.parse(cookie.value) as User;
-    return { user };
+    const user = userCookie ? JSON.parse(userCookie.value) : null;
+    return { user, token: tokenCookie.value };
   } catch (error) {
-    return { user: null };
+    console.error('Error parsing session cookie:', error);
+    return { user: null, token: null };
   }
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { loginAction } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,53 +14,46 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button className="w-full" disabled={pending}>
-      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Sign in
-    </Button>
-  );
-}
 
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { checkAuth } = useAuth();
-  const [state, formAction] = useActionState(loginAction, {
-    message: '',
-    type: '',
-  });
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (state.type === 'error') {
-      toast({
-        title: 'Login Failed',
-        description: state.message,
-        variant: 'destructive',
-      });
-    } else if (state.type === 'success') {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      await login(email, password);
       toast({
         title: 'Login Successful',
-        description: state.message,
+        description: 'You have successfully logged in.',
       });
-      // Re-check auth state to update UI
-      checkAuth().then(() => {
-        router.push('/feed');
+      router.push('/feed');
+      router.refresh();
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: 'Login Failed',
+        description: error instanceof Error ? error.message : 'Login failed',
+        variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
-  }, [state, toast, router, checkAuth]);
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="w-full max-w-sm">
-        <form action={formAction}>
+        <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Login</CardTitle>
             <CardDescription>
@@ -76,16 +68,28 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 placeholder="m@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+              <Input 
+                id="password" 
+                name="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required 
+              />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <SubmitButton />
+            <Button className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sign in
+            </Button>
             <div className="text-center text-sm">
               Don&apos;t have an account?{' '}
               <Link href="/signup" className="underline">

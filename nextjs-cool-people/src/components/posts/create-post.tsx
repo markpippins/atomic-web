@@ -151,7 +151,7 @@ export function CreatePost() {
                 {suggestedTags.map(tag => (
                   <Button
                     key={tag}
-                    size="xs"
+                    size="sm"
                     variant="outline"
                     onClick={() => addTag(tag)}
                   >

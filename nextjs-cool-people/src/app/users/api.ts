@@ -1,4 +1,5 @@
 import { User, UserFormValues } from './types';
+import { getStoredToken } from '@/lib/auth-utils';
 
 // Base URL for the broker gateway
 const BROKER_GATEWAY_URL = process.env.NEXT_PUBLIC_BROKER_GATEWAY_URL || 'http://localhost:8080/api/broker/submitRequest';
@@ -7,6 +8,12 @@ const BROKER_GATEWAY_URL = process.env.NEXT_PUBLIC_BROKER_GATEWAY_URL || 'http:/
  * Submit a request to the broker service
  */
 async function submitBrokerRequest(service: string, operation: string, params: Record<string, any> = {}) {
+  // Add token to params if it exists for authenticated operations
+  const token = getStoredToken();
+  if (token) {
+    params.token = token;
+  }
+  
   const response = await fetch(BROKER_GATEWAY_URL, {
     method: 'POST',
     headers: {

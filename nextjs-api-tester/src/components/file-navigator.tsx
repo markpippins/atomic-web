@@ -79,8 +79,8 @@ export function FileNavigator() {
   const [dummyFs, setDummyFs] = useState<FileSystemItem>(dummyFileSystem as FileSystemItem);
 
   const { user } = useAuth();
-  const [alias] = useState(user?.alias || "default-user");
-  const [path, setPath] = useState<string[]>(["users", alias, "home"]);
+  const [token] = useState(user?.token || ""); // Assuming token is stored in user object
+  const [path, setPath] = useState<string[]>(["users", user?.alias || "default-user", "home"]);
   const [items, setItems] = useState<FileSystemItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newItemName, setNewItemName] = useState("");
@@ -179,17 +179,37 @@ export function FileNavigator() {
 
       setLoading(true);
       try {
-        const response = await fetch("/api/fs", {
+        // Use the broker API instead of direct API call, with token-based authentication
+        const requestBody = {
+          service: "restFsService",
+          operation: operation === "ls" ? "listFiles" : 
+                    operation === "mkdir" ? "createDirectory" :
+                    operation === "newfile" ? "createFile" :
+                    operation === "rmdir" ? "removeDirectory" :
+                    operation === "deletefile" ? "deleteFile" :
+                    operation === "rename" ? "rename" : operation,
+          params: { token, path, ...extraParams },
+          requestId: crypto.randomUUID ? crypto.randomUUID() : `req-${Date.now()}`
+        };
+
+        const response = await fetch("/api/broker/submitRequest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ alias, path, operation, ...extraParams }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.message || `API Error: ${response.statusText}`);
         }
-        return await response.json();
+        
+        const brokerResponse = await response.json();
+        if (!brokerResponse.ok) {
+          const errorMessages = brokerResponse.errors?.map((e: any) => e.message).join(', ') || 'Broker operation failed';
+          throw new Error(errorMessages);
+        }
+        
+        return brokerResponse.data;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "An unknown error occurred";
@@ -203,7 +223,7 @@ export function FileNavigator() {
         setLoading(false);
       }
     },
-    [alias, path, toast, isDebugMode, dummyFs]
+    [token, path, toast, isDebugMode, dummyFs]
   );
 
   const listFiles = useCallback(async () => {

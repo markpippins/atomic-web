@@ -11,7 +11,9 @@ interface BrokerRequest {
 async function callBrokerApi(service: string, operation: string, params: Record<string, any>): Promise<ApiResponse> {
   try {
     // Generate a unique request ID
-    const requestId = crypto.randomUUID ? crypto.randomUUID() : `req-${Date.now()}`;
+    const requestId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `req-${Date.now()}`;
     
     const brokerPayload: BrokerRequest = {
       service,
@@ -44,9 +46,9 @@ async function callBrokerApi(service: string, operation: string, params: Record<
     return brokerResponse.data || { ok: true };
   } catch (error) {
     if (error instanceof Error) {
-      return { error: error.message };
+      return { ok: false, error: error.message };
     }
-    return { error: 'An unknown error occurred' };
+    return { ok: false, error: 'An unknown error occurred' };
   }
 }
 
