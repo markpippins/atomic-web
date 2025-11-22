@@ -46021,3 +46021,6 @@ angular-cool-people-admin/.vscode/tasks.json
 angular-cool-people-admin/.editorconfig
 angular-cool-people-admin/package-lock.json
 angular-cool-people-admin/.vscode/launch.json
+.gitignore
+angular-cool-people-admin/bun.lock
+angular-cool-people-admin/bun.lock

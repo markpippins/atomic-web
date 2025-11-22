@@ -42,3 +42,17 @@ public Page<ProfileDTO> findAll(@BrokerParam("page") int page, @BrokerParam("siz
 @BrokerOperation("findByUserPaginated")
 public Page<PostDTO> findByUser(@BrokerParam("userId") String userId, @BrokerParam("page") int page, @BrokerParam("size") int size);
 ```
+
+## Next.js Application Requirements
+The following fields are used in the Next.js frontend but appear to be missing or not standard in the current backend DTOs:
+
+### PostDTO
+- **[MISSING] `tags`**: List of string tags associated with a post.
+- **[MISSING] `replies`**: Count of replies/comments (or the list itself).
+
+### ForumDTO
+- **[MISSING] `threadCount`**: Total number of threads/posts in the forum.
+- **[MISSING] `postCount`**: Total number of replies in the forum.
+
+### UserDTO
+- **[MISSING] `avatarUrl`**: URL to the user's avatar image.
