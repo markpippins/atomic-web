@@ -1,164 +1,166 @@
+import { cookies } from 'next/headers';
+import * as api from './api';
 import type { User, Post, Forum, ForumThread } from './types';
-import { subDays, subHours, subMinutes } from 'date-fns';
 
-export const users: User[] = [
-  { id: 'user-1', name: 'Jeff', username: 'jeff', avatar: 'avatar1', bio: 'Frontend developer and UI/UX enthusiast.' },
-  { id: 'user-2', name: 'Bob', username: 'bob', avatar: 'avatar2', bio: 'Backend engineer, loves system design.' },
-  { id: 'user-3', name: 'Charlie', username: 'charlie', avatar: 'avatar3', bio: 'AI researcher exploring the future.' },
-  { id: 'user-4', name: 'Diana', username: 'diana', avatar: 'avatar4', bio: 'Full-stack dev and avid coffee drinker.' },
-];
+// Helper to get token from cookies
+async function getToken(): Promise<string> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('coolpeople-token')?.value;
+  // If no token, we might return a guest token or throw. 
+  // For now, return empty string which might cause backend to fail auth, 
+  // or we can handle it gracefully.
+  return token || '';
+}
 
-export const posts: Post[] = [
-  {
-    id: 'post-1',
-    user: users[0],
-    content: 'Just launched a new Next.js project with shadcn/ui and it feels amazing! The DX is top-notch. Highly recommend for anyone starting a new app.',
-    tags: ['nextjs', 'react', 'development', 'webdev'],
-    createdAt: subMinutes(new Date(), 5).toISOString(),
-    likes: 12,
-    comments: 3,
-  },
-  {
-    id: 'post-2',
-    user: users[2],
-    content: 'Exploring the new features in Genkit for AI-powered applications. The ability to define flows and prompts declaratively simplifies development significantly.',
-    tags: ['ai', 'genkit', 'firebase', 'typescript'],
-    createdAt: subHours(new Date(), 2).toISOString(),
-    likes: 42,
-    comments: 8,
-  },
-  {
-    id: 'post-3',
-    user: users[1],
-    content: 'Thinking about database choices for a new social media app. What are your thoughts on Firestore vs. a traditional SQL database? Performance at scale is a key concern.',
-    tags: ['database', 'firestore', 'sql', 'backend'],
-    createdAt: subDays(new Date(), 1).toISOString(),
-    likes: 78,
-    comments: 21,
-  },
-  {
-    id: 'post-4',
-    user: users[3],
-    content: 'The new responsive design on our company website is finally live! It was a team effort and I am so proud of what we accomplished. Check it out and let me know your thoughts!',
-    tags: ['webdesign', 'responsive', 'css', 'frontend'],
-    createdAt: subDays(new Date(), 2).toISOString(),
-    likes: 55,
-    comments: 12,
-  },
-];
+// --- Users ---
+export const getUserByUsername = async (username: string): Promise<User | undefined> => {
+  const token = await getToken();
+  if (!token) return undefined;
 
-export const forums: Forum[] = [
-  {
-    id: 'forum-1',
-    slug: 'general-discussion',
-    name: 'General Discussion',
-    description: 'A place for anything and everything.',
-    threadCount: 120,
-    postCount: 1500,
-    image: 'forum_general',
-  },
-  {
-    id: 'forum-2',
-    slug: 'web-development',
-    name: 'Web Development',
-    description: 'Discuss frameworks, libraries, and best practices.',
-    threadCount: 450,
-    postCount: 8900,
-    image: 'forum_webdev',
-  },
-  {
-    id: 'forum-3',
-    slug: 'ai-machine-learning',
-    name: 'AI & Machine Learning',
-    description: 'The latest in AI, ML, and data science.',
-    threadCount: 310,
-    postCount: 6200,
-    image: 'forum_ai',
-  },
-  {
-    id: 'forum-4',
-    slug: 'design-ux',
-    name: 'Design & UX',
-    description: 'Share your designs and get feedback.',
-    threadCount: 205,
-    postCount: 3400,
-    image: 'forum_design',
-  },
-];
-
-export const threads: ForumThread[] = [
-  {
-    id: 'thread-1',
-    forumSlug: 'web-development',
-    title: 'What\'s everyone\'s favorite CSS framework in 2024?',
-    author: users[0],
-    createdAt: subDays(new Date(), 1).toISOString(),
-    replyCount: 15,
-    viewCount: 250,
-    lastReply: {
-      user: users[3],
-      createdAt: subHours(new Date(), 2).toISOString(),
+  try {
+    // Note: Backend might not have findByAlias, checking requirements...
+    // If not, we might need to search or use findById if we have the ID.
+    // Assuming findByAlias exists or we map it.
+    const response = await api.getUserByUsername(token, username);
+    // Map backend DTO to frontend User type
+    // Backend UserDTO: { id, alias, email, ... }
+    // Frontend User: { id, name, username, avatar, bio, ... }
+    if (response && !response.error) {
+      const u = response as any;
+      return {
+        id: u.id,
+        name: u.alias, // Map alias to name
+        username: u.alias,
+        avatar: u.avatarUrl || 'avatar1', // Default or map
+        bio: u.bio || '',
+        alias: u.alias,
+        email: u.email
+      };
     }
-  },
-  {
-    id: 'thread-2',
-    forumSlug: 'web-development',
-    title: 'Server components in Next.js: Best practices?',
-    author: users[1],
-    createdAt: subDays(new Date(), 2).toISOString(),
-    replyCount: 8,
-    viewCount: 180,
-    lastReply: {
-      user: users[0],
-      createdAt: subHours(new Date(), 5).toISOString(),
-    }
-  },
-  {
-    id: 'thread-3',
-    forumSlug: 'ai-machine-learning',
-    title: 'How to get started with Genkit?',
-    author: users[2],
-    createdAt: subHours(new Date(), 10).toISOString(),
-    replyCount: 4,
-    viewCount: 95,
-    lastReply: {
-      user: users[2],
-      createdAt: subMinutes(new Date(), 45).toISOString(),
-    }
-  },
-];
-
-// Mock API functions
-export const getPosts = async (): Promise<Post[]> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (e) {
+    console.error('Failed to fetch user', e);
+  }
+  return undefined;
 };
 
-export const getForums = async (): Promise<Forum[]> => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return forums;
-}
+// --- Posts ---
+export const getPosts = async (): Promise<Post[]> => {
+  const token = await getToken();
+  if (!token) return [];
 
-export const getForumBySlug = async (slug: string): Promise<Forum | undefined> => {
-  await new Promise(resolve => setTimeout(resolve, 200));
-  return forums.find(f => f.slug === slug);
-}
-
-export const getThreadsByForumSlug = async (slug: string): Promise<ForumThread[]> => {
-  await new Promise(resolve => setTimeout(resolve, 400));
-  return threads
-    .filter(t => t.forumSlug === slug)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-}
-
-export const getUserByUsername = async (username: string): Promise<User | undefined> => {
-  await new Promise(resolve => setTimeout(resolve, 200));
-  return users.find(u => u.username === username);
-}
+  try {
+    const response = await api.getPosts(token);
+    if (Array.isArray(response)) {
+      return response.map((p: any) => ({
+        id: p.id,
+        user: {
+          id: p.userId || 'unknown', // We might need to fetch user details or if backend returns populated user
+          name: p.postedBy || 'Unknown',
+          username: p.postedBy || 'unknown',
+          avatar: 'avatar1',
+          bio: '',
+          alias: p.postedBy,
+          email: ''
+        },
+        content: p.text,
+        tags: [], // Backend might not have tags yet
+        createdAt: p.createdDate || new Date().toISOString(),
+        likes: p.rating || 0,
+        comments: p.replies?.length || 0
+      }));
+    }
+  } catch (e) {
+    console.error('Failed to fetch posts', e);
+  }
+  return [];
+};
 
 export const getPostsByUserId = async (userId: string): Promise<Post[]> => {
-  await new Promise(resolve => setTimeout(resolve, 400));
-  return posts
-    .filter(p => p.user.id === userId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-}
+  const token = await getToken();
+  if (!token) return [];
+
+  try {
+    const response = await api.getPostsByUser(token, userId);
+    if (Array.isArray(response)) {
+      return response.map((p: any) => ({
+        id: p.id,
+        user: {
+          id: p.userId || userId,
+          name: p.postedBy || 'Unknown',
+          username: p.postedBy || 'unknown',
+          avatar: 'avatar1',
+          bio: '',
+          alias: p.postedBy,
+          email: ''
+        },
+        content: p.text,
+        tags: [],
+        createdAt: p.createdDate || new Date().toISOString(),
+        likes: p.rating || 0,
+        comments: p.replies?.length || 0
+      }));
+    }
+  } catch (e) {
+    console.error('Failed to fetch posts by user', e);
+  }
+  return [];
+};
+
+// --- Forums ---
+export const getForums = async (): Promise<Forum[]> => {
+  const token = await getToken();
+  if (!token) return [];
+
+  try {
+    const response = await api.getForums(token);
+    if (Array.isArray(response)) {
+      return response.map((f: any) => ({
+        id: f.id,
+        slug: f.name.toLowerCase().replace(/\s+/g, '-'), // Generate slug from name
+        name: f.name,
+        description: f.description || '',
+        threadCount: 0, // Backend might not return counts
+        postCount: 0,
+        image: 'forum_general' // Default
+      }));
+    }
+  } catch (e) {
+    console.error('Failed to fetch forums', e);
+  }
+  return [];
+};
+
+export const getForumBySlug = async (slug: string): Promise<Forum | undefined> => {
+  const token = await getToken();
+  if (!token) return undefined;
+
+  // Since backend finds by name, we might need to map slug to name or just try to find by name (slug-like)
+  // Or fetch all and filter. Fetching all is safer if we don't have exact name match.
+  try {
+    const forums = await getForums();
+    return forums.find(f => f.slug === slug);
+  } catch (e) {
+    console.error('Failed to fetch forum by slug', e);
+  }
+  return undefined;
+};
+
+// --- Threads (Mocked for now as backend Forum model might not have explicit threads yet, or maps to Posts) ---
+// Assuming Forum -> Posts structure. If "Threads" are top-level posts in a forum:
+export const getThreadsByForumSlug = async (slug: string): Promise<ForumThread[]> => {
+  // For now, return empty or mock, as backend might not support "Threads" distinct from Posts
+  // If we treat Posts with forumId as threads:
+  const token = await getToken();
+  if (!token) return [];
+
+  // We need getPostsByForumId or similar. 
+  // If not available, we might have to fetch all posts and filter (inefficient)
+  // Or just return empty for now until backend supports it.
+  return [];
+};
+
+// Export empty arrays for compatibility if needed, but prefer functions
+export const users: User[] = [];
+export const posts: Post[] = [];
+export const forums: Forum[] = [];
+export const threads: ForumThread[] = [];

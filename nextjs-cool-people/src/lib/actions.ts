@@ -3,19 +3,36 @@
 import { suggestPostTags } from '@/ai/flows/suggest-post-tags';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import { users } from './data';
+// import { users } from './data'; // No longer used
 import type { User } from './types';
 import { redirect } from 'next/navigation';
+import * as api from './api';
 
 const IS_USER_CREATE_MODE = process.env.NEXT_PUBLIC_USER_CREATE_MODE === 'true';
 const IS_USER_LOGIN_MODE = process.env.NEXT_PUBLIC_USER_LOGIN_MODE === 'true';
 
-// Mock function to "save" a post
+// Helper to get token
+async function getToken(): Promise<string> {
+  const cookieStore = await cookies();
+  return cookieStore.get('coolpeople-token')?.value || '';
+}
+
+// Real function to save a post via Broker
 async function savePost(post: { content: string; tags: string[] }) {
-  console.log('Saving post:', post);
-  // In a real app, you'd save this to a database and the mock data would be updated.
-  // For now, we just simulate a delay.
-  await new Promise(resolve => setTimeout(resolve, 500));
+  const token = await getToken();
+  if (!token) throw new Error("Not authenticated");
+
+  // Construct the post object expected by the backend
+  // Backend PostDTO: { text, ... }
+  const postDto = {
+    text: post.content,
+    // tags: post.tags // Backend might not support tags yet
+  };
+
+  const response = await api.savePost(token, postDto);
+  if (!response.ok) {
+    throw new Error(response.error || "Failed to save post");
+  }
   return { success: true };
 }
 
@@ -32,6 +49,7 @@ export async function createPostAction(prevState: any, formData: FormData) {
     revalidatePath('/');
     return { message: 'Post created successfully!', type: 'success' };
   } catch (error) {
+    console.error("Create post error", error);
     return { message: 'Failed to create post.', type: 'error' };
   }
 }
@@ -66,8 +84,8 @@ export async function loginAction(prevState: any, formData: FormData) {
   const identifier = password; // Use password as identifier
 
   // Generate a unique request ID
-  const requestId = typeof crypto !== 'undefined' && crypto.randomUUID 
-    ? crypto.randomUUID() 
+  const requestId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
     : `req-${Date.now()}`;
 
   const requestBody = {
@@ -78,6 +96,7 @@ export async function loginAction(prevState: any, formData: FormData) {
   };
 
   try {
+    // Server-side fetch to Broker
     const backendUrl =
       process.env.BROKER_SERVICE_URL ||
       'http://localhost:8080/api/broker/submitRequest';
@@ -91,7 +110,7 @@ export async function loginAction(prevState: any, formData: FormData) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok || !data.ok || !data.token) {
       const errorDetails = data.errors?.[0]?.message || data.message || "Login failed";
       return { message: errorDetails, type: 'error' };
@@ -107,11 +126,18 @@ export async function loginAction(prevState: any, formData: FormData) {
     });
 
     // Store user info in cookie as well
+    // Backend might not return user object in login response (based on Angular experience)
+    // If not, we construct a minimal one or fetch it.
+    // Angular service constructed a partial user.
     const userInfo = {
-      id: data.user?.id || `user-${Date.now()}`,
+      id: data.user?.id || alias,
       alias: alias,
-      email: alias,
+      email: email,
+      name: alias,
+      username: alias,
+      avatar: 'avatar1'
     };
+
     await cookieStore.set('coolpeople-user', JSON.stringify(userInfo), {
       httpOnly: false, // This can be accessible by client-side JavaScript if needed
       secure: process.env.NODE_ENV === 'production',
@@ -137,15 +163,15 @@ export async function signupAction(prevState: any, formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const username = name.toLowerCase().replace(/\s/g, '');
+  // const username = name.toLowerCase().replace(/\s/g, '');
 
   if (!name || !email || !password) {
     return { message: 'All fields are required.', type: 'error' };
   }
 
   // Generate a unique request ID
-  const requestId = typeof crypto !== 'undefined' && crypto.randomUUID 
-    ? crypto.randomUUID() 
+  const requestId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
     : `req-${Date.now()}`;
 
   // Call the user service to create a new user via the broker
@@ -170,7 +196,7 @@ export async function signupAction(prevState: any, formData: FormData) {
     });
 
     const data = await response.json();
-    
+
     if (!response.ok || !data.ok) {
       const errorDetails = data.errors?.[0]?.message || data.message || "User creation failed";
       return { message: errorDetails, type: 'error' };
@@ -187,9 +213,12 @@ export async function signupAction(prevState: any, formData: FormData) {
       });
 
       const userInfo = {
-        id: data.user?.id || `user-${Date.now()}`,
+        id: data.user?.id || name,
         alias: name,
         email: email,
+        name: name,
+        username: name,
+        avatar: 'avatar1'
       };
       await cookieStore.set('coolpeople-user', JSON.stringify(userInfo), {
         httpOnly: false,
@@ -197,13 +226,8 @@ export async function signupAction(prevState: any, formData: FormData) {
         maxAge: 60 * 60 * 24, // 1 day
         path: '/',
       });
-      
-      // Store in localStorage for client-side access (if needed by client components)
-      // This will be handled by the auth context, so we don't need to store here
     }
 
-    // We don't return a state here because we are redirecting.
-    // The redirect needs to be outside the try/catch to be detected by Next.js.
     redirect('/feed');
   } catch (error) {
     console.error('Signup error:', error);
@@ -215,20 +239,19 @@ export async function logoutAction() {
   const cookieStore = await cookies();
   await cookieStore.delete('coolpeople-token');
   await cookieStore.delete('coolpeople-user');
-  
-  // In the token-based system, we also want to invalidate the token on the server side
-  // if there's an endpoint for that. For now, we just clear the cookies.
+
+  // Optional: Call logout on backend
 }
 
 export async function getSessionAction(): Promise<{ user: any; token: string | null }> {
   const cookieStore = await cookies();
   const tokenCookie = await cookieStore.get('coolpeople-token');
   const userCookie = await cookieStore.get('coolpeople-user');
-  
+
   if (!tokenCookie) {
     return { user: null, token: null };
   }
-  
+
   try {
     const user = userCookie ? JSON.parse(userCookie.value) : null;
     return { user, token: tokenCookie.value };

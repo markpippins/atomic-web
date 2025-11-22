@@ -16,12 +16,13 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth-provider';
+// import { useAuth } from '@/components/auth-provider'; // No longer using client-side auth for login
+import { loginAction } from '@/lib/actions'; // Use server action
 
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { login } = useAuth();
+  // const { login } = useAuth(); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,15 +30,25 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
-      await login(email, password);
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
+
+      const result = await loginAction(null, formData);
+
+      if (result.type === 'error') {
+        throw new Error(result.message);
+      }
+
       toast({
         title: 'Login Successful',
         description: 'You have successfully logged in.',
       });
-      router.push('/feed');
-      router.refresh();
+
+      // Force a hard refresh to update server components with the new cookie
+      window.location.href = '/feed';
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -75,13 +86,13 @@ export default function LoginPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                name="password" 
-                type="password" 
+              <Input
+                id="password"
+                name="password"
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required 
+                required
               />
             </div>
           </CardContent>

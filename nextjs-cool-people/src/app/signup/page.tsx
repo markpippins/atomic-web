@@ -16,12 +16,13 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth-provider';
+// import { useAuth } from '@/components/auth-provider'; // No longer using client-side auth for signup
+import { signupAction } from '@/lib/actions'; // Use server action
 
 export default function SignupPage() {
   const { toast } = useToast();
   const router = useRouter();
-  const { login } = useAuth(); // We'll use login after signup to authenticate the new user
+  // const { login } = useAuth(); 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,49 +31,39 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
-      // Generate a unique request ID
-      const requestId = typeof crypto !== 'undefined' && crypto.randomUUID 
-        ? crypto.randomUUID() 
-        : `req-${Date.now()}`;
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('email', email);
+      formData.append('password', password);
 
-      // Call the user service to create a new user via the broker
-      const requestBody = {
-        service: "userService",
-        operation: "createUser",
-        params: { email, alias: name, identifier: password },
-        requestId
-      };
+      const result = await signupAction(null, formData);
 
-      const backendUrl =
-        process.env.BROKER_SERVICE_URL ||
-        'http://localhost:8080/api/broker/submitRequest';
-
-      const response = await fetch(backendUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok || !data.ok) {
-        const errorDetails = data.errors?.[0]?.message || data.message || "User creation failed";
-        throw new Error(errorDetails);
+      if (result?.type === 'error') {
+        throw new Error(result.message);
       }
 
-      // If user creation was successful, log the user in
-      await login(email, password);
-      
-      toast({
-        title: 'Signup Successful',
-        description: 'Your account has been created successfully.',
-      });
-      router.push('/feed');
+      // signupAction redirects on success, but if it returns (e.g. due to redirect behavior in client component),
+      // we can handle it. Actually redirect throws, so we might not get here if successful.
+      // But if we do (e.g. if we change implementation), we can show toast.
+      // However, redirect in Server Action usually handles the navigation.
+      // If we want to show toast, we might need to do it differently or assume success if no error.
+
+      // Note: redirect() in Server Action throws an error that Next.js catches. 
+      // So we won't reach here unless we catch that error.
+      // But we are calling it from a client component wrapper? 
+      // No, we are calling the async function.
+
+      // Let's assume if it returns, it failed or we need to manual redirect if not using redirect() in action.
+      // My signupAction uses redirect().
+
     } catch (error) {
+      // Check if it's a redirect error (NEXT_REDIRECT)
+      if ((error as any).message === 'NEXT_REDIRECT') {
+        throw error;
+      }
+
       console.error('Signup error:', error);
       toast({
         title: 'Signup Failed',
@@ -97,13 +88,13 @@ export default function SignupPage() {
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Name</Label>
-              <Input 
-                id="name" 
-                name="name" 
-                placeholder="John Doe" 
+              <Input
+                id="name"
+                name="name"
+                placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                required 
+                required
               />
             </div>
             <div className="grid gap-2">
@@ -120,13 +111,13 @@ export default function SignupPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                name="password" 
-                type="password" 
+              <Input
+                id="password"
+                name="password"
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required 
+                required
               />
             </div>
           </CardContent>
