@@ -12,6 +12,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
           <li><a routerLink="/dashboard" routerLinkActive="active">Dashboard</a></li>
           <li><a routerLink="/services" routerLinkActive="active">Services</a></li>
           <li><a routerLink="/servers" routerLinkActive="active">Servers</a></li>
+          <li><a routerLink="/config" routerLinkActive="active">Config</a></li>
         </ul>
       </nav>
       <main class="content">

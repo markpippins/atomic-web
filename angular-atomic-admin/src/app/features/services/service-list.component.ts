@@ -24,10 +24,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
             <tr>
               <td>{{ service.name }}</td>
               <td>{{ service.type }}</td>
-              <td>{{ service.framework.name }}</td>
+              <td>{{ service.framework?.name || 'Unknown' }}</td>
               <td>
-                <span class="status-badge" [class]="service.status.toLowerCase()">
-                  {{ service.status }}
+                <span class="status-badge" [class]="service.status?.toLowerCase() || 'unknown'">
+                  {{ service.status || 'Unknown' }}
                 </span>
               </td>
               <td>{{ service.defaultPort }}</td>

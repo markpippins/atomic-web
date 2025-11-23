@@ -27,8 +27,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
               <td>{{ server.environment }}</td>
               <td>{{ server.type }}</td>
               <td>
-                <span class="status-badge" [class]="server.status.toLowerCase()">
-                  {{ server.status }}
+                <span class="status-badge" [class]="server.status?.toLowerCase() || 'unknown'">
+                  {{ server.status || 'Unknown' }}
                 </span>
               </td>
             </tr>
