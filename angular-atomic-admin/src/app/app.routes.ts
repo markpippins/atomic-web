@@ -9,5 +9,6 @@ export const routes: Routes = [
   { path: 'dashboard', component: DashboardComponent },
   { path: 'services', component: ServiceListComponent },
   { path: 'servers', component: ServerListComponent },
+  { path: 'frameworks', loadComponent: () => import('./features/frameworks/framework-list.component').then(m => m.FrameworkListComponent) },
   { path: 'config', component: ConfigComponent },
 ];

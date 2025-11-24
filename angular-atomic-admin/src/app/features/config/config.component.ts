@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Framework } from '../../models/models';
+import { Framework, FrameworkCategory, FrameworkLanguage, ServiceType, ServerType } from '../../models/models';
 
 @Component({
   selector: 'app-config',
@@ -36,20 +36,21 @@ import { Framework } from '../../models/models';
                 <div class="form-group">
                   <label>Category *</label>
                   <select [(ngModel)]="frameworkForm.category" name="category" required>
-                    <option value="">Select...</option>
-                    <option value="JAVA_SPRING">Java - Spring</option>
-                    <option value="JAVA_QUARKUS">Java - Quarkus</option>
-                    <option value="JAVA_MICRONAUT">Java - Micronaut</option>
-                    <option value="NODE_EXPRESS">Node.js - Express</option>
-                    <option value="NODE_NESTJS">Node.js - NestJS</option>
-                    <option value="NODE_ADONISJS">Node.js - AdonisJS</option>
-                    <option value="NODE_MOLECULER">Node.js - Moleculer</option>
+                    <option [ngValue]="null">Select...</option>
+                    @for (category of frameworkCategories(); track category.id) {
+                      <option [ngValue]="category">{{ category.name }}</option>
+                    }
                   </select>
                 </div>
                 
                 <div class="form-group">
                   <label>Language</label>
-                  <input type="text" [(ngModel)]="frameworkForm.language" name="language">
+                  <select [(ngModel)]="frameworkForm.language" name="language">
+                    <option [ngValue]="null">Select...</option>
+                    @for (language of frameworkLanguages(); track language.id) {
+                      <option [ngValue]="language">{{ language.name }}</option>
+                    }
+                  </select>
                 </div>
               </div>
               
@@ -95,8 +96,8 @@ import { Framework } from '../../models/models';
             @for (framework of frameworks(); track framework.id) {
               <tr>
                 <td>{{ framework.name }}</td>
-                <td>{{ formatCategory(framework.category) }}</td>
-                <td>{{ framework.language }}</td>
+                <td>{{ framework.category?.name }}</td>
+                <td>{{ framework.language?.name }}</td>
                 <td>{{ framework.latestVersion }}</td>
                 <td>
                   <span class="badge" [class.badge-success]="framework.supportsBrokerPattern">
@@ -114,42 +115,196 @@ import { Framework } from '../../models/models';
       </div>
 
       <div class="config-section">
-        <h2>Service Types</h2>
-        <div class="info-grid">
-          <div class="info-card">REST_API</div>
-          <div class="info-card">GRAPHQL_API</div>
-          <div class="info-card">GRPC_SERVICE</div>
-          <div class="info-card">MESSAGE_QUEUE</div>
-          <div class="info-card">DATABASE</div>
-          <div class="info-card">CACHE</div>
-          <div class="info-card">GATEWAY</div>
-          <div class="info-card">PROXY</div>
-          <div class="info-card">WEB_APP</div>
-          <div class="info-card">BACKGROUND_JOB</div>
+        <div class="section-header">
+          <h2>Service Types</h2>
+          <button class="btn btn-primary" (click)="showServiceTypeForm()">Add Service Type</button>
         </div>
+
+        @if (serviceTypeFormVisible()) {
+          <div class="form-card">
+            <h3>{{ editingServiceType() ? 'Edit' : 'Add' }} Service Type</h3>
+            <form (ngSubmit)="saveServiceType()">
+              <div class="form-group">
+                <label>Name *</label>
+                <input type="text" [(ngModel)]="serviceTypeForm.name" name="name" required>
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <textarea [(ngModel)]="serviceTypeForm.description" name="description" rows="2"></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelServiceTypeForm()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        }
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (type of serviceTypes(); track type.id) {
+              <tr>
+                <td>{{ type.name }}</td>
+                <td>{{ type.description }}</td>
+                <td>
+                  <button class="btn-icon" (click)="editServiceType(type)" title="Edit">✏️</button>
+                  <button class="btn-icon" (click)="deleteServiceTypeConfirm(type)" title="Delete">🗑️</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
 
       <div class="config-section">
-        <h2>Server Types & Environments</h2>
-        <div class="config-grid">
-          <div>
-            <h3>Server Types</h3>
-            <div class="info-grid">
-              <div class="info-card">PHYSICAL</div>
-              <div class="info-card">VIRTUAL</div>
-              <div class="info-card">CONTAINER</div>
-              <div class="info-card">CLOUD</div>
-            </div>
+        <div class="section-header">
+          <h2>Server Types</h2>
+          <button class="btn btn-primary" (click)="showServerTypeForm()">Add Server Type</button>
+        </div>
+
+        @if (serverTypeFormVisible()) {
+          <div class="form-card">
+            <h3>{{ editingServerType() ? 'Edit' : 'Add' }} Server Type</h3>
+            <form (ngSubmit)="saveServerType()">
+              <div class="form-group">
+                <label>Name *</label>
+                <input type="text" [(ngModel)]="serverTypeForm.name" name="name" required>
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <textarea [(ngModel)]="serverTypeForm.description" name="description" rows="2"></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelServerTypeForm()">Cancel</button>
+              </div>
+            </form>
           </div>
-          <div>
-            <h3>Environments</h3>
-            <div class="info-grid">
-              <div class="info-card">DEVELOPMENT</div>
-              <div class="info-card">STAGING</div>
-              <div class="info-card">PRODUCTION</div>
-              <div class="info-card">TEST</div>
-            </div>
+        }
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (type of serverTypes(); track type.id) {
+              <tr>
+                <td>{{ type.name }}</td>
+                <td>{{ type.description }}</td>
+                <td>
+                  <button class="btn-icon" (click)="editServerType(type)" title="Edit">✏️</button>
+                  <button class="btn-icon" (click)="deleteServerTypeConfirm(type)" title="Delete">🗑️</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="config-grid">
+        <div class="config-section">
+          <div class="section-header">
+            <h2>Framework Categories</h2>
+            <button class="btn btn-primary" (click)="showFrameworkCategoryForm()">Add Category</button>
           </div>
+
+          @if (frameworkCategoryFormVisible()) {
+            <div class="form-card">
+              <h3>{{ editingFrameworkCategory() ? 'Edit' : 'Add' }} Category</h3>
+              <form (ngSubmit)="saveFrameworkCategory()">
+                <div class="form-group">
+                  <label>Name *</label>
+                  <input type="text" [(ngModel)]="frameworkCategoryForm.name" name="name" required>
+                </div>
+                <div class="form-group">
+                  <label>Description</label>
+                  <textarea [(ngModel)]="frameworkCategoryForm.description" name="description" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                  <button type="button" class="btn btn-secondary" (click)="cancelFrameworkCategoryForm()">Cancel</button>
+                </div>
+              </form>
+            </div>
+          }
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (category of frameworkCategories(); track category.id) {
+                <tr>
+                  <td>{{ category.name }}</td>
+                  <td>
+                    <button class="btn-icon" (click)="editFrameworkCategory(category)" title="Edit">✏️</button>
+                    <button class="btn-icon" (click)="deleteFrameworkCategoryConfirm(category)" title="Delete">🗑️</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="config-section">
+          <div class="section-header">
+            <h2>Framework Languages</h2>
+            <button class="btn btn-primary" (click)="showFrameworkLanguageForm()">Add Language</button>
+          </div>
+
+          @if (frameworkLanguageFormVisible()) {
+            <div class="form-card">
+              <h3>{{ editingFrameworkLanguage() ? 'Edit' : 'Add' }} Language</h3>
+              <form (ngSubmit)="saveFrameworkLanguage()">
+                <div class="form-group">
+                  <label>Name *</label>
+                  <input type="text" [(ngModel)]="frameworkLanguageForm.name" name="name" required>
+                </div>
+                <div class="form-group">
+                  <label>Description</label>
+                  <textarea [(ngModel)]="frameworkLanguageForm.description" name="description" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                  <button type="button" class="btn btn-secondary" (click)="cancelFrameworkLanguageForm()">Cancel</button>
+                </div>
+              </form>
+            </div>
+          }
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (language of frameworkLanguages(); track language.id) {
+                <tr>
+                  <td>{{ language.name }}</td>
+                  <td>
+                    <button class="btn-icon" (click)="editFrameworkLanguage(language)" title="Edit">✏️</button>
+                    <button class="btn-icon" (click)="deleteFrameworkLanguageConfirm(language)" title="Delete">🗑️</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -185,15 +340,19 @@ import { Framework } from '../../models/models';
 export class ConfigComponent {
   private apiService = inject(ApiService);
   frameworks = toSignal(this.apiService.getFrameworks(), { initialValue: [] });
-  
+  frameworkCategories = toSignal(this.apiService.getFrameworkCategories(), { initialValue: [] });
+  frameworkLanguages = toSignal(this.apiService.getFrameworkLanguages(), { initialValue: [] });
+  serviceTypes = toSignal(this.apiService.getServiceTypes(), { initialValue: [] });
+  serverTypes = toSignal(this.apiService.getServerTypes(), { initialValue: [] });
+
   frameworkFormVisible = signal(false);
   editingFramework = signal<Framework | null>(null);
-  
+
   frameworkForm: any = {
     name: '',
     description: '',
-    category: '',
-    language: '',
+    category: null,
+    language: null,
     latestVersion: '',
     documentationUrl: '',
     supportsBrokerPattern: false
@@ -221,8 +380,8 @@ export class ConfigComponent {
     this.frameworkForm = {
       name: '',
       description: '',
-      category: '',
-      language: '',
+      category: null,
+      language: null,
       latestVersion: '',
       documentationUrl: '',
       supportsBrokerPattern: false
@@ -256,6 +415,226 @@ export class ConfigComponent {
         error: (error) => {
           console.error('Error deleting framework:', error);
           alert('Error deleting framework. It may be in use by services.');
+        }
+      });
+    }
+  }
+
+  // Service Type Management
+  serviceTypeFormVisible = signal(false);
+  editingServiceType = signal<ServiceType | null>(null);
+  serviceTypeForm: any = { name: '', description: '' };
+
+  showServiceTypeForm() {
+    this.serviceTypeFormVisible.set(true);
+    this.editingServiceType.set(null);
+    this.serviceTypeForm = { name: '', description: '' };
+  }
+
+  editServiceType(type: ServiceType) {
+    this.serviceTypeFormVisible.set(true);
+    this.editingServiceType.set(type);
+    this.serviceTypeForm = { ...type };
+  }
+
+  cancelServiceTypeForm() {
+    this.serviceTypeFormVisible.set(false);
+    this.editingServiceType.set(null);
+    this.serviceTypeForm = { name: '', description: '' };
+  }
+
+  saveServiceType() {
+    const editing = this.editingServiceType();
+    const operation = editing
+      ? this.apiService.updateServiceType(editing.id, this.serviceTypeForm)
+      : this.apiService.createServiceType(this.serviceTypeForm);
+
+    operation.subscribe({
+      next: () => {
+        this.cancelServiceTypeForm();
+        window.location.reload();
+      },
+      error: (error) => {
+        console.error('Error saving service type:', error);
+        alert('Error saving service type.');
+      }
+    });
+  }
+
+  deleteServiceTypeConfirm(type: ServiceType) {
+    if (confirm(`Are you sure you want to delete "${type.name}"?`)) {
+      this.apiService.deleteServiceType(type.id).subscribe({
+        next: () => {
+          window.location.reload();
+        },
+        error: (error) => {
+          console.error('Error deleting service type:', error);
+          alert('Error deleting service type.');
+        }
+      });
+    }
+  }
+
+  // Server Type Management
+  serverTypeFormVisible = signal(false);
+  editingServerType = signal<ServerType | null>(null);
+  serverTypeForm: any = { name: '', description: '' };
+
+  showServerTypeForm() {
+    this.serverTypeFormVisible.set(true);
+    this.editingServerType.set(null);
+    this.serverTypeForm = { name: '', description: '' };
+  }
+
+  editServerType(type: ServerType) {
+    this.serverTypeFormVisible.set(true);
+    this.editingServerType.set(type);
+    this.serverTypeForm = { ...type };
+  }
+
+  cancelServerTypeForm() {
+    this.serverTypeFormVisible.set(false);
+    this.editingServerType.set(null);
+    this.serverTypeForm = { name: '', description: '' };
+  }
+
+  saveServerType() {
+    const editing = this.editingServerType();
+    const operation = editing
+      ? this.apiService.updateServerType(editing.id, this.serverTypeForm)
+      : this.apiService.createServerType(this.serverTypeForm);
+
+    operation.subscribe({
+      next: () => {
+        this.cancelServerTypeForm();
+        window.location.reload();
+      },
+      error: (error) => {
+        console.error('Error saving server type:', error);
+        alert('Error saving server type.');
+      }
+    });
+  }
+
+  deleteServerTypeConfirm(type: ServerType) {
+    if (confirm(`Are you sure you want to delete "${type.name}"?`)) {
+      this.apiService.deleteServerType(type.id).subscribe({
+        next: () => {
+          window.location.reload();
+        },
+        error: (error) => {
+          console.error('Error deleting server type:', error);
+          alert('Error deleting server type.');
+        }
+      });
+    }
+  }
+
+  // Framework Category Management
+  frameworkCategoryFormVisible = signal(false);
+  editingFrameworkCategory = signal<FrameworkCategory | null>(null);
+  frameworkCategoryForm: any = { name: '', description: '' };
+
+  showFrameworkCategoryForm() {
+    this.frameworkCategoryFormVisible.set(true);
+    this.editingFrameworkCategory.set(null);
+    this.frameworkCategoryForm = { name: '', description: '' };
+  }
+
+  editFrameworkCategory(category: FrameworkCategory) {
+    this.frameworkCategoryFormVisible.set(true);
+    this.editingFrameworkCategory.set(category);
+    this.frameworkCategoryForm = { ...category };
+  }
+
+  cancelFrameworkCategoryForm() {
+    this.frameworkCategoryFormVisible.set(false);
+    this.editingFrameworkCategory.set(null);
+    this.frameworkCategoryForm = { name: '', description: '' };
+  }
+
+  saveFrameworkCategory() {
+    const editing = this.editingFrameworkCategory();
+    const operation = editing
+      ? this.apiService.updateFrameworkCategory(editing.id, this.frameworkCategoryForm)
+      : this.apiService.createFrameworkCategory(this.frameworkCategoryForm);
+
+    operation.subscribe({
+      next: () => {
+        this.cancelFrameworkCategoryForm();
+        window.location.reload();
+      },
+      error: (error) => {
+        console.error('Error saving framework category:', error);
+        alert('Error saving framework category.');
+      }
+    });
+  }
+
+  deleteFrameworkCategoryConfirm(category: FrameworkCategory) {
+    if (confirm(`Are you sure you want to delete "${category.name}"?`)) {
+      this.apiService.deleteFrameworkCategory(category.id).subscribe({
+        next: () => {
+          window.location.reload();
+        },
+        error: (error) => {
+          console.error('Error deleting framework category:', error);
+          alert('Error deleting framework category.');
+        }
+      });
+    }
+  }
+
+  // Framework Language Management
+  frameworkLanguageFormVisible = signal(false);
+  editingFrameworkLanguage = signal<FrameworkLanguage | null>(null);
+  frameworkLanguageForm: any = { name: '', description: '' };
+
+  showFrameworkLanguageForm() {
+    this.frameworkLanguageFormVisible.set(true);
+    this.editingFrameworkLanguage.set(null);
+    this.frameworkLanguageForm = { name: '', description: '' };
+  }
+
+  editFrameworkLanguage(language: FrameworkLanguage) {
+    this.frameworkLanguageFormVisible.set(true);
+    this.editingFrameworkLanguage.set(language);
+    this.frameworkLanguageForm = { ...language };
+  }
+
+  cancelFrameworkLanguageForm() {
+    this.frameworkLanguageFormVisible.set(false);
+    this.editingFrameworkLanguage.set(null);
+    this.frameworkLanguageForm = { name: '', description: '' };
+  }
+
+  saveFrameworkLanguage() {
+    const editing = this.editingFrameworkLanguage();
+    const operation = editing
+      ? this.apiService.updateFrameworkLanguage(editing.id, this.frameworkLanguageForm)
+      : this.apiService.createFrameworkLanguage(this.frameworkLanguageForm);
+
+    operation.subscribe({
+      next: () => {
+        this.cancelFrameworkLanguageForm();
+        window.location.reload();
+      },
+      error: (error) => {
+        console.error('Error saving framework language:', error);
+        alert('Error saving framework language.');
+      }
+    });
+  }
+
+  deleteFrameworkLanguageConfirm(language: FrameworkLanguage) {
+    if (confirm(`Are you sure you want to delete "${language.name}"?`)) {
+      this.apiService.deleteFrameworkLanguage(language.id).subscribe({
+        next: () => {
+          window.location.reload();
+        },
+        error: (error) => {
+          console.error('Error deleting framework language:', error);
+          alert('Error deleting framework language.');
         }
       });
     }

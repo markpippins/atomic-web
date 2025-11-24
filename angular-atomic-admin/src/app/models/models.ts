@@ -1,12 +1,30 @@
+export interface FrameworkCategory {
+  id: number;
+  name: string;
+  description: string;
+}
+
+export interface FrameworkLanguage {
+  id: number;
+  name: string;
+  description: string;
+}
+
 export interface Framework {
   id: number;
   name: string;
   description: string;
-  category: string;
-  language: string;
+  category: FrameworkCategory;
+  language: FrameworkLanguage;
   latestVersion: string;
   documentationUrl: string;
   supportsBrokerPattern: boolean;
+}
+
+export interface ServiceType {
+  id: number;
+  name: string;
+  description: string;
 }
 
 export interface Service {
@@ -14,7 +32,7 @@ export interface Service {
   name: string;
   description: string;
   framework: Framework;
-  type: string;
+  type: ServiceType;
   defaultPort: number;
   healthCheckPath: string;
   apiBasePath: string;
@@ -22,11 +40,17 @@ export interface Service {
   version: string;
 }
 
+export interface ServerType {
+  id: number;
+  name: string;
+  description: string;
+}
+
 export interface Server {
   id: number;
   hostname: string;
   ipAddress: string;
-  type: string;
+  type: ServerType;
   environment: string;
   operatingSystem: string;
   cpuCores: number;
