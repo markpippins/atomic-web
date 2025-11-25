@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect } from '@angular/core';
+import { Component, inject, signal, effect, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -6,9 +6,9 @@ import { Framework, FrameworkCategory, FrameworkLanguage } from '../../models/mo
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
-    selector: 'app-framework-form',
-    imports: [CommonModule, ReactiveFormsModule],
-    template: `
+  selector: 'app-framework-form',
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
     <div class="modal-overlay" (click)="cancel.emit()">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <h3>{{ framework() ? 'Edit' : 'Add' }} Framework</h3>
@@ -68,7 +68,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.5);
@@ -96,46 +96,46 @@ import { toSignal } from '@angular/core/rxjs-interop';
   `]
 })
 export class FrameworkFormComponent {
-    private fb = inject(FormBuilder);
-    private apiService = inject(ApiService);
+  private fb = inject(FormBuilder);
+  private apiService = inject(ApiService);
 
-    framework = signal<Framework | null>(null);
-    save = output<Partial<Framework>>();
-    cancel = output<void>();
+  framework = input<Framework | null>(null);
+  save = output<Partial<Framework>>();
+  cancel = output<void>();
 
-    categories = toSignal(this.apiService.getFrameworkCategories(), { initialValue: [] });
-    languages = toSignal(this.apiService.getFrameworkLanguages(), { initialValue: [] });
+  categories = toSignal(this.apiService.getFrameworkCategories(), { initialValue: [] });
+  languages = toSignal(this.apiService.getFrameworkLanguages(), { initialValue: [] });
 
-    form = this.fb.group({
-        name: ['', Validators.required],
-        description: [''],
-        category: [null as FrameworkCategory | null, Validators.required],
-        language: [null as FrameworkLanguage | null, Validators.required],
-        latestVersion: [''],
-        documentationUrl: [''],
-        supportsBrokerPattern: [false]
-    });
+  form = this.fb.group({
+    name: ['', Validators.required],
+    description: [''],
+    category: [null as FrameworkCategory | null, Validators.required],
+    language: [null as FrameworkLanguage | null, Validators.required],
+    latestVersion: [''],
+    documentationUrl: [''],
+    supportsBrokerPattern: [false]
+  });
 
-    constructor() {
-        effect(() => {
-            const f = this.framework();
-            if (f) {
-                this.form.patchValue(f);
-            } else {
-                this.form.reset({
-                    category: null,
-                    language: null,
-                    supportsBrokerPattern: false
-                });
-            }
+  constructor() {
+    effect(() => {
+      const f = this.framework();
+      if (f) {
+        this.form.patchValue(f);
+      } else {
+        this.form.reset({
+          category: null,
+          language: null,
+          supportsBrokerPattern: false
         });
-    }
+      }
+    });
+  }
 
-    onSubmit() {
-        if (this.form.valid) {
-            this.save.emit(this.form.value as Partial<Framework>);
-        }
+  onSubmit() {
+    if (this.form.valid) {
+      this.save.emit(this.form.value as Partial<Framework>);
     }
+  }
 }
 
 import { output } from '@angular/core';

@@ -41,7 +41,7 @@ import { Server } from '../../models/models';
               <td>{{ server.hostname }}</td>
               <td>{{ server.ipAddress }}</td>
               <td>{{ server.environment }}</td>
-              <td>{{ server.type }}</td>
+              <td>{{ server.type?.name }}</td>
               <td>
                 <span class="status-badge" [class]="server.status?.toLowerCase() || 'unknown'">
                   {{ server.status || 'Unknown' }}

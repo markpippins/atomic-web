@@ -44,7 +44,7 @@ import { forkJoin } from 'rxjs';
           @for (service of services(); track service.id) {
             <tr>
               <td>{{ service.name }}</td>
-              <td>{{ service.type }}</td>
+              <td>{{ service.type?.name }}</td>
               <td>{{ service.framework?.name || 'Unknown' }}</td>
               <td>
                 <span class="status-badge" [class]="service.status?.toLowerCase() || 'unknown'">
