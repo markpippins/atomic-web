@@ -38,14 +38,14 @@ export class TreeNodeComponent implements OnInit {
   isDragOver = signal(false);
 
   properties = computed(() => this.folderPropertiesService.getProperties(this.path()));
-  
+
   iconUrl = computed(() => {
     const service = this.getImageService()(this.path());
     const node = this.node();
     const props = this.properties();
 
     if (node.isServerRoot) {
-        return service.getIconUrl({ ...node, name: 'cloud' });
+      return service.getIconUrl({ ...node, name: 'cloud' });
     }
     return service.getIconUrl(node, props?.imageName);
   });
@@ -63,7 +63,7 @@ export class TreeNodeComponent implements OnInit {
   displayName = computed(() => {
     const props = this.properties();
     if (props?.displayName) {
-        return props.displayName;
+      return props.displayName;
     }
     return this.node().name;
   });
@@ -73,23 +73,20 @@ export class TreeNodeComponent implements OnInit {
     if (!children) {
       return [];
     }
-    
+
     const folderChildren = children.filter(c => c.type === 'folder');
 
     // Special sorting for children of the root "Home" node.
     // The Home node is the only one that directly contains server roots.
     if (folderChildren.some(c => c.isServerRoot)) {
-      const localNode = folderChildren.find(item => !item.isServerRoot);
+      const localNodes = folderChildren.filter(item => !item.isServerRoot);
       const serverNodes = folderChildren.filter(item => item.isServerRoot);
-      
+
       serverNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-      
-      const result: FileSystemNode[] = [];
-      if (localNode) {
-        result.push(localNode);
-      }
-      result.push(...serverNodes);
-      return result;
+
+      // Keep local nodes in their original order (Session first, then Host Server nodes)
+      // or sort them if desired. For now, preserving order from app.component.ts
+      return [...localNodes, ...serverNodes];
     }
 
     // Default alphabetical sort for all other nodes
@@ -164,8 +161,8 @@ export class TreeNodeComponent implements OnInit {
     const node = this.node();
     if (!this.isExpandable()) return;
     if (node.isServerRoot && !node.connected) {
-        // Do not expand and do not try to load children if disconnected
-        return;
+      // Do not expand and do not try to load children if disconnected
+      return;
     }
 
     const expanding = !this.isExpanded();
@@ -201,12 +198,12 @@ export class TreeNodeComponent implements OnInit {
   onDragOver(event: DragEvent): void {
     const payload = this.dragDropService.getPayload();
     if (!payload) return;
-    
+
     if (payload.type === 'filesystem') {
-        const { sourcePath, items } = payload.payload;
-        if (items.some(item => this.path().join('/').startsWith([...sourcePath, item.name].join('/')))) {
-            return;
-        }
+      const { sourcePath, items } = payload.payload;
+      if (items.some(item => this.path().join('/').startsWith([...sourcePath, item.name].join('/')))) {
+        return;
+      }
     }
 
     event.preventDefault();
@@ -225,31 +222,31 @@ export class TreeNodeComponent implements OnInit {
     event.preventDefault();
     event.stopPropagation();
     this.isDragOver.set(false);
-    
+
     const payload = this.dragDropService.getPayload();
     if (!payload) return;
 
     const destPath = this.path();
-    
+
     if (payload.type === 'filesystem') {
-        this.itemsDropped.emit({ destPath, payload });
+      this.itemsDropped.emit({ destPath, payload });
     } else if (payload.type === 'bookmark') {
-        this.bookmarkDropped.emit({ bookmark: payload.payload.data, destPath });
+      this.bookmarkDropped.emit({ bookmark: payload.payload.data, destPath });
     }
   }
 
   onDragStart(event: DragEvent): void {
     const provider = this.getProvider()(this.path());
-    
+
     const payload: DragDropPayload = {
-        type: 'filesystem',
-        payload: { sourceProvider: provider, sourcePath: this.path().slice(0, -1), items: [this.node()] }
+      type: 'filesystem',
+      payload: { sourceProvider: provider, sourcePath: this.path().slice(0, -1), items: [this.node()] }
     };
     this.dragDropService.startDrag(payload);
 
     if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('application/json', JSON.stringify({ type: 'filesystem' }));
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('application/json', JSON.stringify({ type: 'filesystem' }));
     }
   }
 

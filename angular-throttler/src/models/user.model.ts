@@ -4,4 +4,5 @@ export interface User {
   alias: string;
   email: string;
   avatarUrl?: string;
+  admin?: boolean;
 }

@@ -7,6 +7,7 @@ export type User = {
   alias?: string; // For token-based auth
   email?: string; // For token-based auth
   profileId?: string; // For token-based auth
+  admin?: boolean;
 };
 
 export type Post = {

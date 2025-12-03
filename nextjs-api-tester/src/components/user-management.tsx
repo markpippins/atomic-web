@@ -48,6 +48,7 @@ type User = {
   alias: string;
   profileId?: string;
   avatarUrl?: string;
+  admin?: boolean;
 };
 
 type ServiceResponse = {

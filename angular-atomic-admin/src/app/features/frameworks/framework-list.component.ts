@@ -6,34 +6,41 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FrameworkFormComponent } from './framework-form.component';
 
 @Component({
-    selector: 'app-framework-list',
-    imports: [CommonModule, FrameworkFormComponent],
-    template: `
+  selector: 'app-framework-list',
+  imports: [CommonModule, FrameworkFormComponent],
+  template: `
     <div class="framework-list-container">
       <header>
         <h2>Frameworks</h2>
         <button class="btn-primary" (click)="showAddForm()">Add Framework</button>
       </header>
 
-      <div class="grid">
-        @for (framework of frameworks(); track framework.id) {
-          <div class="card">
-            <div class="card-header">
-              <h3>{{ framework.name }}</h3>
-              <span class="badge">{{ framework.latestVersion }}</span>
+      @if (error()) {
+        <div class="error-container">
+          <p class="error-text">{{ error() }}</p>
+          <button class="retry-btn" (click)="loadFrameworks()">Retry</button>
+        </div>
+      } @else {
+        <div class="grid">
+          @for (framework of frameworks(); track framework.id) {
+            <div class="card">
+              <div class="card-header">
+                <h3>{{ framework.name }}</h3>
+                <span class="badge">{{ framework.latestVersion }}</span>
+              </div>
+              <p class="description">{{ framework.description }}</p>
+              <div class="details">
+                <span class="tag category">{{ framework.category?.name }}</span>
+                <span class="tag language">{{ framework.language?.name }}</span>
+              </div>
+              <div class="actions">
+                <button class="btn-icon" (click)="editFramework(framework)">✏️</button>
+                <button class="btn-icon delete" (click)="deleteFramework(framework)">🗑️</button>
+              </div>
             </div>
-            <p class="description">{{ framework.description }}</p>
-            <div class="details">
-              <span class="tag category">{{ framework.category?.name }}</span>
-              <span class="tag language">{{ framework.language?.name }}</span>
-            </div>
-            <div class="actions">
-              <button class="btn-icon" (click)="editFramework(framework)">✏️</button>
-              <button class="btn-icon delete" (click)="deleteFramework(framework)">🗑️</button>
-            </div>
-          </div>
-        }
-      </div>
+          }
+        </div>
+      }
 
       @if (showForm()) {
         <app-framework-form
@@ -44,7 +51,7 @@ import { FrameworkFormComponent } from './framework-form.component';
       }
     </div>
   `,
-    styles: [`
+  styles: [`
     .framework-list-container { padding: 2rem; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
@@ -66,49 +73,101 @@ import { FrameworkFormComponent } from './framework-form.component';
     .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 1.2rem; padding: 0.25rem; }
     .btn-icon:hover { background: rgba(255,255,255,0.1); border-radius: 4px; }
     .btn-icon.delete:hover { background: rgba(220, 53, 69, 0.2); }
+    .error-container {
+      text-align: center;
+      padding: 40px;
+      background: #1e1e1e;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+    .error-text {
+      color: #ff6b6b;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+    }
+    .retry-btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   `]
 })
 export class FrameworkListComponent {
-    private apiService = inject(ApiService);
+  private apiService = inject(ApiService);
 
-    frameworks = toSignal(this.apiService.getFrameworks(), { initialValue: [] });
-    showForm = signal(false);
-    selectedFramework = signal<Framework | null>(null);
+  frameworks = signal<Framework[]>([]);
+  showForm = signal(false);
+  selectedFramework = signal<Framework | null>(null);
+  error = signal<string | null>(null);
 
-    showAddForm() {
-        this.selectedFramework.set(null);
-        this.showForm.set(true);
-    }
+  constructor() {
+    this.loadFrameworks();
+  }
 
-    editFramework(framework: Framework) {
-        this.selectedFramework.set(framework);
-        this.showForm.set(true);
-    }
+  loadFrameworks() {
+    this.error.set(null);
+    this.apiService.getFrameworks().subscribe({
+      next: (data) => this.frameworks.set(data),
+      error: (err) => {
+        console.error('Error loading frameworks', err);
+        this.error.set('Failed to load frameworks. Please check your connection.');
+      }
+    });
+  }
 
-    deleteFramework(framework: Framework) {
-        if (confirm(`Are you sure you want to delete ${framework.name}?`)) {
-            this.apiService.deleteFramework(framework.id).subscribe(() => {
-                window.location.reload(); // Temporary refresh
-            });
+  showAddForm() {
+    this.selectedFramework.set(null);
+    this.showForm.set(true);
+  }
+
+  editFramework(framework: Framework) {
+    this.selectedFramework.set(framework);
+    this.showForm.set(true);
+  }
+
+  deleteFramework(framework: Framework) {
+    if (confirm(`Are you sure you want to delete ${framework.name}?`)) {
+      this.apiService.deleteFramework(framework.id).subscribe({
+        next: () => this.loadFrameworks(),
+        error: (err) => {
+          console.error('Error deleting framework', err);
+          alert('Failed to delete framework.');
         }
+      });
     }
+  }
 
-    onSave(framework: Partial<Framework>) {
-        const selected = this.selectedFramework();
-        if (selected) {
-            this.apiService.updateFramework(selected.id, framework).subscribe(() => {
-                this.showForm.set(false);
-                window.location.reload(); // Temporary refresh
-            });
-        } else {
-            this.apiService.createFramework(framework).subscribe(() => {
-                this.showForm.set(false);
-                window.location.reload(); // Temporary refresh
-            });
+  onSave(framework: Partial<Framework>) {
+    const selected = this.selectedFramework();
+    if (selected) {
+      this.apiService.updateFramework(selected.id, framework).subscribe({
+        next: () => {
+          this.showForm.set(false);
+          this.loadFrameworks();
+        },
+        error: (err) => {
+          console.error('Error updating framework', err);
+          alert('Failed to update framework.');
         }
+      });
+    } else {
+      this.apiService.createFramework(framework).subscribe({
+        next: () => {
+          this.showForm.set(false);
+          this.loadFrameworks();
+        },
+        error: (err) => {
+          console.error('Error creating framework', err);
+          alert('Failed to create framework.');
+        }
+      });
     }
+  }
 
-    onCancel() {
-        this.showForm.set(false);
-    }
+  onCancel() {
+    this.showForm.set(false);
+  }
 }

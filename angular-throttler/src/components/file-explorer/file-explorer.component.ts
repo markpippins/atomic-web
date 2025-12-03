@@ -96,7 +96,7 @@ export class FileExplorerComponent implements OnDestroy {
   previewItem = signal<FileSystemNode | null>(null);
   failedImageItems = signal<Set<string>>(new Set());
   isDragOverMainArea = signal(false);
-  
+
   destinationSubMenu = signal<{ operation: 'copy' | 'move', x: number, y: number } | null>(null);
   private destinationSubMenuTimer: any;
 
@@ -109,11 +109,11 @@ export class FileExplorerComponent implements OnDestroy {
   isShareDialogOpen = signal(false);
   isPropertiesDialogOpen = signal(false);
   propertiesItem = signal<FileSystemNode | null>(null);
-  
+
   editingItemName = signal<string | null>(null);
 
   thumbnailCache = signal<Map<string, Thumbnail>>(new Map());
-  
+
   isInputDialogOpen = signal(false);
   private inputDialogCallback = signal<((value: string) => Promise<void>)>(() => Promise.resolve());
   inputDialogConfig = signal<{ title: string; message: string; initialValue: string }>({ title: '', message: '', initialValue: '' });
@@ -127,10 +127,10 @@ export class FileExplorerComponent implements OnDestroy {
   private lassoStartPoint = { x: 0, y: 0 };
   private mainContentRect: DOMRect | null = null;
   private initialSelectionOnLasso = new Set<string>();
-  
+
   private unlistenMouseMove: (() => void) | null = null;
   private unlistenMouseUp: (() => void) | null = null;
-  
+
   private lastActionId = -1;
 
   private clickTimer: any = null;
@@ -145,8 +145,8 @@ export class FileExplorerComponent implements OnDestroy {
     const content = this.readmeContent();
     if (!content) return null;
     if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
-        const rawHtml = marked.parse(content);
-        return DOMPurify.sanitize(rawHtml);
+      const rawHtml = marked.parse(content);
+      return DOMPurify.sanitize(rawHtml);
     }
     return '<p>Error: Markdown parsing libraries not loaded.</p>';
   });
@@ -158,7 +158,7 @@ export class FileExplorerComponent implements OnDestroy {
   @ViewChildren('selectableItem', { read: ElementRef }) selectableItemElements!: QueryList<ElementRef>;
 
   isHighlighted = computed(() => this.isActive() && this.isSplitView());
-  
+
   isCurrentRootConnected = computed(() => {
     const path = this.path();
     if (path.length === 0) return true; // Home is always "connected"
@@ -168,21 +168,21 @@ export class FileExplorerComponent implements OnDestroy {
     if (!folderTree?.children) return true; // Assume connected if tree is not available, or we are at Home root
 
     const rootNode = folderTree.children.find(node => node.name === rootName);
-    
+
     // If it's a server root, check its connected status.
     if (rootNode?.isServerRoot) {
-        return rootNode.connected ?? false;
+      return rootNode.connected ?? false;
     }
-    
+
     // If it's not a server root (e.g., local session), it's always considered connected.
     return true;
   });
-  
+
   private providerPath = computed(() => {
     const p = this.path();
     return p.length > 0 ? p.slice(1) : [];
   });
-  
+
   sortedItems = computed(() => {
     const items = [...this.state().items];
     const { key, direction } = this.sortCriteria();
@@ -192,10 +192,10 @@ export class FileExplorerComponent implements OnDestroy {
     if (this.path().length === 0) {
       const localNode = items.find(item => !item.isServerRoot);
       const serverNodes = items.filter(item => item.isServerRoot);
-      
+
       // Always sort server nodes alphabetically ascending by name.
       serverNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-      
+
       const result: FileSystemNode[] = [];
       if (localNode) {
         result.push(localNode);
@@ -256,33 +256,33 @@ export class FileExplorerComponent implements OnDestroy {
       this.refresh();
       this.path();
       this.fileSystemProvider();
-      
+
       this.selectedItems.set(new Set());
       this.itemSelected.emit(null);
       this._loadContents();
     });
 
     effect(() => {
-        // By reading the signals here, we ensure Angular tracks them as dependencies for this effect.
-        const selectionSize = this.selectedItems().size;
-        const totalItems = this.state().items.length;
-        const filteredItemsCount = this.filteredItems().length;
-        const hasFilter = this.filterQuery().trim().length > 0;
+      // By reading the signals here, we ensure Angular tracks them as dependencies for this effect.
+      const selectionSize = this.selectedItems().size;
+      const totalItems = this.state().items.length;
+      const filteredItemsCount = this.filteredItems().length;
+      const hasFilter = this.filterQuery().trim().length > 0;
 
-        const newStatus = {
-            selectedItemsCount: selectionSize,
-            totalItemsCount: totalItems,
-            filteredItemsCount: hasFilter ? filteredItemsCount : null,
-        };
+      const newStatus = {
+        selectedItemsCount: selectionSize,
+        totalItemsCount: totalItems,
+        filteredItemsCount: hasFilter ? filteredItemsCount : null,
+      };
 
-        this.status.set(newStatus);
+      this.status.set(newStatus);
 
-        // We emit the output in a microtask to prevent ExpressionChangedAfterItHasBeenCheckedError.
-        Promise.resolve().then(() => {
-            this.statusChanged.emit(newStatus);
-        });
+      // We emit the output in a microtask to prevent ExpressionChangedAfterItHasBeenCheckedError.
+      Promise.resolve().then(() => {
+        this.statusChanged.emit(newStatus);
+      });
     });
-    
+
     effect(() => {
       const action = this.toolbarAction();
       if (action && this.isActive() && action.id > this.lastActionId) {
@@ -305,7 +305,7 @@ export class FileExplorerComponent implements OnDestroy {
     this.renderer.removeStyle(document.body, 'user-select');
     if (this.clickTimer) clearTimeout(this.clickTimer);
   }
-  
+
   private async _loadContents(): Promise<void> {
     this.state.set({ status: 'loading', items: [] });
     this.readmeContent.set(null); // Clear readme on navigation
@@ -336,37 +336,41 @@ export class FileExplorerComponent implements OnDestroy {
     }
   }
 
+  retryLoad(): void {
+    this._loadContents();
+  }
+
   async loadThumbnailsForVisibleItems(): Promise<void> {
     const items = this.filteredItems();
     const imageItems = items.filter(item => this.isImageFile(item.name));
-    
+
     this.thumbnailCache.update(cache => {
-        const newCache = new Map(cache);
-        for (const item of imageItems) {
-            if (!newCache.has(item.name)) {
-                newCache.set(item.name, { url: null, isLoading: true });
-            }
+      const newCache = new Map(cache);
+      for (const item of imageItems) {
+        if (!newCache.has(item.name)) {
+          newCache.set(item.name, { url: null, isLoading: true });
         }
-        return newCache;
+      }
+      return newCache;
     });
-    
+
     for (const item of imageItems) {
-        if (this.thumbnailCache().get(item.name)?.url) continue;
-        try {
-            const content = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
-            this.thumbnailCache.update(cache => {
-                const newCache = new Map(cache);
-                newCache.set(item.name, { url: content, isLoading: false });
-                return newCache;
-            });
-        } catch (e) {
-            console.error(`Failed to load thumbnail for ${item.name}`, e);
-            this.thumbnailCache.update(cache => {
-                const newCache = new Map(cache);
-                newCache.set(item.name, { url: null, isLoading: false });
-                return newCache;
-            });
-        }
+      if (this.thumbnailCache().get(item.name)?.url) continue;
+      try {
+        const content = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
+        this.thumbnailCache.update(cache => {
+          const newCache = new Map(cache);
+          newCache.set(item.name, { url: content, isLoading: false });
+          return newCache;
+        });
+      } catch (e) {
+        console.error(`Failed to load thumbnail for ${item.name}`, e);
+        this.thumbnailCache.update(cache => {
+          const newCache = new Map(cache);
+          newCache.set(item.name, { url: null, isLoading: false });
+          return newCache;
+        });
+      }
     }
   }
 
@@ -388,46 +392,46 @@ export class FileExplorerComponent implements OnDestroy {
     }
 
     if (this.isEditableTextFile(item.name)) {
-        this.isLoading.set(true);
-        let savingEffect: EffectRef | null = null;
-        let cleanupEffect: EffectRef | null = null;
-        try {
-            const initialContent = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
-            const contentSignal = signal(initialContent);
+      this.isLoading.set(true);
+      let savingEffect: EffectRef | null = null;
+      let cleanupEffect: EffectRef | null = null;
+      try {
+        const initialContent = await this.fileSystemProvider().getFileContent(this.providerPath(), item.name);
+        const contentSignal = signal(initialContent);
 
-            this.textEditorService.open(contentSignal, item.name, item.name);
+        this.textEditorService.open(contentSignal, item.name, item.name);
 
-            let saveTimeout: any;
-            savingEffect = effect(() => {
-                const newContent = contentSignal();
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(async () => {
-                    if (newContent !== initialContent) {
-                        try {
-                            await this.fileSystemProvider().saveFileContent(this.providerPath(), item.name, newContent);
-                        } catch (e) {
-                            console.error(`Failed to auto-save ${item.name}`, e);
-                        }
-                    }
-                }, 500);
-            }, { injector: this.injector });
+        let saveTimeout: any;
+        savingEffect = effect(() => {
+          const newContent = contentSignal();
+          clearTimeout(saveTimeout);
+          saveTimeout = setTimeout(async () => {
+            if (newContent !== initialContent) {
+              try {
+                await this.fileSystemProvider().saveFileContent(this.providerPath(), item.name, newContent);
+              } catch (e) {
+                console.error(`Failed to auto-save ${item.name}`, e);
+              }
+            }
+          }, 500);
+        }, { injector: this.injector });
 
-            cleanupEffect = effect(() => {
-                if (!this.textEditorService.viewRequest()) {
-                    savingEffect?.destroy();
-                    cleanupEffect?.destroy();
-                    clearTimeout(saveTimeout);
-                }
-            }, { injector: this.injector });
-
-        } catch (e) {
+        cleanupEffect = effect(() => {
+          if (!this.textEditorService.viewRequest()) {
             savingEffect?.destroy();
             cleanupEffect?.destroy();
-            alert(`Failed to open file: ${(e as Error).message}`);
-        } finally {
-            this.isLoading.set(false);
-        }
-        return;
+            clearTimeout(saveTimeout);
+          }
+        }, { injector: this.injector });
+
+      } catch (e) {
+        savingEffect?.destroy();
+        cleanupEffect?.destroy();
+        alert(`Failed to open file: ${(e as Error).message}`);
+      } finally {
+        this.isLoading.set(false);
+      }
+      return;
     }
 
     // Fallback for non-text files like images
@@ -463,46 +467,46 @@ export class FileExplorerComponent implements OnDestroy {
     this.previewItem.set(null);
     this.isPreviewLoading.set(false);
   }
-  
+
   onItemClick(event: MouseEvent, item: FileSystemNode): void {
     if (this.editingItemName()) return;
 
     event.stopPropagation();
     this.closeAllMenus();
-    
+
     const isCtrlOrMeta = event.metaKey || event.ctrlKey;
     const isShift = event.shiftKey;
     const itemName = item.name;
 
     if (isShift || isCtrlOrMeta) {
-        clearTimeout(this.clickTimer);
-        this.clickTimer = null;
-        if (isShift && this.lastSelectedItemName()) {
-            this.handleShiftSelection(itemName);
-        } else {
-            this.handleCtrlMetaSelection(itemName);
-        }
-        this.updateSingleSelectedItem();
-        return;
+      clearTimeout(this.clickTimer);
+      this.clickTimer = null;
+      if (isShift && this.lastSelectedItemName()) {
+        this.handleShiftSelection(itemName);
+      } else {
+        this.handleCtrlMetaSelection(itemName);
+      }
+      this.updateSingleSelectedItem();
+      return;
     }
-    
+
     if (this.clickTimer) {
-        clearTimeout(this.clickTimer);
-        this.clickTimer = null;
-        this.openItem(item);
-        return;
+      clearTimeout(this.clickTimer);
+      this.clickTimer = null;
+      this.openItem(item);
+      return;
     }
-    
+
     const isRenameCandidate = this.selectedItems().size === 1 && this.selectedItems().has(itemName);
-    
+
     this.clickTimer = setTimeout(() => {
-        this.clickTimer = null;
-        if (isRenameCandidate) {
-            this.onRename();
-        } else {
-            this.handleSingleSelection(itemName);
-            this.updateSingleSelectedItem();
-        }
+      this.clickTimer = null;
+      if (isRenameCandidate) {
+        this.onRename();
+      } else {
+        this.handleSingleSelection(itemName);
+        this.updateSingleSelectedItem();
+      }
     }, this.CLICK_DELAY);
   }
 
@@ -534,8 +538,8 @@ export class FileExplorerComponent implements OnDestroy {
     const currentIdx = items.findIndex(i => i.name === itemName);
 
     if (lastSelectedIdx === -1 || currentIdx === -1) {
-        this.handleSingleSelection(itemName);
-        return;
+      this.handleSingleSelection(itemName);
+      return;
     }
 
     const start = Math.min(lastSelectedIdx, currentIdx);
@@ -543,12 +547,12 @@ export class FileExplorerComponent implements OnDestroy {
     const itemsToSelect = items.slice(start, end + 1).map(i => i.name);
 
     this.selectedItems.update(currentSelection => {
-        const newSelection = new Set(currentSelection);
-        itemsToSelect.forEach(name => newSelection.add(name));
-        return newSelection;
+      const newSelection = new Set(currentSelection);
+      itemsToSelect.forEach(name => newSelection.add(name));
+      return newSelection;
     });
   }
-  
+
   private updateSingleSelectedItem(): void {
     const selection = this.selectedItems();
     if (selection.size === 1) {
@@ -564,11 +568,11 @@ export class FileExplorerComponent implements OnDestroy {
     const selection = this.selectedItems();
     return this.state().items.filter(i => selection.has(i.name));
   }
-  
+
   private getItemReference(node: FileSystemNode): ItemReference {
     return { name: node.name, type: node.type };
   }
-  
+
   private getSelectedItemReferences(): ItemReference[] {
     return this.getSelectedNodes().map(this.getItemReference);
   }
@@ -588,7 +592,7 @@ export class FileExplorerComponent implements OnDestroy {
       this.handleSingleSelection(item.name);
       this.updateSingleSelectedItem();
     }
-    
+
     this.contextMenu.set({ x: event.clientX, y: event.clientY, item });
   }
 
@@ -615,7 +619,7 @@ export class FileExplorerComponent implements OnDestroy {
 
   onDestinationSubMenuLeave(): void {
     this.destinationSubMenuTimer = setTimeout(() => {
-        this.closeDestinationSubMenu();
+      this.closeDestinationSubMenu();
     }, 150);
   }
 
@@ -625,7 +629,7 @@ export class FileExplorerComponent implements OnDestroy {
       this.destinationSubMenu.set(null);
     }
   }
-  
+
   private handleToolbarAction(action: { name: string; payload?: any }): void {
     switch (action.name) {
       case 'newFolder': this.createFolder(); break;
@@ -690,17 +694,17 @@ export class FileExplorerComponent implements OnDestroy {
       this.directoryChanged.emit();
     }
   }
-  
+
   onCut(): void {
     this.clipboardService.set({ operation: 'cut', sourceProvider: this.fileSystemProvider(), sourcePath: this.path(), items: this.getSelectedNodes() });
     this.closeContextMenu();
   }
-  
+
   onCopy(): void {
     this.clipboardService.set({ operation: 'copy', sourceProvider: this.fileSystemProvider(), sourcePath: this.path(), items: this.getSelectedNodes() });
     this.closeContextMenu();
   }
-  
+
   async onPaste(): Promise<void> {
     this.closeContextMenu();
     const clip = this.clipboardService.get();
@@ -733,7 +737,7 @@ export class FileExplorerComponent implements OnDestroy {
   async commitRename(newName: string): Promise<void> {
     const oldName = this.editingItemName();
     const trimmedNewName = newName.trim();
-    
+
     if (!oldName || !trimmedNewName || oldName === trimmedNewName) {
       this.cancelRename();
       return;
@@ -756,56 +760,56 @@ export class FileExplorerComponent implements OnDestroy {
 
   async onMagnetize(item: FileSystemNode): Promise<void> {
     if (item.type !== 'folder' || item.isMagnet) return;
-    
+
     const newFilePath = [...this.providerPath(), item.name];
     const magnetFileName = '.magnet';
 
     await this.fileSystemProvider().createFile(newFilePath, magnetFileName);
   }
-  
+
   async onMagnetizeSelected(): Promise<void> {
     const selectedNodes = this.getSelectedNodes();
     const foldersToMagnetize = selectedNodes.filter(node => node.type === 'folder' && !node.isMagnet);
-    
+
     if (foldersToMagnetize.length === 0) {
-        return;
+      return;
     }
 
     this.isLoading.set(true);
     try {
-        await Promise.all(foldersToMagnetize.map(folder => this.onMagnetize(folder)));
-        this.directoryChanged.emit();
+      await Promise.all(foldersToMagnetize.map(folder => this.onMagnetize(folder)));
+      this.directoryChanged.emit();
     } catch (e) {
-        alert(`Failed to magnetize one or more folders: ${(e as Error).message}`);
+      alert(`Failed to magnetize one or more folders: ${(e as Error).message}`);
     } finally {
-        this.isLoading.set(false);
+      this.isLoading.set(false);
     }
   }
 
   async executeCopyToMoveTo(operation: 'copy' | 'move', destPath: string[]): Promise<void> {
     const items = this.getSelectedItemReferences();
     if (items.length === 0) return;
-    
+
     try {
-        const destProviderPath = destPath.length > 0 ? destPath.slice(1) : [];
-        if (operation === 'copy') {
-            await this.fileSystemProvider().copy(this.providerPath(), destProviderPath, items);
-        } else {
-            await this.fileSystemProvider().move(this.providerPath(), destProviderPath, items);
-            this.itemsMoved.emit({ sourcePath: this.path(), destPath, items });
-        }
+      const destProviderPath = destPath.length > 0 ? destPath.slice(1) : [];
+      if (operation === 'copy') {
+        await this.fileSystemProvider().copy(this.providerPath(), destProviderPath, items);
+      } else {
+        await this.fileSystemProvider().move(this.providerPath(), destProviderPath, items);
+        this.itemsMoved.emit({ sourcePath: this.path(), destPath, items });
+      }
     } catch (e) {
-        alert(`${operation} failed: ${(e as Error).message}`);
+      alert(`${operation} failed: ${(e as Error).message}`);
     } finally {
-        this.closeDestinationSubMenu();
-        this.directoryChanged.emit();
+      this.closeDestinationSubMenu();
+      this.directoryChanged.emit();
     }
   }
-  
+
   onItemsCopiedTo(destPath: string[]): void {
     this.executeCopyToMoveTo('copy', destPath);
   }
-  
+
   onItemsMovedTo(destPath: string[]): void {
     this.executeCopyToMoveTo('move', destPath);
   }
@@ -813,7 +817,7 @@ export class FileExplorerComponent implements OnDestroy {
   onShare(): void {
     this.isShareDialogOpen.set(true);
   }
-  
+
   closeShareDialog(): void {
     this.isShareDialogOpen.set(false);
   }
@@ -827,7 +831,7 @@ export class FileExplorerComponent implements OnDestroy {
     this.confirmDialogCallback.set(this.executeDelete.bind(this));
     this.isConfirmDialogOpen.set(true);
   }
-  
+
   private async executeDelete(): Promise<void> {
     const selectedNodes = this.getSelectedNodes();
     const successfullyDeletedPaths: string[][] = [];
@@ -851,7 +855,7 @@ export class FileExplorerComponent implements OnDestroy {
       }
     }
   }
-  
+
   async onMagnetizeFromContextMenu(): Promise<void> {
     const item = this.contextMenu()?.item;
     this.closeContextMenu();
@@ -867,7 +871,7 @@ export class FileExplorerComponent implements OnDestroy {
       }
     }
   }
-  
+
   onPropertiesFromContextMenu(): void {
     this.onProperties();
     this.closeContextMenu();
@@ -876,8 +880,8 @@ export class FileExplorerComponent implements OnDestroy {
   onProperties(): void {
     const selected = this.getSelectedNodes();
     if (selected.length === 1) {
-        this.propertiesItem.set(selected[0]);
-        this.isPropertiesDialogOpen.set(true);
+      this.propertiesItem.set(selected[0]);
+      this.isPropertiesDialogOpen.set(true);
     }
   }
 
@@ -895,7 +899,7 @@ export class FileExplorerComponent implements OnDestroy {
     this.isPropertiesDialogOpen.set(false);
     this.propertiesItem.set(null);
   }
-  
+
   getDisplayName(item: FileSystemNode): string {
     const fullPath = [...this.path(), item.name];
     const props = this.folderPropertiesService.getProperties(fullPath);
@@ -923,7 +927,7 @@ export class FileExplorerComponent implements OnDestroy {
     // When in the root "Home" view, this.path() is [], so itemPath becomes just [item.name].
     // When inside a folder, this.path() has segments, so itemPath becomes the full path.
     const itemPath = [...this.path(), item.name];
-    
+
     const serviceToUse = getImageServiceFn(itemPath);
     const props = this.folderPropertiesService.getProperties(itemPath);
 
@@ -932,7 +936,7 @@ export class FileExplorerComponent implements OnDestroy {
       // For a server root, we always request the 'cloud' icon from its specific image service.
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
-    
+
     // For all other folders, request an icon based on its name or custom properties.
     return serviceToUse.getIconUrl(item, props?.imageName);
   }
@@ -940,7 +944,7 @@ export class FileExplorerComponent implements OnDestroy {
   onImageError(name: string): void {
     this.failedImageItems.update(set => new Set(set).add(name));
   }
-  
+
   async onInputDialogSubmit(name: string): Promise<void> {
     const callback = this.inputDialogCallback();
     if (callback) await callback(name);
@@ -972,7 +976,7 @@ export class FileExplorerComponent implements OnDestroy {
       payload: { sourceProvider: this.fileSystemProvider(), sourcePath: this.path(), items: this.getSelectedNodes() }
     };
     this.dragDropService.startDrag(payload);
-    
+
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('application/json', JSON.stringify(payload));
@@ -982,29 +986,29 @@ export class FileExplorerComponent implements OnDestroy {
   onDragEnd(event: DragEvent): void {
     this.dragDropService.endDrag();
   }
-  
+
   async onInternalDropOnFolder(event: { dropOn: FileSystemNode }): Promise<void> {
     const payload = this.dragDropService.getPayload();
     if (payload?.type !== 'filesystem') return;
-  
+
     const { sourceProvider, sourcePath, items } = payload.payload;
     const destPath = [...this.path(), event.dropOn.name];
-  
+
     // Prevent dropping a folder into itself or its own children
     if (items.some(item => destPath.join('/').startsWith([...sourcePath, item.name].join('/')))) {
       alert("Cannot move a folder into itself.");
       return;
     }
-  
+
     try {
       const destProvider = this.fileSystemProvider();
       const destProviderPath = destPath.length > 1 ? destPath.slice(1) : [];
       const destContents = await destProvider.getContents(destProviderPath);
-  
+
       const nonConflicting: FileSystemNode[] = [];
       const conflicting: FileSystemNode[] = [];
       const successfullyMovedItems: ItemReference[] = [];
-  
+
       for (const item of items) {
         if (destContents.some(destItem => destItem.name === item.name)) {
           conflicting.push(item);
@@ -1012,22 +1016,22 @@ export class FileExplorerComponent implements OnDestroy {
           nonConflicting.push(item);
         }
       }
-      
+
       const sourceProviderPath = sourcePath.length > 1 ? sourcePath.slice(1) : [];
-  
+
       // 1. Move all non-conflicting items immediately.
       if (nonConflicting.length > 0) {
         await sourceProvider.move(sourceProviderPath, destProviderPath, nonConflicting.map(this.getItemReference));
         successfullyMovedItems.push(...nonConflicting.map(this.getItemReference));
       }
-  
+
       // 2. Sequentially handle all conflicts.
       for (const conflict of conflicting) {
         const resolution = await this.promptForConflictResolution(conflict);
-        
+
         if (resolution === 'cancel') return; // Abort entire operation
         if (resolution === 'skip') continue; // Skip this item and move to the next conflict
-  
+
         if (resolution === 'replace') {
           if (conflict.type === 'folder') {
             await destProvider.removeDirectory(destProviderPath, conflict.name);
@@ -1041,9 +1045,9 @@ export class FileExplorerComponent implements OnDestroy {
           const destItemPath = [...destPath, conflict.name];
           const sourceItemProviderPath = sourceItemPath.slice(1);
           const destItemProviderPath = destItemPath.slice(1);
-          
+
           const sourceChildren = await sourceProvider.getContents(sourceItemProviderPath);
-          
+
           if (sourceChildren.length > 0) {
             await sourceProvider.move(sourceItemProviderPath, destItemProviderPath, sourceChildren.map(this.getItemReference));
           }
@@ -1051,7 +1055,7 @@ export class FileExplorerComponent implements OnDestroy {
           successfullyMovedItems.push(this.getItemReference(conflict));
         }
       }
-      
+
       if (successfullyMovedItems.length > 0) {
         this.itemsMoved.emit({ sourcePath, destPath, items: successfullyMovedItems });
         this.directoryChanged.emit();
@@ -1075,7 +1079,7 @@ export class FileExplorerComponent implements OnDestroy {
   onBookmarkDropOnFolder(event: { bookmark: NewBookmark, dropOn: FileSystemNode }): void {
     this.bookmarkDropped.emit(event);
   }
-  
+
   onFolderDrop(event: { files: FileList, item: FileSystemNode }): void {
     console.log(`Dropped ${event.files.length} files onto ${event.item.name}`);
     alert(`Dropped ${event.files.length} files onto ${event.item.name}. Uploading to specific folders is not implemented yet.`);
@@ -1084,9 +1088,9 @@ export class FileExplorerComponent implements OnDestroy {
   onMainAreaMouseDown(event: MouseEvent): void {
     if (this.editingItemName()) return;
     if (event.button !== 0 || (event.target as HTMLElement).closest('[data-is-selectable-item]')) return;
-    
+
     this.closeAllMenus();
-    
+
     if (this.displayMode() === 'list') {
       this.selectedItems.set(new Set());
       this.updateSingleSelectedItem();
@@ -1100,13 +1104,13 @@ export class FileExplorerComponent implements OnDestroy {
     this.isLassoing.set(true);
     this.mainContentRect = this.topPaneEl.nativeElement.getBoundingClientRect();
     this.lassoStartPoint = { x: event.clientX - this.mainContentRect.left, y: event.clientY - this.mainContentRect.top };
-    
+
     this.renderer.setStyle(document.body, 'user-select', 'none');
-    
+
     this.initialSelectionOnLasso = (event.metaKey || event.ctrlKey) ? new Set(this.selectedItems()) : new Set();
     if (!event.metaKey && !event.ctrlKey) {
-        this.selectedItems.set(new Set());
-        this.updateSingleSelectedItem();
+      this.selectedItems.set(new Set());
+      this.updateSingleSelectedItem();
     }
 
     this.unlistenMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => this.onLassoMove(e));
@@ -1204,10 +1208,10 @@ export class FileExplorerComponent implements OnDestroy {
   onListItemDrop(event: DragEvent, item: FileSystemNode): void {
     event.preventDefault();
     this.dragOverListItemName.set(null);
-    
+
     const payload = this.dragDropService.getPayload();
     if (!payload || item.type !== 'folder') return;
-    
+
     if (payload.type === 'filesystem') {
       this.onInternalDropOnFolder({ dropOn: item });
     } else if (payload.type === 'bookmark') {
@@ -1222,8 +1226,8 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   private clearSelection(): void {
-      this.selectedItems.set(new Set());
-      this.updateSingleSelectedItem();
+    this.selectedItems.set(new Set());
+    this.updateSingleSelectedItem();
   }
 
   closeAllMenus(): void {
@@ -1246,7 +1250,7 @@ export class FileExplorerComponent implements OnDestroy {
     }
     this.closeContextMenu();
   }
-  
+
   onEditProfile(): void {
     const profileId = this.contextMenu()?.item?.profileId;
     if (profileId) {

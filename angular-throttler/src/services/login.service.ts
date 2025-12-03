@@ -9,6 +9,7 @@ interface LoginResponse {
   token: string;
   message?: string;
   ok: boolean;
+  admin?: boolean;
   errors?: { message: string }[];
 }
 
@@ -48,7 +49,8 @@ export class LoginService {
       profileId: profile.id,
       alias: username,
       email: `${username}@mock.com`, // No email info from this response
-      avatarUrl: '' // No avatar info from this response
+      avatarUrl: '', // No avatar info from this response
+      admin: response.admin
     };
 
     return { user, token: response.token };

@@ -12,6 +12,13 @@ import { Framework, FrameworkCategory, FrameworkLanguage, ServiceType, ServerTyp
     <div class="page-container">
       <h1>Configuration</h1>
       
+      @if (error()) {
+        <div class="error-container">
+          <p class="error-text">{{ error() }}</p>
+          <button class="retry-btn" (click)="loadAll()">Retry All</button>
+        </div>
+      }
+      
       <div class="config-section">
         <div class="section-header">
           <h2>Frameworks</h2>
@@ -335,15 +342,96 @@ import { Framework, FrameworkCategory, FrameworkLanguage, ServiceType, ServerTyp
     .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
     .info-card { background: white; padding: 12px; border-radius: 6px; text-align: center; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .error-container {
+      text-align: center;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      border-left: 4px solid #c62828;
+    }
+    .error-text {
+      color: #c62828;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+    }
+    .retry-btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   `]
 })
 export class ConfigComponent {
   private apiService = inject(ApiService);
-  frameworks = toSignal(this.apiService.getFrameworks(), { initialValue: [] });
-  frameworkCategories = toSignal(this.apiService.getFrameworkCategories(), { initialValue: [] });
-  frameworkLanguages = toSignal(this.apiService.getFrameworkLanguages(), { initialValue: [] });
-  serviceTypes = toSignal(this.apiService.getServiceTypes(), { initialValue: [] });
-  serverTypes = toSignal(this.apiService.getServerTypes(), { initialValue: [] });
+
+  frameworks = signal<Framework[]>([]);
+  frameworkCategories = signal<FrameworkCategory[]>([]);
+  frameworkLanguages = signal<FrameworkLanguage[]>([]);
+  serviceTypes = signal<ServiceType[]>([]);
+  serverTypes = signal<ServerType[]>([]);
+
+  error = signal<string | null>(null);
+
+  constructor() {
+    this.loadAll();
+  }
+
+  loadAll() {
+    this.error.set(null);
+    this.loadFrameworks();
+    this.loadFrameworkCategories();
+    this.loadFrameworkLanguages();
+    this.loadServiceTypes();
+    this.loadServerTypes();
+  }
+
+  loadFrameworks() {
+    this.apiService.getFrameworks().subscribe({
+      next: (data) => this.frameworks.set(data),
+      error: (err) => this.handleError('Failed to load frameworks', err)
+    });
+  }
+
+  loadFrameworkCategories() {
+    this.apiService.getFrameworkCategories().subscribe({
+      next: (data) => this.frameworkCategories.set(data),
+      error: (err) => this.handleError('Failed to load framework categories', err)
+    });
+  }
+
+  loadFrameworkLanguages() {
+    this.apiService.getFrameworkLanguages().subscribe({
+      next: (data) => this.frameworkLanguages.set(data),
+      error: (err) => this.handleError('Failed to load framework languages', err)
+    });
+  }
+
+  loadServiceTypes() {
+    this.apiService.getServiceTypes().subscribe({
+      next: (data) => this.serviceTypes.set(data),
+      error: (err) => this.handleError('Failed to load service types', err)
+    });
+  }
+
+  loadServerTypes() {
+    this.apiService.getServerTypes().subscribe({
+      next: (data) => this.serverTypes.set(data),
+      error: (err) => this.handleError('Failed to load server types', err)
+    });
+  }
+
+  private handleError(message: string, err: any) {
+    console.error(message, err);
+    // Append error message if multiple fail
+    const currentError = this.error();
+    this.error.set(currentError ? `${currentError}\n${message}` : message);
+  }
 
   frameworkFormVisible = signal(false);
   editingFramework = signal<Framework | null>(null);
@@ -397,7 +485,7 @@ export class ConfigComponent {
     operation.subscribe({
       next: () => {
         this.cancelFrameworkForm();
-        window.location.reload();
+        this.loadFrameworks();
       },
       error: (error) => {
         console.error('Error saving framework:', error);
@@ -410,7 +498,7 @@ export class ConfigComponent {
     if (confirm(`Are you sure you want to delete "${framework.name}"?`)) {
       this.apiService.deleteFramework(framework.id).subscribe({
         next: () => {
-          window.location.reload();
+          this.loadFrameworks();
         },
         error: (error) => {
           console.error('Error deleting framework:', error);
@@ -452,7 +540,7 @@ export class ConfigComponent {
     operation.subscribe({
       next: () => {
         this.cancelServiceTypeForm();
-        window.location.reload();
+        this.loadServiceTypes();
       },
       error: (error) => {
         console.error('Error saving service type:', error);
@@ -465,7 +553,7 @@ export class ConfigComponent {
     if (confirm(`Are you sure you want to delete "${type.name}"?`)) {
       this.apiService.deleteServiceType(type.id).subscribe({
         next: () => {
-          window.location.reload();
+          this.loadServiceTypes();
         },
         error: (error) => {
           console.error('Error deleting service type:', error);
@@ -507,7 +595,7 @@ export class ConfigComponent {
     operation.subscribe({
       next: () => {
         this.cancelServerTypeForm();
-        window.location.reload();
+        this.loadServerTypes();
       },
       error: (error) => {
         console.error('Error saving server type:', error);
@@ -520,7 +608,7 @@ export class ConfigComponent {
     if (confirm(`Are you sure you want to delete "${type.name}"?`)) {
       this.apiService.deleteServerType(type.id).subscribe({
         next: () => {
-          window.location.reload();
+          this.loadServerTypes();
         },
         error: (error) => {
           console.error('Error deleting server type:', error);
@@ -562,7 +650,7 @@ export class ConfigComponent {
     operation.subscribe({
       next: () => {
         this.cancelFrameworkCategoryForm();
-        window.location.reload();
+        this.loadFrameworkCategories();
       },
       error: (error) => {
         console.error('Error saving framework category:', error);
@@ -575,7 +663,7 @@ export class ConfigComponent {
     if (confirm(`Are you sure you want to delete "${category.name}"?`)) {
       this.apiService.deleteFrameworkCategory(category.id).subscribe({
         next: () => {
-          window.location.reload();
+          this.loadFrameworkCategories();
         },
         error: (error) => {
           console.error('Error deleting framework category:', error);
@@ -617,7 +705,7 @@ export class ConfigComponent {
     operation.subscribe({
       next: () => {
         this.cancelFrameworkLanguageForm();
-        window.location.reload();
+        this.loadFrameworkLanguages();
       },
       error: (error) => {
         console.error('Error saving framework language:', error);
@@ -630,7 +718,7 @@ export class ConfigComponent {
     if (confirm(`Are you sure you want to delete "${language.name}"?`)) {
       this.apiService.deleteFrameworkLanguage(language.id).subscribe({
         next: () => {
-          window.location.reload();
+          this.loadFrameworkLanguages();
         },
         error: (error) => {
           console.error('Error deleting framework language:', error);

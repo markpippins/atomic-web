@@ -12,6 +12,8 @@ export interface FileSystemNode {
   profileId?: string;
   connected?: boolean;
   // Properties for magnet folders
+  id?: string; // Optional for backward compatibility, but should be present for TreeNodes
+  metadata?: Record<string, any>;
   isMagnet?: boolean;
   magnetFile?: string;
 }

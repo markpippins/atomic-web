@@ -28,39 +28,46 @@ import { forkJoin } from 'rxjs';
         </div>
       }
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Framework</th>
-            <th>Status</th>
-            <th>Port</th>
-            <th>Server</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (service of services(); track service.id) {
+      @if (error()) {
+        <div class="error-container">
+          <p class="error-text">{{ error() }}</p>
+          <button class="retry-btn" (click)="loadData()">Retry</button>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
             <tr>
-              <td>{{ service.name }}</td>
-              <td>{{ service.type?.name }}</td>
-              <td>{{ service.framework?.name || 'Unknown' }}</td>
-              <td>
-                <span class="status-badge" [class]="service.status?.toLowerCase() || 'unknown'">
-                  {{ service.status || 'Unknown' }}
-                </span>
-              </td>
-              <td>{{ service.defaultPort }}</td>
-              <td>{{ getServerNames(service) }}</td>
-              <td>
-                <button class="action-btn edit" (click)="editService(service)">Edit</button>
-                <button class="action-btn delete" (click)="deleteService(service)">Delete</button>
-              </td>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Framework</th>
+              <th>Status</th>
+              <th>Port</th>
+              <th>Server</th>
+              <th>Actions</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (service of services(); track service.id) {
+              <tr>
+                <td>{{ service.name }}</td>
+                <td>{{ service.type?.name }}</td>
+                <td>{{ service.framework?.name || 'Unknown' }}</td>
+                <td>
+                  <span class="status-badge" [class]="service.status?.toLowerCase() || 'unknown'">
+                    {{ service.status || 'Unknown' }}
+                  </span>
+                </td>
+                <td>{{ service.defaultPort }}</td>
+                <td>{{ getServerNames(service) }}</td>
+                <td>
+                  <button class="action-btn edit" (click)="editService(service)">Edit</button>
+                  <button class="action-btn delete" (click)="deleteService(service)">Delete</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
     </div>
   `,
   styles: [`
@@ -141,6 +148,26 @@ import { forkJoin } from 'rxjs';
       align-items: center;
       z-index: 1000;
     }
+    .error-container {
+      text-align: center;
+      padding: 40px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .error-text {
+      color: #c62828;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+    }
+    .retry-btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   `]
 })
 export class ServiceListComponent {
@@ -150,18 +177,26 @@ export class ServiceListComponent {
   deployments = signal<Deployment[]>([]);
   showForm = signal(false);
   selectedService = signal<Service | null>(null);
+  error = signal<string | null>(null);
 
   constructor() {
     this.loadData();
   }
 
   loadData() {
+    this.error.set(null);
     forkJoin({
       services: this.apiService.getServices(),
       deployments: this.apiService.getDeployments()
-    }).subscribe(({ services, deployments }) => {
-      this.services.set(services);
-      this.deployments.set(deployments);
+    }).subscribe({
+      next: ({ services, deployments }) => {
+        this.services.set(services);
+        this.deployments.set(deployments);
+      },
+      error: (err) => {
+        console.error('Error loading services', err);
+        this.error.set('Failed to load services. Please check your connection.');
+      }
     });
   }
 
@@ -189,7 +224,16 @@ export class ServiceListComponent {
 
   deleteService(service: Service) {
     if (confirm(`Are you sure you want to delete ${service.name}?`)) {
-      this.apiService.deleteService(service.id).subscribe(() => this.loadData());
+      this.apiService.deleteService(service.id).subscribe({
+        next: () => {
+          this.loadData();
+          // Optionally show success message
+        },
+        error: (error) => {
+          console.error('Error deleting service:', error);
+          alert(`Failed to delete service: ${error.message || 'Unknown error'}`);
+        }
+      });
     }
   }
 

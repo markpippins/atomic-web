@@ -24,37 +24,44 @@ import { Server } from '../../models/models';
         </div>
       }
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Hostname</th>
-            <th>IP Address</th>
-            <th>Environment</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (server of servers(); track server.id) {
+      @if (error()) {
+        <div class="error-container">
+          <p class="error-text">{{ error() }}</p>
+          <button class="retry-btn" (click)="loadServers()">Retry</button>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
             <tr>
-              <td>{{ server.hostname }}</td>
-              <td>{{ server.ipAddress }}</td>
-              <td>{{ server.environment }}</td>
-              <td>{{ server.type?.name }}</td>
-              <td>
-                <span class="status-badge" [class]="server.status?.toLowerCase() || 'unknown'">
-                  {{ server.status || 'Unknown' }}
-                </span>
-              </td>
-              <td>
-                <button class="action-btn edit" (click)="editServer(server)">Edit</button>
-                <button class="action-btn delete" (click)="deleteServer(server)">Delete</button>
-              </td>
+              <th>Hostname</th>
+              <th>IP Address</th>
+              <th>Environment</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (server of servers(); track server.id) {
+              <tr>
+                <td>{{ server.hostname }}</td>
+                <td>{{ server.ipAddress }}</td>
+                <td>{{ server.environment }}</td>
+                <td>{{ server.type?.name }}</td>
+                <td>
+                  <span class="status-badge" [class]="server.status?.toLowerCase() || 'unknown'">
+                    {{ server.status || 'Unknown' }}
+                  </span>
+                </td>
+                <td>
+                  <button class="action-btn edit" (click)="editServer(server)">Edit</button>
+                  <button class="action-btn delete" (click)="deleteServer(server)">Delete</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
     </div>
   `,
   styles: [`
@@ -123,6 +130,26 @@ import { Server } from '../../models/models';
       align-items: center;
       z-index: 1000;
     }
+    .error-container {
+      text-align: center;
+      padding: 40px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .error-text {
+      color: #c62828;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+    }
+    .retry-btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   `]
 })
 export class ServerListComponent {
@@ -131,13 +158,21 @@ export class ServerListComponent {
   servers = signal<Server[]>([]);
   showForm = signal(false);
   selectedServer = signal<Server | null>(null);
+  error = signal<string | null>(null);
 
   constructor() {
     this.loadServers();
   }
 
   loadServers() {
-    this.apiService.getServers().subscribe(data => this.servers.set(data));
+    this.error.set(null);
+    this.apiService.getServers().subscribe({
+      next: (data) => this.servers.set(data),
+      error: (err) => {
+        console.error('Error loading servers', err);
+        this.error.set('Failed to load servers. Please check your connection.');
+      }
+    });
   }
 
   showAddForm() {
@@ -152,7 +187,16 @@ export class ServerListComponent {
 
   deleteServer(server: Server) {
     if (confirm(`Are you sure you want to delete ${server.hostname}?`)) {
-      this.apiService.deleteServer(server.id).subscribe(() => this.loadServers());
+      this.apiService.deleteServer(server.id).subscribe({
+        next: () => {
+          this.loadServers();
+          // Optionally show success message
+        },
+        error: (error) => {
+          console.error('Error deleting server:', error);
+          alert(`Failed to delete server: ${error.message || 'Unknown error'}`);
+        }
+      });
     }
   }
 

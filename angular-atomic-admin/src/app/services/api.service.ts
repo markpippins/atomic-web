@@ -29,17 +29,17 @@ export class ApiService {
   }
 
   deleteFramework(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/frameworks/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/frameworks/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting framework:', error);
+        throw error;
+      })
+    );
   }
 
   // Services
   getServices(): Observable<Service[]> {
-    return this.http.get<Service[]>(`${this.baseUrl}/services`).pipe(
-      catchError(error => {
-        console.error('Error fetching services:', error);
-        return of([]);
-      })
-    );
+    return this.http.get<Service[]>(`${this.baseUrl}/services`);
   }
 
   getService(id: number): Observable<Service> {
@@ -55,7 +55,12 @@ export class ApiService {
   }
 
   deleteService(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/services/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/services/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting service:', error);
+        throw error;
+      })
+    );
   }
 
   syncServices(): Observable<void> {
@@ -65,12 +70,7 @@ export class ApiService {
   // Servers (Hosts)
   // Backend maps to /api/servers
   getServers(): Observable<Server[]> {
-    return this.http.get<Server[]>(`${this.baseUrl}/servers`).pipe(
-      catchError(error => {
-        console.error('Error fetching servers:', error);
-        return of([]);
-      })
-    );
+    return this.http.get<Server[]>(`${this.baseUrl}/servers`);
   }
 
   getServer(id: number): Observable<Server> {
@@ -86,7 +86,12 @@ export class ApiService {
   }
 
   deleteServer(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/servers/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/servers/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting server:', error);
+        throw error;
+      })
+    );
   }
 
   // Deployments
@@ -95,6 +100,17 @@ export class ApiService {
       catchError(error => {
         console.error('Error fetching deployments:', error);
         return of([]);
+      })
+    );
+  }
+
+  // Check service health
+  checkServiceHealth(healthCheckUrl: string): Observable<any> {
+    return this.http.get(healthCheckUrl).pipe(
+      catchError(error => {
+        console.error('Error checking service health:', error);
+        // Return an error object to indicate the service is down
+        return of({ status: 'DOWN', error: error.message });
       })
     );
   }
@@ -114,7 +130,12 @@ export class ApiService {
   }
 
   deleteServiceType(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/service-types/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/service-types/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting service type:', error);
+        throw error;
+      })
+    );
   }
 
   // Server Types
@@ -131,7 +152,12 @@ export class ApiService {
   }
 
   deleteServerType(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/server-types/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/server-types/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting server type:', error);
+        throw error;
+      })
+    );
   }
 
   // Framework Categories
@@ -148,7 +174,12 @@ export class ApiService {
   }
 
   deleteFrameworkCategory(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/framework-categories/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/framework-categories/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting framework category:', error);
+        throw error;
+      })
+    );
   }
 
   // Framework Languages
@@ -165,6 +196,11 @@ export class ApiService {
   }
 
   deleteFrameworkLanguage(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/framework-languages/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/framework-languages/${id}`).pipe(
+      catchError(error => {
+        console.error('Error deleting framework language:', error);
+        throw error;
+      })
+    );
   }
 }

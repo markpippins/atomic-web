@@ -65,6 +65,10 @@ import { ComplexSearchDialogComponent } from './components/complex-search-dialog
 import { ComplexSearchParams } from './components/complex-search/complex-search.component.js';
 import { HealthCheckService } from './services/health-check.service.js';
 import { GeminiSearchDialogComponent } from './components/gemini-search-dialog/gemini-search-dialog.component.js';
+import { TreeManagerService } from './services/tree-manager.service.js';
+import { HostServerProvider } from './services/host-server-provider.service.js';
+import { TreeProviderAdapter } from './services/tree-provider-adapter.js';
+import { NodeType } from './models/tree-node.model.js';
 
 interface PanePath {
   id: number;
@@ -80,7 +84,7 @@ type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 // Type definitions for items in the unified stream
 type GeminiResult = { query: string; text: string; publishedAt: string; };
 
-type StreamItem = 
+type StreamItem =
   | (GoogleSearchResult & { type: 'web' })
   | (ImageSearchResult & { type: 'image' })
   | (YoutubeSearchResult & { type: 'youtube' })
@@ -155,6 +159,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private academicSearchService = inject(AcademicSearchService);
   private notesService = inject(NotesService);
   private healthCheckService = inject(HealthCheckService);
+  private treeManager = inject(TreeManagerService);
+  private hostServerProvider = inject(HostServerProvider);
 
   private initialAutoConnectAttempted = false;
 
@@ -173,7 +179,7 @@ export class AppComponent implements OnInit, OnDestroy {
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
-  
+
   // --- Pane Visibility State (from service) ---
   isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
   isTreeVisible = this.uiPreferencesService.isTreeVisible;
@@ -186,7 +192,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isConsoleCollapsed = this.uiPreferencesService.isConsoleCollapsed;
   isStreamPaneCollapsed = this.uiPreferencesService.isStreamPaneCollapsed;
   isStreamActiveSearchEnabled = this.uiPreferencesService.isStreamActiveSearchEnabled;
-  
+
   // Keep track of each pane's path
   panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
 
@@ -201,11 +207,11 @@ export class AppComponent implements OnInit, OnDestroy {
   mountedProfileIds = computed(() => this.mountedProfiles().map(p => p.id));
   private remoteProviders = signal<Map<string, RemoteFileSystemService>>(new Map());
   private remoteImageServices = signal<Map<string, ImageService>>(new Map());
-  
+
   // --- Status Bar State ---
   pane1Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
   pane2Status = signal<PaneStatus>({ selectedItemsCount: 0, totalItemsCount: 0, filteredItemsCount: null });
-  
+
   activePaneStatus = computed<PaneStatus>(() => {
     const activeId = this.activePaneId();
     if (activeId === 1) {
@@ -213,25 +219,25 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     return this.pane2Status();
   });
-  
+
   statusBarSelectionInfo = computed(() => {
     const item = this.selectedDetailItem();
     if (!item) {
-        return 'Ready';
+      return 'Ready';
     }
 
     if (item.isServerRoot) {
-        const profile = this.profileService.profiles().find(p => p.name === item.name);
-        if (profile) {
-            return `Server Profile: ${profile.name} | Broker: ${profile.brokerUrl}`;
-        }
+      const profile = this.profileService.profiles().find(p => p.name === item.name);
+      if (profile) {
+        return `Server Profile: ${profile.name} | Broker: ${profile.brokerUrl}`;
+      }
     }
-    
+
     const itemType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
     let info = `${itemType}: ${item.name} | Modified: ${item.modified ? new Date(item.modified).toLocaleString() : 'N/A'}`;
-    
+
     if (item.isMagnet) {
-        info += ' | 🧲 Magnet Folder';
+      info += ' | 🧲 Magnet Folder';
     }
 
     return info;
@@ -242,7 +248,7 @@ export class AppComponent implements OnInit, OnDestroy {
     let message = `${status.totalItemsCount} items`;
 
     if (status.filteredItemsCount !== null) {
-        message = `${status.filteredItemsCount} of ${status.totalItemsCount} items`;
+      message = `${status.filteredItemsCount} of ${status.totalItemsCount} items`;
     }
 
     if (status.selectedItemsCount > 0) {
@@ -262,7 +268,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const path = this.activePanePath();
     return path.length > 1 ? path.slice(1) : [];
   });
-  
+
   canGoUpActivePane = computed(() => this.activePanePath().length > 0);
 
   pane1Provider = computed<FileSystemProvider>(() => this.getProvider(this.pane1Path()));
@@ -272,7 +278,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Toolbar State Management ---
   toolbarAction = signal<{ name: string; payload?: any; id: number } | null>(null);
-  
+
   pane1SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
   pane2SortCriteria = signal<SortCriteria>({ key: 'name', direction: 'asc' });
   activeSortCriteria = computed(() => this.activePaneId() === 1 ? this.pane1SortCriteria() : this.pane2SortCriteria());
@@ -284,7 +290,7 @@ export class AppComponent implements OnInit, OnDestroy {
   pane1FilterQuery = signal('');
   pane2FilterQuery = signal('');
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
-  
+
   isActionableContext = computed(() => {
     const path = this.activePanePath();
     if (path.length === 0) {
@@ -314,7 +320,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private isResizingPane = false;
   private unlistenPaneResizeMove: (() => void) | null = null;
   private unlistenPaneResizeUp: (() => void) | null = null;
-  
+
   @ViewChild('paneContainer') paneContainerEl!: ElementRef<HTMLDivElement>;
 
   // --- Stream Pane Resizing ---
@@ -324,7 +330,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private unlistenStreamResizeUp: (() => void) | null = null;
 
   @ViewChild('mainContentWrapper') mainContentWrapperEl!: ElementRef<HTMLDivElement>;
-  
+
   // --- Console Pane Resizing ---
   consolePaneHeight = signal(this.uiPreferencesService.explorerConsoleHeight() ?? 20); // percentage
   private isResizingConsole = false;
@@ -354,7 +360,7 @@ export class AppComponent implements OnInit, OnDestroy {
   streamDisplayMode = signal<'grid' | 'list'>('grid');
   streamSourceToggle = signal<'all' | 'active' | 'left' | 'right'>('active');
   streamSearchQuery = signal('');
-  
+
   readonly streamFilterTypes: { type: StreamItemType; label: string; iconPath: string }[] = [
     { type: 'web', label: 'Web', iconPath: 'M10 18a8 8 0 100-16 8 8 0 000 16zM4.75 5.177a3.502 3.502 0 014.22.613l.31.39a.75.75 0 001.442 0l.31-.39a3.502 3.502 0 014.22-.613A4.502 4.502 0 0119 8.5v.081a4.5 4.5 0 01-5.138 4.417l-.27-1.353a.75.75 0 00-1.44-.288l-1.045 1.62a.75.75 0 00.288 1.441l1.354.27a4.5 4.5 0 01-4.416 5.137H8.5a4.502 4.502 0 01-3.323-1.413 3.502 3.502 0 01-.613-4.22l.39-.31a.75.75 0 000-1.442l-.39-.31a3.502 3.502 0 01-.613-4.22A4.502 4.502 0 014.75 5.177z' },
     { type: 'image', label: 'Images', iconPath: 'M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10zM6 8a1 1 0 100-2 1 1 0 000 2zm2 4l-2 3h8l-3-4-2 2.5L8 12z' },
@@ -363,7 +369,7 @@ export class AppComponent implements OnInit, OnDestroy {
     { type: 'gemini', label: 'AI', iconPath: 'M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z' }
   ];
   activeStreamFilters = signal<Set<StreamItemType>>(new Set(this.streamFilterTypes.map(f => f.type)));
-  
+
   isStreamSortDropdownOpen = signal(false);
   streamSortCriteria = signal<StreamSortCriteria>({ key: 'relevance', direction: 'asc' });
 
@@ -383,7 +389,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     return combinedResults;
   });
-  
+
   processedStreamResults = computed(() => {
     let items = this.visibleStreamResults();
     const query = this.streamSearchQuery().toLowerCase();
@@ -403,13 +409,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // 2. Filter by type
     items = items.filter(item => filters.has(item.type));
-    
+
     // 3. Sort
     items.sort((a, b) => {
       if (sort.key === 'relevance') {
         return 0; // Maintain original order which is assumed to be relevance
       }
-      
+
       let valA: string = '';
       let valB: string = '';
 
@@ -428,7 +434,7 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       };
 
-      switch(sort.key) {
+      switch (sort.key) {
         case 'title':
           valA = ('title' in a ? a.title : ('description' in a ? a.description : a.query)) ?? '';
           valB = ('title' in b ? b.title : ('description' in b ? b.description : b.query)) ?? '';
@@ -467,27 +473,56 @@ export class AppComponent implements OnInit, OnDestroy {
   });
 
 
+  private treeAdapters = new Map<string, TreeProviderAdapter>();
+
   constructor() {
+    // Initialize adapters for each Host Server root
+    this.treeAdapters.set('Services', new TreeProviderAdapter(this.hostServerProvider, 'services'));
+    this.treeAdapters.set('Users', new TreeProviderAdapter(this.hostServerProvider, 'users'));
+    this.treeAdapters.set('Search & Discovery', new TreeProviderAdapter(this.hostServerProvider, 'search'));
+    this.treeAdapters.set('File Systems', new TreeProviderAdapter(this.hostServerProvider, 'filesystems'));
+    this.treeAdapters.set('Platform Management', new TreeProviderAdapter(this.hostServerProvider, 'platform'));
+
     this.homeProvider = {
       getContents: async (path: string[]) => {
         if (path.length > 0) throw new Error('Home provider does not support subdirectories.');
+
+        // Get Host Server children
+        const hostChildren = await this.hostServerProvider.getChildren('root');
+        const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
+          name: node.name,
+          type: 'folder',
+          id: node.id,
+          metadata: node.metadata,
+          children: [],
+          childrenLoaded: false,
+          isServerRoot: false // Treat as regular folders for now
+        }));
+
+        // Get Local Session
         const sessionNode = await this.sessionFs.getFolderTree();
+
+        // Get Server Profiles (Legacy/Migration) - Optional, maybe we hide them if we are moving to Host Server?
+        // But for now let's keep them or maybe put them under "File Systems" if we could.
+        // The requirements say "The host-server becomes the root... replacing localStorage server profiles".
+        // So we should probably NOT show server profiles at root anymore if we want to follow requirements strictly.
+        // But we might want to keep them accessible.
+        // Let's append them for now to be safe.
         const allProfiles = this.profileService.profiles();
         const mountedIds = this.mountedProfileIds();
-
         const serverProfileNodes = allProfiles.map(p => {
-            const isConnected = mountedIds.includes(p.id);
-            return {
-                name: p.name,
-                type: 'folder' as const,
-                isServerRoot: true,
-                profileId: p.id,
-                connected: isConnected,
-                modified: isConnected ? new Date().toISOString() : undefined,
-            };
+          const isConnected = mountedIds.includes(p.id);
+          return {
+            name: p.name,
+            type: 'folder' as const,
+            isServerRoot: true,
+            profileId: p.id,
+            connected: isConnected,
+            modified: isConnected ? new Date().toISOString() : undefined,
+          };
         });
 
-        return [sessionNode, ...serverProfileNodes];
+        return [sessionNode, ...hostNodes, ...serverProfileNodes];
       },
       getFolderTree: () => this.buildCombinedFolderTree(),
       ...readOnlyProviderOps,
@@ -558,6 +593,11 @@ export class AppComponent implements OnInit, OnDestroy {
     if (path.length === 0) return this.homeProvider;
     const rootName = path[0];
 
+    // Check if it's one of the Host Server root nodes
+    if (this.treeAdapters.has(rootName)) {
+      return this.treeAdapters.get(rootName)!;
+    }
+
     // Check if the root of the path corresponds to a known server profile.
     const isServerProfile = this.profileService.profiles().some(p => p.name === rootName);
 
@@ -571,7 +611,7 @@ export class AppComponent implements OnInit, OnDestroy {
         return disconnectedProvider;
       }
     }
-    
+
     // If the path does not point to a server, it must be the local session.
     return this.sessionFs;
   }
@@ -580,7 +620,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const rootName = path.length > 0 ? path[0] : this.localConfigService.sessionName();
     const remote = this.remoteImageServices().get(rootName);
     if (remote) return remote;
-    
+
     // Fallback for local session or if no remote service is found
     const localProfile: ServerProfile = {
       id: 'local-session',
@@ -596,6 +636,18 @@ export class AppComponent implements OnInit, OnDestroy {
     const allProfiles = this.profileService.profiles();
     const mountedIds = this.mountedProfileIds();
     const remoteRoots: FileSystemNode[] = [];
+
+    // Host Server Nodes
+    const hostChildren = await this.hostServerProvider.getChildren('root');
+    const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
+      name: node.name,
+      type: 'folder',
+      id: node.id,
+      metadata: node.metadata,
+      children: [],
+      childrenLoaded: false,
+      isServerRoot: false
+    }));
 
     for (const profile of allProfiles) {
       const isConnected = mountedIds.includes(profile.id);
@@ -651,11 +703,11 @@ export class AppComponent implements OnInit, OnDestroy {
     return {
       name: 'Home',
       type: 'folder',
-      children: [sessionTree, ...remoteRoots],
+      children: [sessionTree, ...hostNodes, ...remoteRoots],
       childrenLoaded: true,
     };
   }
-  
+
   localSessionNode = computed(() => {
     const tree = this.folderTree();
     if (!tree?.children) return null;
@@ -676,7 +728,7 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       // Provider path doesn't include the root name
       const children = await provider.getContents(path.slice(1));
-      
+
       this.folderTree.update(currentTree => {
         if (!currentTree) return null;
 
@@ -711,7 +763,7 @@ export class AppComponent implements OnInit, OnDestroy {
             }),
           };
         };
-        
+
         // Start the recursive update from the root node.
         return updateNodeRecursive(currentTree, path);
       });
@@ -743,7 +795,7 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     }
   }
-  
+
   onPane1PathChanged(path: string[]): void {
     this.panePaths.update(paths => {
       const newPaths = paths.filter(p => p.id !== 1);
@@ -786,15 +838,15 @@ export class AppComponent implements OnInit, OnDestroy {
   onItemSelectedInPane(item: FileSystemNode | null): void {
     this.selectedDetailItem.set(item);
   }
-  
+
   onPane1StatusChanged(status: PaneStatus): void {
     this.pane1Status.set(status);
   }
-  
+
   onPane2StatusChanged(status: PaneStatus): void {
     this.pane2Status.set(status);
   }
-  
+
   // --- UI Toggles ---
   toggleDetailPane(): void {
     this.uiPreferencesService.toggleDetailPane();
@@ -803,11 +855,11 @@ export class AppComponent implements OnInit, OnDestroy {
   toggleSidebar(): void {
     this.uiPreferencesService.toggleSidebar();
   }
-  
+
   toggleTree(): void {
     this.uiPreferencesService.toggleTree();
   }
-  
+
   toggleChat(): void {
     this.uiPreferencesService.toggleChat();
   }
@@ -819,19 +871,19 @@ export class AppComponent implements OnInit, OnDestroy {
   toggleSavedItems(): void {
     this.uiPreferencesService.toggleSavedItems();
   }
-  
+
   toggleRssFeed(): void {
     this.uiPreferencesService.toggleRssFeed();
   }
-  
+
   toggleStream(): void {
     this.uiPreferencesService.toggleStream();
   }
-  
+
   toggleConsole(): void {
     this.uiPreferencesService.toggleConsole();
   }
-  
+
   toggleStreamPaneCollapse(): void {
     this.uiPreferencesService.toggleStreamPaneCollapse();
   }
@@ -856,7 +908,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.pane2SortCriteria.set(criteria);
     }
   }
-  
+
   onDisplayModeChange(mode: 'grid' | 'list'): void {
     if (this.activePaneId() === 1) {
       this.pane1DisplayMode.set(mode);
@@ -887,7 +939,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.profileForEdit.set(null);
     this.isServerProfilesDialogOpen.set(true);
   }
-  
+
   closeServerProfilesDialog(): void {
     this.isServerProfilesDialogOpen.set(false);
   }
@@ -907,7 +959,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.loadFolderTree(); // Reload tree to reflect new session name
     this.toastService.show('Local configuration saved.');
   }
-  
+
   // --- RSS Feeds Dialog ---
   openRssFeedsDialog(): void {
     this.isRssFeedsDialogOpen.set(true);
@@ -916,7 +968,7 @@ export class AppComponent implements OnInit, OnDestroy {
   closeRssFeedsDialog(): void {
     this.isRssFeedsDialogOpen.set(false);
   }
-  
+
   // --- Import / Export ---
   async handleImport(event: { destPath: string[], data: FileSystemNode }): Promise<void> {
     try {
@@ -949,7 +1001,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async onLoginAndMount({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): Promise<void> {
     try {
       const { user, token } = await this.loginService.login(profile, username, password);
-      
+
       const provider = new RemoteFileSystemService(profile, this.fsService, token);
       const imageService = new ImageService(profile, this.imageClientService, this.preferencesService, this.healthCheckService, this.localConfigService);
 
@@ -972,7 +1024,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onUnmountProfile(profile: ServerProfile): void {
     this.mountedProfiles.update(p => p.filter(item => item.id !== profile.id));
-    
+
     this.mountedProfileUsers.update(m => {
       const newMap = new Map(m);
       newMap.delete(profile.id);
@@ -984,7 +1036,7 @@ export class AppComponent implements OnInit, OnDestroy {
       newMap.delete(profile.id);
       return newMap;
     });
-    
+
     this.remoteProviders.update(m => {
       const newMap = new Map(m);
       newMap.delete(profile.name);
@@ -1001,25 +1053,25 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // If any pane was inside the unmounted profile, navigate it to root
     this.panePaths.update(paths => {
-        return paths.map(p => {
-            if (p.path[0] === profile.name) {
-                return { ...p, path: [] };
-            }
-            return p;
-        });
+      return paths.map(p => {
+        if (p.path[0] === profile.name) {
+          return { ...p, path: [] };
+        }
+        return p;
+      });
     });
 
     this.loadFolderTree();
     this.toastService.show(`Disconnected from ${profile.name}.`);
   }
-  
+
   onConnectToServer(profileId: string): void {
     const profile = this.profileService.profiles().find(p => p.id === profileId);
     if (profile) {
       this.profileForLogin.set(profile);
     }
   }
-  
+
   onDisconnectFromServer(profileId: string): void {
     const profile = this.mountedProfiles().find(p => p.id === profileId);
     if (profile) {
@@ -1040,37 +1092,37 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // 1. Update remoteProviders and remoteImageServices keys if the profile is mounted
     if (this.remoteProviders().has(oldName)) {
-        const provider = this.remoteProviders().get(oldName)!;
-        this.remoteProviders.update(m => {
-            const newMap = new Map(m);
-            newMap.delete(oldName);
-            newMap.set(newName, provider);
-            return newMap;
-        });
-        
-        const imageService = this.remoteImageServices().get(oldName)!;
-        this.remoteImageServices.update(m => {
-            const newMap = new Map(m);
-            newMap.delete(oldName);
-            newMap.set(newName, imageService);
-            return newMap;
-        });
+      const provider = this.remoteProviders().get(oldName)!;
+      this.remoteProviders.update(m => {
+        const newMap = new Map(m);
+        newMap.delete(oldName);
+        newMap.set(newName, provider);
+        return newMap;
+      });
+
+      const imageService = this.remoteImageServices().get(oldName)!;
+      this.remoteImageServices.update(m => {
+        const newMap = new Map(m);
+        newMap.delete(oldName);
+        newMap.set(newName, imageService);
+        return newMap;
+      });
     }
 
     // 2. Update paths in any open panes
     this.panePaths.update(paths => {
-        return paths.map(panePath => {
-            if (panePath.path[0] === oldName) {
-                return { ...panePath, path: [newName, ...panePath.path.slice(1)] };
-            }
-            return panePath;
-        });
+      return paths.map(panePath => {
+        if (panePath.path[0] === oldName) {
+          return { ...panePath, path: [newName, ...panePath.path.slice(1)] };
+        }
+        return panePath;
+      });
     });
 
     // 3. Reload the folder tree to reflect the name change
     this.loadFolderTree();
   }
-  
+
   onLoginSubmittedFromSidebar({ username, password }: { username: string, password: string }): void {
     const profile = this.profileForLogin();
     if (profile) {
@@ -1089,7 +1141,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.toastService.show(`Bookmark saved to ${event.dropOn.name}.`);
   }
 
-  onBookmarkDroppedOnSidebar(event: { bookmark: NewBookmark, destPath:string[] }): void {
+  onBookmarkDroppedOnSidebar(event: { bookmark: NewBookmark, destPath: string[] }): void {
     this.bookmarkService.addBookmark(event.destPath, event.bookmark);
     this.toastService.show(`Bookmark saved.`);
   }
@@ -1101,7 +1153,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.folderPropertiesService.handleRename(oldFullPath, newFullPath);
     this.loadFolderTree();
   }
-  
+
   onSidebarRenameItem(event: { path: string[], newName: string }): void {
     const oldName = event.path[event.path.length - 1];
     const parentPath = event.path.slice(0, -1);
@@ -1116,7 +1168,7 @@ export class AppComponent implements OnInit, OnDestroy {
       })
       .catch(e => this.toastService.show(`Rename failed: ${(e as Error).message}`, 'error'));
   }
-  
+
   onItemsDeleted(paths: string[][]): void {
     for (const path of paths) {
       this.folderPropertiesService.handleDelete(path);
@@ -1129,7 +1181,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const parentPath = path.slice(0, -1);
     const provider = this.getProvider(path);
     const providerPath = parentPath.length > 0 ? parentPath.slice(1) : [];
-    
+
     // We need to know if it's a file or folder
     provider.getContents(providerPath).then(contents => {
       const item = contents.find(c => c.name === name);
@@ -1139,7 +1191,7 @@ export class AppComponent implements OnInit, OnDestroy {
       const promise = item.type === 'folder'
         ? provider.removeDirectory(providerPath, name)
         : provider.deleteFile(providerPath, name);
-      
+
       promise.then(() => {
         this.folderPropertiesService.handleDelete(path);
         this.loadFolderTree();
@@ -1162,10 +1214,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onSidebarItemsMoved(event: { destPath: string[]; payload: DragDropPayload }): void {
     if (event.payload.type !== 'filesystem') return;
-    
+
     const { sourceProvider, sourcePath, items } = event.payload.payload;
     const destProvider = this.getProvider(event.destPath);
-    
+
     // Moving between providers is not supported yet.
     if (sourceProvider !== destProvider) {
       this.toastService.show('Moving items between different file systems is not supported yet.', 'error');
@@ -1202,7 +1254,7 @@ export class AppComponent implements OnInit, OnDestroy {
       })
       .catch(e => this.toastService.show(`Failed to create folder: ${(e as Error).message}`, 'error'));
   }
-  
+
   onSidebarNewFile(event: { path: string[]; name: string }): void {
     const provider = this.getProvider(event.path);
     const providerPath = event.path.length > 0 ? event.path.slice(1) : [];
@@ -1255,11 +1307,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.unlistenPaneResizeMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
       const dx = e.clientX - startX;
       let newWidth = startWidth + dx;
-      
+
       const minWidth = 150; // min width in pixels
       if (newWidth < minWidth) newWidth = minWidth;
       if (newWidth > totalWidth - minWidth) newWidth = totalWidth - minWidth;
-      
+
       this.pane1Width.set((newWidth / totalWidth) * 100);
     });
 
@@ -1273,7 +1325,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.unlistenPaneResizeUp?.();
     this.uiPreferencesService.setSplitViewPaneWidth(this.pane1Width());
   }
-  
+
   startStreamResize(event: MouseEvent): void {
     this.isResizingStream = true;
     event.preventDefault();
@@ -1281,18 +1333,18 @@ export class AppComponent implements OnInit, OnDestroy {
     const startY = event.clientY;
     const containerRect = container.getBoundingClientRect();
     const initialStreamHeight = container.children[2].getBoundingClientRect().height;
-    
+
     this.unlistenStreamResizeMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
       const dy = startY - e.clientY;
       let newStreamHeight = initialStreamHeight + dy;
-      
+
       const minHeight = 100;
-      const consoleHeight = this.isConsoleCollapsed() ? 28 : (this.consolePaneHeight()/100 * containerRect.height);
+      const consoleHeight = this.isConsoleCollapsed() ? 28 : (this.consolePaneHeight() / 100 * containerRect.height);
       const maxHeight = containerRect.height - 100 - consoleHeight; // Leave 100px for file explorer
 
       if (newStreamHeight < minHeight) newStreamHeight = minHeight;
       if (newStreamHeight > maxHeight) newStreamHeight = maxHeight;
-      
+
       this.streamPaneHeight.set((newStreamHeight / containerRect.height) * 100);
     });
 
@@ -1306,7 +1358,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.unlistenStreamResizeUp?.();
     this.uiPreferencesService.setExplorerStreamHeight(this.streamPaneHeight());
   }
-  
+
   startConsolePaneResize(event: MouseEvent): void {
     this.isResizingConsole = true;
     event.preventDefault();
@@ -1316,17 +1368,17 @@ export class AppComponent implements OnInit, OnDestroy {
     const initialConsoleHeight = container.children[this.isStreamVisible() ? 4 : 2].getBoundingClientRect().height;
 
     this.unlistenConsoleResizeMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-        const dy = startY - e.clientY;
-        let newConsoleHeight = initialConsoleHeight + dy;
+      const dy = startY - e.clientY;
+      let newConsoleHeight = initialConsoleHeight + dy;
 
-        const minHeight = 100; // Minimum height in pixels for the console when expanded
-        const streamHeight = this.isStreamVisible() ? (this.isStreamPaneCollapsed() ? 28 : (this.streamPaneHeight() / 100 * containerRect.height)) : 0;
-        const maxHeight = containerRect.height - 100 - streamHeight; // Leave 100px for file explorer
+      const minHeight = 100; // Minimum height in pixels for the console when expanded
+      const streamHeight = this.isStreamVisible() ? (this.isStreamPaneCollapsed() ? 28 : (this.streamPaneHeight() / 100 * containerRect.height)) : 0;
+      const maxHeight = containerRect.height - 100 - streamHeight; // Leave 100px for file explorer
 
-        if (newConsoleHeight < minHeight) newConsoleHeight = minHeight;
-        if (newConsoleHeight > maxHeight) newConsoleHeight = maxHeight;
-        
-        this.consolePaneHeight.set((newConsoleHeight / containerRect.height) * 100);
+      if (newConsoleHeight < minHeight) newConsoleHeight = minHeight;
+      if (newConsoleHeight > maxHeight) newConsoleHeight = maxHeight;
+
+      this.consolePaneHeight.set((newConsoleHeight / containerRect.height) * 100);
     });
 
     this.unlistenConsoleResizeUp = this.renderer.listen('document', 'mouseup', () => this.stopConsoleResize());
@@ -1344,9 +1396,9 @@ export class AppComponent implements OnInit, OnDestroy {
   openThemeMenu(target: HTMLElement): void {
     const rect = target.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
-    this.themeMenuPosition.set({ 
-      top: `${rect.bottom + 8}px`, 
-      right: `${viewportWidth - rect.right}px` 
+    this.themeMenuPosition.set({
+      top: `${rect.bottom + 8}px`,
+      right: `${viewportWidth - rect.right}px`
     });
     this.isThemeDropdownOpen.set(true);
   }
@@ -1355,7 +1407,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.uiPreferencesService.setTheme(theme);
     this.isThemeDropdownOpen.set(false);
   }
-  
+
   // --- Preferences Dialog ---
   openPreferencesDialog(): void {
     this.isPreferencesDialogOpen.set(true);
@@ -1375,7 +1427,7 @@ export class AppComponent implements OnInit, OnDestroy {
   openComplexSearchDialog(): void {
     this.isComplexSearchDialogOpen.set(true);
   }
-  
+
   closeComplexSearchDialog(): void {
     this.isComplexSearchDialogOpen.set(false);
   }
@@ -1407,7 +1459,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private loadStreamResultsForPanes = effect(async () => {
     // This effect reacts to changes in pane contexts, ensuring it runs on every navigation.
     const contexts: ({ id: number; } & ReturnType<typeof this.pane1Context>)[] = [];
-    
+
     if (this.isSplitView()) {
       contexts.push({ id: 1, ...this.pane1Context() });
       contexts.push({ id: 2, ...this.pane2Context() });
@@ -1417,95 +1469,95 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     for (const context of contexts) {
-        const { id, path, profile, token } = context;
+      const { id, path, profile, token } = context;
 
-        let isMagnetFolder = false;
-        if (path.length > 0) {
-            const provider = this.getProvider(path);
-            // The provider's internal path does not include the root name (e.g., 'Local Session')
-            const providerPath = path.slice(1);
-            isMagnetFolder = await provider.hasFile(providerPath, '.magnet');
-        }
+      let isMagnetFolder = false;
+      if (path.length > 0) {
+        const provider = this.getProvider(path);
+        // The provider's internal path does not include the root name (e.g., 'Local Session')
+        const providerPath = path.slice(1);
+        isMagnetFolder = await provider.hasFile(providerPath, '.magnet');
+      }
 
-        // If not a magnet folder OR active search is disabled, clear results.
-        if (!isMagnetFolder || !this.isStreamActiveSearchEnabled()) {
-            if (id === 1) {
-                this.streamResultsForPane1.set([]);
-            } else {
-                this.streamResultsForPane2.set([]);
-            }
-            continue; // Move to the next pane context
-        }
-
-        // --- If it IS a magnet folder AND active search is enabled, proceed with the existing search logic ---
-        const rootName = path[0];
-        const relativePath = path.slice(1);
-
-        const query = relativePath.length > 0 ? relativePath[relativePath.length - 1] : rootName;
-        const simpleSearchQuery = relativePath.join(', ');
-
-        const promises: Promise<StreamItem[]>[] = [];
-
-        // If we have a profile and token, we are in a "real search" context.
-        // We will only call the real services (Google Search) and potentially real services (Gemini).
-        if (profile && token) {
-            const searchParams: GoogleSearchParams = {
-                brokerUrl: profile.brokerUrl,
-                token: token,
-                query: simpleSearchQuery
-            };
-            promises.push(
-                this.googleSearchService.search(searchParams)
-                    .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
-            );
-
-            // Gemini Search (could be real or mock depending on API key)
-            promises.push(
-                this.geminiService.search(query)
-                    .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
-            );
+      // If not a magnet folder OR active search is disabled, clear results.
+      if (!isMagnetFolder || !this.isStreamActiveSearchEnabled()) {
+        if (id === 1) {
+          this.streamResultsForPane1.set([]);
         } else {
-            // Otherwise, we are in a "mock search" context (e.g., Local Session).
-            // Call all the mock services.
-            promises.push(
-                this.unsplashService.search(query)
-                    .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
-            );
+          this.streamResultsForPane2.set([]);
+        }
+        continue; // Move to the next pane context
+      }
 
-            promises.push(
-                this.youtubeSearchService.search(query)
-                    .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
-            );
-            
-            promises.push(
-                this.academicSearchService.search(query)
-                    .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
-            );
+      // --- If it IS a magnet folder AND active search is enabled, proceed with the existing search logic ---
+      const rootName = path[0];
+      const relativePath = path.slice(1);
 
-            promises.push(
-                this.geminiService.search(query)
-                    .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
-            );
+      const query = relativePath.length > 0 ? relativePath[relativePath.length - 1] : rootName;
+      const simpleSearchQuery = relativePath.join(', ');
+
+      const promises: Promise<StreamItem[]>[] = [];
+
+      // If we have a profile and token, we are in a "real search" context.
+      // We will only call the real services (Google Search) and potentially real services (Gemini).
+      if (profile && token) {
+        const searchParams: GoogleSearchParams = {
+          brokerUrl: profile.brokerUrl,
+          token: token,
+          query: simpleSearchQuery
+        };
+        promises.push(
+          this.googleSearchService.search(searchParams)
+            .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
+        );
+
+        // Gemini Search (could be real or mock depending on API key)
+        promises.push(
+          this.geminiService.search(query)
+            .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
+        );
+      } else {
+        // Otherwise, we are in a "mock search" context (e.g., Local Session).
+        // Call all the mock services.
+        promises.push(
+          this.unsplashService.search(query)
+            .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
+        );
+
+        promises.push(
+          this.youtubeSearchService.search(query)
+            .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
+        );
+
+        promises.push(
+          this.academicSearchService.search(query)
+            .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
+        );
+
+        promises.push(
+          this.geminiService.search(query)
+            .then(text => [{ query, text, publishedAt: new Date().toISOString(), type: 'gemini' as const, paneId: id }])
+        );
+      }
+
+      try {
+        const results = await Promise.all(promises);
+        const flattenedResults = results.flat();
+
+        if (id === 1) {
+          this.streamResultsForPane1.set(flattenedResults);
+        } else {
+          this.streamResultsForPane2.set(flattenedResults);
         }
 
-        try {
-            const results = await Promise.all(promises);
-            const flattenedResults = results.flat();
-            
-            if (id === 1) {
-                this.streamResultsForPane1.set(flattenedResults);
-            } else {
-                this.streamResultsForPane2.set(flattenedResults);
-            }
-
-        } catch (error) {
-            console.error(`Failed to load stream results for pane ${id}`, error);
-            if (id === 1) {
-                this.streamResultsForPane1.set([]);
-            } else {
-                this.streamResultsForPane2.set([]);
-            }
+      } catch (error) {
+        console.error(`Failed to load stream results for pane ${id}`, error);
+        if (id === 1) {
+          this.streamResultsForPane1.set([]);
+        } else {
+          this.streamResultsForPane2.set([]);
         }
+      }
     }
   }, { allowSignalWrites: true });
 
@@ -1537,7 +1589,7 @@ export class AppComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.isStreamSortDropdownOpen.update(v => !v);
   }
-  
+
   onStreamSortChange(key: StreamSortKey): void {
     this.streamSortCriteria.set({ key, direction: 'asc' }); // Direction is handled in computed for now
     this.isStreamSortDropdownOpen.set(false);
@@ -1545,47 +1597,47 @@ export class AppComponent implements OnInit, OnDestroy {
 
   getStreamItemLink(item: StreamItem): string {
     switch (item.type) {
-        case 'web':
-        case 'academic':
-            return item.link;
-        case 'image':
-            return item.url;
-        case 'youtube':
-            return `https://www.youtube.com/watch?v=${item.videoId}`;
-        case 'gemini':
-            // Gemini results don't have a unique link, so we create one from content
-            return `gemini:${item.query}:${item.publishedAt}`;
+      case 'web':
+      case 'academic':
+        return item.link;
+      case 'image':
+        return item.url;
+      case 'youtube':
+        return `https://www.youtube.com/watch?v=${item.videoId}`;
+      case 'gemini':
+        // Gemini results don't have a unique link, so we create one from content
+        return `gemini:${item.query}:${item.publishedAt}`;
     }
   }
-  
+
   onBookmarkToggled(item: StreamItem): void {
     const link = this.getStreamItemLink(item);
     const existing = this.bookmarkService.findBookmarkByLink(link);
 
     if (existing) {
-        this.bookmarkService.deleteBookmark(existing._id);
-        this.toastService.show('Bookmark removed.');
+      this.bookmarkService.deleteBookmark(existing._id);
+      this.toastService.show('Bookmark removed.');
     } else {
-        let newBookmark: NewBookmark;
-        switch(item.type) {
-            case 'web':
-                newBookmark = { type: 'web', title: item.title, link: item.link, snippet: item.snippet, source: item.source };
-                break;
-            case 'image':
-                newBookmark = { type: 'image', title: item.description, link: item.url, thumbnailUrl: item.thumbnailUrl, snippet: `by ${item.photographer}`, source: item.source };
-                break;
-            case 'youtube':
-                newBookmark = { type: 'youtube', title: item.title, link: `https://www.youtube.com/watch?v=${item.videoId}`, thumbnailUrl: item.thumbnailUrl, snippet: item.description, source: item.channelTitle };
-                break;
-            case 'academic':
-                newBookmark = { type: 'academic', title: item.title, link: item.link, snippet: item.snippet, source: item.publication };
-                break;
-            case 'gemini':
-                newBookmark = { type: 'gemini', title: `Gemini: ${item.query}`, link: this.getStreamItemLink(item), snippet: item.text, source: 'Gemini' };
-                break;
-        }
-        this.bookmarkService.addBookmark(this.activePanePath(), newBookmark);
-        this.toastService.show('Bookmark saved to current folder.');
+      let newBookmark: NewBookmark;
+      switch (item.type) {
+        case 'web':
+          newBookmark = { type: 'web', title: item.title, link: item.link, snippet: item.snippet, source: item.source };
+          break;
+        case 'image':
+          newBookmark = { type: 'image', title: item.description, link: item.url, thumbnailUrl: item.thumbnailUrl, snippet: `by ${item.photographer}`, source: item.source };
+          break;
+        case 'youtube':
+          newBookmark = { type: 'youtube', title: item.title, link: `https://www.youtube.com/watch?v=${item.videoId}`, thumbnailUrl: item.thumbnailUrl, snippet: item.description, source: item.channelTitle };
+          break;
+        case 'academic':
+          newBookmark = { type: 'academic', title: item.title, link: item.link, snippet: item.snippet, source: item.publication };
+          break;
+        case 'gemini':
+          newBookmark = { type: 'gemini', title: `Gemini: ${item.query}`, link: this.getStreamItemLink(item), snippet: item.text, source: 'Gemini' };
+          break;
+      }
+      this.bookmarkService.addBookmark(this.activePanePath(), newBookmark);
+      this.toastService.show('Bookmark saved to current folder.');
     }
   }
 }
