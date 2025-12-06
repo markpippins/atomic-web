@@ -7,8 +7,9 @@ import { AppComponent } from './src/app.component.js';
 import { IS_DEBUG_MODE } from './src/services/app-config.js';
 
 // We assume the build process exposes DEBUG from .env as process.env.DEBUG
+
 declare const process: any;
-const isDebugMode = true;
+const isDebugMode = false;
 
 bootstrapApplication(AppComponent, {
   providers: [
