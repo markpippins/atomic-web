@@ -125,6 +125,17 @@ export class HostServerProvider implements TreeProvider {
             if (!baseUrl.startsWith('http')) {
                 baseUrl = `http://${baseUrl}`;
             }
+
+            try {
+                // The Host Server runs on port 8085, while the brokerUrl typically points to the Broker Gateway (8080).
+                // We need to use the hostname from brokerUrl but target port 8085 to fetch services.
+                const urlObj = new URL(baseUrl);
+                urlObj.port = '8085';
+                baseUrl = urlObj.toString();
+            } catch (e) {
+                console.warn(`Failed to parse brokerUrl '${profile.brokerUrl}' for port adjustment`, e);
+            }
+
             if (baseUrl.endsWith('/')) {
                 baseUrl = baseUrl.slice(0, -1);
             }

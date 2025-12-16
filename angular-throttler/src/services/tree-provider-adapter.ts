@@ -14,7 +14,7 @@ export class TreeProviderAdapter implements FileSystemProvider {
             name: node.name,
             type: node.type === NodeType.FILE ? 'file' : 'folder',
             id: node.id,
-            metadata: node.metadata,
+            metadata: { ...node.metadata, ...(node.icon ? { icon: node.icon } : {}) },
             children: node.children ? node.children.map(c => this.mapNode(c)) : [],
             childrenLoaded: !!node.children || !node.hasChildren,
             isServerRoot: false // node.type === NodeType.ROOT ?
