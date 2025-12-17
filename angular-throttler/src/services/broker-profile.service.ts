@@ -1,11 +1,11 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
-import { ServerProfile } from '../models/server-profile.model.js';
+import { BrokerProfile } from '../models/broker-profile.model.js';
 import { DbService } from './db.service.js';
 
-const PROFILES_STORAGE_KEY = 'file-explorer-server-profiles';
-const ACTIVE_PROFILE_ID_STORAGE_KEY = 'file-explorer-active-profile-id';
+const PROFILES_STORAGE_KEY = 'file-explorer-broker-profiles';
+const ACTIVE_PROFILE_ID_STORAGE_KEY = 'file-explorer-active-broker-profile-id';
 
-const DEFAULT_PROFILES: ServerProfile[] = [
+const DEFAULT_PROFILES: BrokerProfile[] = [
   {
     id: 'default-local',
     name: 'Local (Debug)',
@@ -17,12 +17,12 @@ const DEFAULT_PROFILES: ServerProfile[] = [
 @Injectable({
   providedIn: 'root',
 })
-export class ServerProfileService {
+export class BrokerProfileService {
   private dbService = inject(DbService);
-  profiles = signal<ServerProfile[]>([]);
+  profiles = signal<BrokerProfile[]>([]);
   activeProfileId = signal<string | null>(null);
 
-  activeProfile = computed<ServerProfile | null>(() => {
+  activeProfile = computed<BrokerProfile | null>(() => {
     const profiles = this.profiles();
     const activeId = this.activeProfileId();
     if (!activeId) return null;
@@ -32,12 +32,15 @@ export class ServerProfileService {
   activeConfig = computed<{ brokerUrl: string, imageUrl: string }>(() => {
     const active = this.activeProfile();
     if (active) {
-      return { brokerUrl: active.brokerUrl, imageUrl: active.imageUrl };
+      return {
+        brokerUrl: active.brokerUrl,
+        imageUrl: active.imageUrl ?? ''
+      };
     }
     // Fallback to default if no active profile is found (should not happen after init)
-    return { 
-      brokerUrl: DEFAULT_PROFILES[0].brokerUrl, 
-      imageUrl: DEFAULT_PROFILES[0].imageUrl 
+    return {
+      brokerUrl: DEFAULT_PROFILES[0].brokerUrl,
+      imageUrl: DEFAULT_PROFILES[0].imageUrl ?? ''
     };
   });
 
@@ -58,7 +61,7 @@ export class ServerProfileService {
     });
   }
 
-  private sortProfiles(profiles: ServerProfile[]): ServerProfile[] {
+  private sortProfiles(profiles: BrokerProfile[]): BrokerProfile[] {
     return profiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   }
 
@@ -70,7 +73,7 @@ export class ServerProfileService {
         // One-time migration from localStorage or use defaults
         const profilesJson = localStorage.getItem(PROFILES_STORAGE_KEY);
         const storedProfiles = profilesJson ? JSON.parse(profilesJson) : [];
-        
+
         if (storedProfiles.length > 0) {
           profiles = storedProfiles;
           // Clean up old storage key after migration
@@ -81,11 +84,21 @@ export class ServerProfileService {
 
         // Populate IndexedDB with the determined profiles
         for (const profile of profiles) {
-          await this.dbService.addProfile(profile);
+          const p = profile as any;
+          // Temporarily cast generic profile to BrokerProfile, might lose 'type' field which is fine
+          const newProfile = {
+            id: p.id,
+            name: p.name,
+            brokerUrl: p.brokerUrl ?? p.url ?? '', // Fallback for migration
+            imageUrl: p.imageUrl ?? '',
+            autoConnect: p.autoConnect,
+            healthCheckDelayMinutes: p.healthCheckDelayMinutes
+          } as BrokerProfile;
+          await this.dbService.addProfile(newProfile);
         }
       }
 
-      this.profiles.set(this.sortProfiles(profiles));
+      this.profiles.set(this.sortProfiles(profiles as any)); // DB Service might return generic, casting
 
       const activeId = localStorage.getItem(ACTIVE_PROFILE_ID_STORAGE_KEY);
       if (activeId && this.profiles().some(p => p.id === activeId)) {
@@ -105,15 +118,15 @@ export class ServerProfileService {
     return `profile-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  async addProfile(profileData: Omit<ServerProfile, 'id'>): Promise<void> {
-    const newProfile: ServerProfile = { ...profileData, id: this.generateId() };
-    await this.dbService.addProfile(newProfile);
+  async addProfile(profileData: Omit<BrokerProfile, 'id'>): Promise<void> {
+    const newProfile: BrokerProfile = { ...profileData, id: this.generateId() };
+    await this.dbService.addProfile(newProfile as any); // Cast for DB service compat if needed
     this.profiles.update(profiles => this.sortProfiles([...profiles, newProfile]));
   }
 
-  async updateProfile(updatedProfile: ServerProfile): Promise<void> {
-    await this.dbService.updateProfile(updatedProfile);
-    this.profiles.update(profiles => 
+  async updateProfile(updatedProfile: BrokerProfile): Promise<void> {
+    await this.dbService.updateProfile(updatedProfile as any);
+    this.profiles.update(profiles =>
       this.sortProfiles(profiles.map(p => p.id === updatedProfile.id ? updatedProfile : p))
     );
   }

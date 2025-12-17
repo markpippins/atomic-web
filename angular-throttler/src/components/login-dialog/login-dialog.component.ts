@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ServerProfile } from '../../models/server-profile.model.js';
+import { BrokerProfile } from '../../models/broker-profile.model.js';
 
 @Component({
   selector: 'app-login-dialog',
@@ -13,7 +13,7 @@ import { ServerProfile } from '../../models/server-profile.model.js';
   },
 })
 export class LoginDialogComponent {
-  profile = input.required<ServerProfile>();
+  profile = input.required<BrokerProfile>();
   close = output<void>();
   submitLogin = output<{ username: string, password: string }>();
 

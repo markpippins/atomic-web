@@ -7,7 +7,8 @@ export enum NodeType {
     SEARCH_RESULT = 'search-result',
     VIRTUAL_FOLDER = 'virtual-folder',
     HEALTH_CHECK = 'health-check',
-    LOG_ENTRY = 'log-entry'
+    LOG_ENTRY = 'log-entry',
+    HOST_SERVER = 'host-server'
 }
 
 export enum NodeStatus {

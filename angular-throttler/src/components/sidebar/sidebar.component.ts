@@ -31,13 +31,14 @@ export class SidebarComponent implements OnDestroy {
   isTreeVisible = input(true);
   isChatVisible = input(true);
   isNotesVisible = input(true);
-  
+
   pathChange = output<string[]>();
   refreshTree = output<void>();
   loadChildren = output<string[]>();
   itemsMoved = output<{ destPath: string[]; payload: DragDropPayload }>();
   bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
   serversMenuClick = output<void>();
+  hostServersMenuClick = output<void>();
   localConfigMenuClick = output<void>();
   importClick = output<void>();
   exportClick = output<void>();
@@ -60,7 +61,7 @@ export class SidebarComponent implements OnDestroy {
   // --- Vertical Resizing State for internal panes ---
   treePaneHeight = signal(this.uiPreferencesService.sidebarTreeHeight() ?? 400);
   chatPaneHeight = signal(this.uiPreferencesService.sidebarChatHeight() ?? 250);
-  
+
   isResizingTree = signal(false);
   isResizingChat = signal(false);
 
@@ -68,12 +69,12 @@ export class SidebarComponent implements OnDestroy {
   private unlistenTreeMouseUp: (() => void) | null = null;
   private unlistenChatMouseMove: (() => void) | null = null;
   private unlistenChatMouseUp: (() => void) | null = null;
-  
+
   isChatPaneCollapsed = this.uiPreferencesService.isChatPaneCollapsed;
   isNotesPaneCollapsed = this.uiPreferencesService.isNotesPaneCollapsed;
 
   @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
-  
+
   isTreeFlex = computed(() => {
     const chatIsEffectivelyHidden = !this.isChatVisible() || this.isChatPaneCollapsed();
     const notesIsEffectivelyHidden = !this.isNotesVisible() || this.isNotesPaneCollapsed();
@@ -82,27 +83,27 @@ export class SidebarComponent implements OnDestroy {
 
   // --- Context Menu State ---
   contextMenu = signal<{ x: number; y: number; path: string[]; node: FileSystemNode } | null>(null);
-  
+
   // --- Dialog State ---
   isInputDialogOpen = signal(false);
   private inputDialogCallback = signal<((value: string) => void) | null>(null);
   inputDialogConfig = signal<{ title: string; message: string; initialValue: string }>({ title: '', message: '', initialValue: '' });
-  
+
   isConfirmDialogOpen = signal(false);
   private confirmDialogCallback = signal<(() => void) | null>(null);
   confirmDialogConfig = signal<{ title: string; message: string; confirmText: string }>({ title: '', message: '', confirmText: 'OK' });
-  
+
   currentProvider = computed(() => this.getProvider()(this.currentPath()));
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event) {
     if (!this.elementRef.nativeElement.contains(event.target)) {
-        if (this.isHamburgerMenuOpen()) this.isHamburgerMenuOpen.set(false);
+      if (this.isHamburgerMenuOpen()) this.isHamburgerMenuOpen.set(false);
     }
     // Always close context menu on any document click
     if (this.contextMenu()) this.contextMenu.set(null);
   }
-  
+
   startResize(event: MouseEvent): void {
     this.isResizing.set(true);
     const startX = event.clientX;
@@ -113,10 +114,10 @@ export class SidebarComponent implements OnDestroy {
     this.unlistenMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
       const dx = e.clientX - startX;
       let newWidth = startWidth + dx;
-      
+
       if (newWidth < 150) newWidth = 150;
       if (newWidth > 500) newWidth = 500;
-      
+
       this.width.set(newWidth);
     });
 
@@ -148,9 +149,9 @@ export class SidebarComponent implements OnDestroy {
 
     this.unlistenTreeMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
       let newTreeHeight = e.clientY - containerRect.top;
-      
+
       const minHeight = 100;
-      
+
       let occupiedByOtherPanes = 0;
       if (this.isChatVisible()) {
         if (this.isChatPaneCollapsed()) {
@@ -165,12 +166,12 @@ export class SidebarComponent implements OnDestroy {
         // Leave at least 100px for the notes pane
         occupiedByOtherPanes += 100;
       }
-      
+
       const maxHeight = containerRect.height - occupiedByOtherPanes;
 
       if (newTreeHeight < minHeight) newTreeHeight = minHeight;
       if (newTreeHeight > maxHeight) newTreeHeight = maxHeight;
-      
+
       this.treePaneHeight.set(newTreeHeight);
     });
 
@@ -209,7 +210,7 @@ export class SidebarComponent implements OnDestroy {
 
       if (newHeight < minHeight) newHeight = minHeight;
       if (newHeight > maxHeight) newHeight = maxHeight;
-      
+
       this.chatPaneHeight.set(newHeight);
     });
 
@@ -235,7 +236,7 @@ export class SidebarComponent implements OnDestroy {
   toggleChatPaneCollapse(): void {
     this.uiPreferencesService.toggleChatPaneCollapse();
   }
-  
+
   toggleNotesPaneCollapse(): void {
     this.uiPreferencesService.toggleNotesPaneCollapse();
   }
@@ -267,13 +268,13 @@ export class SidebarComponent implements OnDestroy {
   onBookmarkDropped(event: { bookmark: NewBookmark, destPath: string[] }): void {
     this.bookmarkDropped.emit(event);
   }
-  
+
   toggleHamburgerMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.isHamburgerMenuOpen.update(v => !v);
   }
 
-  onMenuItemClick(emitterName: 'localConfigMenuClick' | 'importClick' | 'exportClick' | 'serversMenuClick'): void {
+  onMenuItemClick(emitterName: 'localConfigMenuClick' | 'importClick' | 'exportClick' | 'serversMenuClick' | 'hostServersMenuClick'): void {
     switch (emitterName) {
       case 'localConfigMenuClick':
         this.localConfigMenuClick.emit();
@@ -287,10 +288,13 @@ export class SidebarComponent implements OnDestroy {
       case 'serversMenuClick':
         this.serversMenuClick.emit();
         break;
+      case 'hostServersMenuClick':
+        this.hostServersMenuClick.emit();
+        break;
     }
     this.isHamburgerMenuOpen.set(false);
   }
-  
+
   onTreeContextMenu(event: { event: MouseEvent; path: string[]; node: FileSystemNode; }): void {
     event.event.preventDefault();
     event.event.stopPropagation();
@@ -310,14 +314,14 @@ export class SidebarComponent implements OnDestroy {
       currentNode = currentNode?.children?.find(c => c.name === segment);
       if (!currentNode) return null;
     }
-    
+
     return currentNode ?? null;
   }
-  
+
   onSidebarAreaContextMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    
+
     this.contextMenu.set(null); // Close any existing menu
 
     const path = this.currentPath();
@@ -347,7 +351,7 @@ export class SidebarComponent implements OnDestroy {
       // It's a child of a server. Writable only if connected.
       return rootNodeInTree.connected ?? false;
     }
-    
+
     // If not a child of a server root, it must be a child of the local session root,
     // which is always writable.
     return true;
@@ -381,7 +385,7 @@ export class SidebarComponent implements OnDestroy {
     this.contextMenu.set(null);
     this.confirmDialogConfig.set({ title: 'Confirm Deletion', message: `Are you sure you want to delete "${ctx.node.name}"?`, confirmText: 'Delete' });
     this.confirmDialogCallback.set(() => {
-        this.deleteItemInTree.emit(ctx.path);
+      this.deleteItemInTree.emit(ctx.path);
     });
     this.isConfirmDialogOpen.set(true);
   }
@@ -407,7 +411,7 @@ export class SidebarComponent implements OnDestroy {
     });
     this.isInputDialogOpen.set(true);
   }
-  
+
   handleConnect(): void {
     const profileId = this.contextMenu()?.node.profileId;
     if (profileId) {
@@ -438,7 +442,7 @@ export class SidebarComponent implements OnDestroy {
     this.inputDialogCallback()?.(value);
     this.isInputDialogOpen.set(false);
   }
-  
+
   onConfirmDialogConfirm(): void {
     this.confirmDialogCallback()?.();
     this.isConfirmDialogOpen.set(false);

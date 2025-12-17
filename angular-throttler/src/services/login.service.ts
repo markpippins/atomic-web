@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BrokerService } from './broker.service.js';
 import { User } from '../models/user.model.js';
-import { ServerProfile } from '../models/server-profile.model.js';
+import { BrokerProfile } from '../models/broker-profile.model.js';
 
 const SERVICE_NAME = 'loginService';
 
@@ -22,26 +22,26 @@ export class LoginService {
   private constructBrokerUrl(baseUrl: string): string {
     let fullUrl = baseUrl.trim();
     if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-        fullUrl = `http://${fullUrl}`;
+      fullUrl = `http://${fullUrl}`;
     }
     if (fullUrl.endsWith('/')) {
-        fullUrl = fullUrl.slice(0, -1);
+      fullUrl = fullUrl.slice(0, -1);
     }
     fullUrl += '/api/broker/submitRequest';
     return fullUrl;
   }
 
-  async login(profile: ServerProfile, username: string, password: string): Promise<{ user: User; token: string }> {
-    const response = await this.brokerService.submitRequest<LoginResponse>(this.constructBrokerUrl(profile.brokerUrl), SERVICE_NAME, 'login', {
-        alias: username,
-        identifier: password
+  async login(profile: BrokerProfile, username: string, password: string): Promise<{ user: User; token: string }> {
+    const response = await this.brokerService.submitRequest<LoginResponse>(this.constructBrokerUrl(profile.brokerUrl ?? ''), SERVICE_NAME, 'login', {
+      alias: username,
+      identifier: password
     });
-    
+
     if (!response || !response.ok || !response.token) {
-        const errorMessage = response?.errors?.map(e => e.message).join(', ') || response?.message || 'Login failed: No token received.';
-        throw new Error(errorMessage);
+      const errorMessage = response?.errors?.map(e => e.message).join(', ') || response?.message || 'Login failed: No token received.';
+      throw new Error(errorMessage);
     }
-    
+
     // Since the user object is no longer returned, we construct a partial user object
     // for display purposes. The username is the key piece of information we have.
     const user: User = {

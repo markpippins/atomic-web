@@ -1,4 +1,4 @@
-export interface ServerProfile {
+export interface BrokerProfile {
   id: string;
   name: string;
   brokerUrl: string;

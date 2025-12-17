@@ -7,11 +7,13 @@ import { FileExplorerComponent } from './components/file-explorer/file-explorer.
 import { SidebarComponent } from './components/sidebar/sidebar.component.js';
 import { FileSystemNode } from './models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './services/file-system-provider.js';
-import { ServerProfilesDialogComponent } from './components/server-profiles-dialog/server-profiles-dialog.component.js';
-import { ServerProfileService } from './services/server-profile.service.js';
+import { BrokerProfilesDialogComponent } from './components/broker-profiles-dialog/broker-profiles-dialog.component.js';
+import { HostProfilesDialogComponent } from './components/host-profiles-dialog/host-profiles-dialog.component.js';
+import { BrokerProfileService } from './services/broker-profile.service.js';
+import { HostProfileService } from './services/host-profile.service.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
 import { SessionService } from './services/in-memory-file-system.service.js';
-import { ServerProfile } from './models/server-profile.model.js';
+import { BrokerProfile } from './models/broker-profile.model.js';
 import { RemoteFileSystemService } from './services/remote-file-system.service.js';
 import { FsService } from './services/fs.service.js';
 import { ImageService } from './services/image.service.js';
@@ -125,7 +127,7 @@ const disconnectedProvider: FileSystemProvider = {
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, ServerProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, BrokerProfilesDialogComponent, HostProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -133,7 +135,8 @@ const disconnectedProvider: FileSystemProvider = {
 })
 export class AppComponent implements OnInit, OnDestroy {
   private sessionFs = inject(SessionService);
-  private profileService = inject(ServerProfileService);
+  private profileService = inject(BrokerProfileService);
+  private hostProfileService = inject(HostProfileService);
   private localConfigService = inject(LocalConfigService);
   private fsService = inject(FsService);
   private imageClientService = inject(ImageClientService);
@@ -168,7 +171,8 @@ export class AppComponent implements OnInit, OnDestroy {
   isSplitView = signal(false);
   activePaneId = signal(1);
   folderTree = signal<FileSystemNode | null>(null);
-  isServerProfilesDialogOpen = signal(false);
+  isBrokerProfilesDialogOpen = signal(false);
+  isHostProfilesDialogOpen = signal(false);
   isLocalConfigDialogOpen = signal(false);
   isRssFeedsDialogOpen = signal(false);
   isImportDialogOpen = signal(false);
@@ -197,11 +201,11 @@ export class AppComponent implements OnInit, OnDestroy {
   panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
 
   // --- Dialog Control State ---
-  profileForLogin = signal<ServerProfile | null>(null);
-  profileForEdit = signal<ServerProfile | null>(null);
+  profileForLogin = signal<BrokerProfile | null>(null);
+  profileForEdit = signal<BrokerProfile | null>(null);
 
   // --- Mounted Profile State ---
-  mountedProfiles = signal<ServerProfile[]>([]);
+  mountedProfiles = signal<BrokerProfile[]>([]);
   mountedProfileUsers = signal<Map<string, User>>(new Map());
   mountedProfileTokens = signal<Map<string, string>>(new Map());
   mountedProfileIds = computed(() => this.mountedProfiles().map(p => p.id));
@@ -229,7 +233,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (item.isServerRoot) {
       const profile = this.profileService.profiles().find(p => p.name === item.name);
       if (profile) {
-        return `Server Profile: ${profile.name} | Broker: ${profile.brokerUrl}`;
+        return `Broker Profile: ${profile.name} | Broker: ${profile.brokerUrl}`;
       }
     }
 
@@ -540,15 +544,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Monitor health of server profiles
     effect(() => {
-      const profiles = this.profileService.profiles();
-      profiles.forEach(p => {
-        if (p.imageUrl) {
-          this.healthCheckService.monitorService({
-            imageUrl: p.imageUrl,
-            healthCheckDelayMinutes: p.healthCheckDelayMinutes
-          });
-        }
-      });
+      const brokerProfiles = this.profileService.profiles();
+      const hostProfiles = this.hostProfileService.profiles();
+      const allProfiles = [
+        ...brokerProfiles,
+        ...hostProfiles.map(p => ({ imageUrl: p.imageUrl, healthCheckDelayMinutes: undefined }))
+      ];
+      this.healthCheckService.syncMonitoredProfiles(allProfiles);
     });
 
     // Reactive Folder Tree and Auto-Connect
@@ -619,10 +621,35 @@ export class AppComponent implements OnInit, OnDestroy {
   getImageService = (path: string[]): ImageService => {
     const rootName = path.length > 0 ? path[0] : this.localConfigService.sessionName();
     const remote = this.remoteImageServices().get(rootName);
-    if (remote) return remote;
+
+    // Check if it's a HOST_SERVER
+    // In HostServerProvider, we use 'host-<profileId>' for ID, but name is profile.name
+    // We can check if the profile type is 'host'
+    const profile = this.profileService.profiles().find(p => p.name === rootName);
+    // const isHostServer = profile?.type === 'host'; // BrokerProfile no longer has type
+
+    if (remote) {
+      // We need to intercept the getIconUrl call or subclass/wrap the service
+      // But cleaner is to let ImageService handle a "force default image name" logic
+      // For now, let's just return the service. The caller (FileExplorer) calls getIconUrl.
+      // Wait, the caller passes the item. We need to tell ImageService to override.
+      // It seems simpler to modify ImageService.getIconUrl to accept an optional 'overrideName'.
+      // BUT, getImageService returns the service instance.
+      // Let's modify how ImageService is constructed or used?
+      // Actually, the ImageService instance is cached in remoteImageServices.
+      // Maybe we just attach a property to the service instance?
+      // Or better, let's look at how getIconUrl is CALLED.
+      // It is called in file-explorer.component.html: imageService.getIconUrl(item)
+      // We can't easily change the call site to know about host-server type without logic there.
+
+      // Alternative: The HostServerProvider sets the node type to HOST_SERVER (which we added).
+      // If we change the ImageService.getIconUrl to handle HOST_SERVER type specifically?
+      // But ImageService takes a generic FileSystemNode.
+      return remote;
+    }
 
     // Fallback for local session or if no remote service is found
-    const localProfile: ServerProfile = {
+    const localProfile: BrokerProfile = {
       id: 'local-session',
       name: this.localConfigService.sessionName(),
       brokerUrl: '', // not used for images
@@ -935,13 +962,22 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // --- Server Profile Dialog ---
-  openServerProfilesDialog(): void {
+  openBrokerProfilesDialog(): void {
     this.profileForEdit.set(null);
-    this.isServerProfilesDialogOpen.set(true);
+    this.isBrokerProfilesDialogOpen.set(true);
   }
 
-  closeServerProfilesDialog(): void {
-    this.isServerProfilesDialogOpen.set(false);
+  closeBrokerProfilesDialog(): void {
+    this.isBrokerProfilesDialogOpen.set(false);
+  }
+
+  // --- Host Profile Dialog ---
+  openHostProfilesDialog(): void {
+    this.isHostProfilesDialogOpen.set(true);
+  }
+
+  closeHostProfilesDialog(): void {
+    this.isHostProfilesDialogOpen.set(false);
   }
 
   // --- Local Config Dialog ---
@@ -998,7 +1034,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // --- Login and Connection Management ---
-  async onLoginAndMount({ profile, username, password }: { profile: ServerProfile, username: string, password: string }): Promise<void> {
+  async onLoginAndMount({ profile, username, password }: { profile: BrokerProfile, username: string, password: string }): Promise<void> {
     try {
       const { user, token } = await this.loginService.login(profile, username, password);
 
@@ -1022,7 +1058,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  onUnmountProfile(profile: ServerProfile): void {
+  onUnmountProfile(profile: BrokerProfile): void {
     this.mountedProfiles.update(p => p.filter(item => item.id !== profile.id));
 
     this.mountedProfileUsers.update(m => {
@@ -1083,11 +1119,11 @@ export class AppComponent implements OnInit, OnDestroy {
     const profile = this.profileService.profiles().find(p => p.id === profileId);
     if (profile) {
       this.profileForEdit.set(profile);
-      this.isServerProfilesDialogOpen.set(true);
+      this.isBrokerProfilesDialogOpen.set(true);
     }
   }
 
-  onServerProfileRenamed(event: { oldName: string, newName: string, profile: ServerProfile }): void {
+  onServerProfileRenamed(event: { oldName: string, newName: string, profile: BrokerProfile }): void {
     const { oldName, newName, profile } = event;
 
     // 1. Update remoteProviders and remoteImageServices keys if the profile is mounted
@@ -1501,8 +1537,9 @@ export class AppComponent implements OnInit, OnDestroy {
       // If we have a profile and token, we are in a "real search" context.
       // We will only call the real services (Google Search) and potentially real services (Gemini).
       if (profile && token) {
+        const safeBrokerUrl = profile.brokerUrl || '';
         const searchParams: GoogleSearchParams = {
-          brokerUrl: profile.brokerUrl,
+          brokerUrl: safeBrokerUrl,
           token: token,
           query: simpleSearchQuery
         };
