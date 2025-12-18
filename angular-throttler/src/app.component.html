@@ -33,7 +33,9 @@
     </app-sidebar>
     }
 
-    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <div class="flex-1 flex flex-row overflow-hidden min-w-0">
+      <!-- Main content area (address bar, toolbar, file explorer, etc.) -->
+      <div class="flex-1 flex flex-col overflow-hidden min-w-0">
       <!-- Address Bar -->
       <div
         class="h-12 px-4 border-b border-[rgb(var(--color-border-base))] flex items-center space-x-2 flex-shrink-0 bg-[rgb(var(--color-surface-muted))]"
@@ -154,7 +156,7 @@
       >
       </app-toolbar>
 
-      <div class="flex-1 flex flex-row overflow-hidden">
+      <div class="flex-1 flex flex-row overflow-hidden relative">
         <div #mainContentWrapper class="flex-1 flex flex-col overflow-hidden min-w-0">
           <div class="flex-1 flex flex-row overflow-hidden">
             <div
@@ -907,19 +909,19 @@
             }
           </div>
         </div>
-
+      </div>
+      </div> <!-- Close the main content wrapper div -->
         @if (isDetailPaneOpen()) {
-        <app-detail-pane
-          [path]="activePanePath()"
-          [isSavedItemsVisible]="isSavedItemsVisible()"
-          [isRssFeedVisible]="isRssFeedVisible()"
-          (close)="toggleDetailPane()"
-          (manageRssFeeds)="openRssFeedsDialog()"
-        >
-        </app-detail-pane>
+          <app-detail-pane
+            [path]="activePanePath()"
+            [isSavedItemsVisible]="isSavedItemsVisible()"
+            [isRssFeedVisible]="isRssFeedVisible()"
+            (close)="toggleDetailPane()"
+            (manageRssFeeds)="openRssFeedsDialog()"
+            class="flex-shrink-0 bg-[rgb(var(--color-surface-dialog))] border-l border-[rgb(var(--color-border-base))]">
+          </app-detail-pane>
         }
       </div>
-    </div>
   </main>
 
   <!-- Footer/Status Bar -->

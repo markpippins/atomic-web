@@ -71,6 +71,7 @@ import { TreeManagerService } from './services/tree-manager.service.js';
 import { HostServerProvider } from './services/host-server-provider.service.js';
 import { TreeProviderAdapter } from './services/tree-provider-adapter.js';
 import { NodeType } from './models/tree-node.model.js';
+import { ServiceMeshComponent } from './components/service-mesh/service-mesh.component.js';
 
 interface PanePath {
   id: number;
@@ -127,7 +128,7 @@ const disconnectedProvider: FileSystemProvider = {
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, BrokerProfilesDialogComponent, HostProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, BrokerProfilesDialogComponent, HostProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ServiceMeshComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -183,6 +184,7 @@ export class AppComponent implements OnInit, OnDestroy {
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
+  currentViewMode = signal<'file-explorer' | 'service-mesh'>('file-explorer');  // Default to file explorer
 
   // --- Pane Visibility State (from service) ---
   isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
@@ -921,6 +923,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   triggerRefresh(): void {
     this.refreshPanes.update(v => v + 1);
+  }
+
+  toggleViewMode(): void {
+    this.currentViewMode.update(mode =>
+      mode === 'file-explorer' ? 'service-mesh' : 'file-explorer'
+    );
   }
 
   // --- Toolbar Action Handling ---
