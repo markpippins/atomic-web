@@ -45,6 +45,7 @@ const INITIAL_FORM_STATE: FormState = {
     standalone: true,
     imports: [CommonModule, FormsModule],
     templateUrl: './host-profiles-dialog.component.html',
+    styleUrls: ['./host-profiles-dialog.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HostProfilesDialogComponent {
