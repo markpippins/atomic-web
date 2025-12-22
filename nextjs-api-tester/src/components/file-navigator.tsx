@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { useBrokerApi } from "@/hooks/use-broker-api";
 import dummyFileSystem from "@/lib/dummy-fs.json";
 
 type FileSystemItem = {
@@ -76,6 +77,7 @@ const getItemsFromDummyFs = (
 
 export function FileNavigator() {
   const { isDebugMode } = useAuth();
+  const { callBroker } = useBrokerApi();
   const [dummyFs, setDummyFs] = useState<FileSystemItem>(dummyFileSystem as FileSystemItem);
 
   const { user } = useAuth();
@@ -103,7 +105,7 @@ export function FileNavigator() {
         try {
           // The root of our dummy FS is the single item in the `items` array
           let currentItems = getItemsFromDummyFs(dummyFs, path.slice(0, -1));
-          let currentFolder = path.length > 0 
+          let currentFolder = path.length > 0
             ? currentItems?.find(i => i.name === path[path.length-1] && i.type === 'directory')
             : dummyFs;
 
@@ -179,37 +181,21 @@ export function FileNavigator() {
 
       setLoading(true);
       try {
-        // Use the broker API instead of direct API call, with token-based authentication
-        const requestBody = {
-          service: "restFsService",
-          operation: operation === "ls" ? "listFiles" : 
-                    operation === "mkdir" ? "createDirectory" :
-                    operation === "newfile" ? "createFile" :
-                    operation === "rmdir" ? "removeDirectory" :
-                    operation === "deletefile" ? "deleteFile" :
-                    operation === "rename" ? "rename" : operation,
-          params: { token, path, ...extraParams },
-          requestId: crypto.randomUUID ? crypto.randomUUID() : `req-${Date.now()}`
-        };
+        // Use the broker API with dynamic URL
+        const serviceOperation = operation === "ls" ? "listFiles" :
+                                operation === "mkdir" ? "createDirectory" :
+                                operation === "newfile" ? "createFile" :
+                                operation === "rmdir" ? "removeDirectory" :
+                                operation === "deletefile" ? "deleteFile" :
+                                operation === "rename" ? "rename" : operation;
 
-        const response = await fetch("/api/broker/submitRequest", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-        });
+        const result = await callBroker("restFsService", serviceOperation, { token, path, ...extraParams });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || `API Error: ${response.statusText}`);
+        if (result.error) {
+          throw new Error(result.error);
         }
-        
-        const brokerResponse = await response.json();
-        if (!brokerResponse.ok) {
-          const errorMessages = brokerResponse.errors?.map((e: any) => e.message).join(', ') || 'Broker operation failed';
-          throw new Error(errorMessages);
-        }
-        
-        return brokerResponse.data;
+
+        return result;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "An unknown error occurred";
@@ -223,7 +209,7 @@ export function FileNavigator() {
         setLoading(false);
       }
     },
-    [token, path, toast, isDebugMode, dummyFs]
+    [token, path, toast, isDebugMode, dummyFs, callBroker]
   );
 
   const listFiles = useCallback(async () => {

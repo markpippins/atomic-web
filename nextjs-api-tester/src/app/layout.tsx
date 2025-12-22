@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/auth-context";
 import { NavigationProvider } from "@/contexts/navigation-context";
+import { BrokerUrlProvider } from "@/contexts/broker-url-context";
 import { Toolbar } from "@/components/toolbar";
 
 export const metadata: Metadata = {
@@ -26,13 +27,15 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        <NavigationProvider>
-          <AuthProvider>
-            <Toolbar />
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </NavigationProvider>
+        <BrokerUrlProvider>
+          <NavigationProvider>
+            <AuthProvider>
+              <Toolbar />
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </NavigationProvider>
+        </BrokerUrlProvider>
       </body>
     </html>
   );

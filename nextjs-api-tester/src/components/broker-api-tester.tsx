@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useBrokerApi } from "@/hooks/use-broker-api";
 
 const formSchema = z.object({
   service: z.string().min(2, "Service must be at least 2 characters"),
@@ -51,6 +52,7 @@ type ResponseState = {
 };
 
 export function BrokerApiTester() {
+  const { callBroker } = useBrokerApi();
   const [response, setResponse] = useState<ResponseState>({
     data: null,
     error: false,
@@ -72,21 +74,18 @@ export function BrokerApiTester() {
     form.setValue("requestId", uuidv4());
   }, [form]);
 
-  const handleRequest = async (
-    requestFn: () => Promise<Response>
-  ): Promise<void> => {
+  const onJsonSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
     setResponse({ data: null, error: false });
     try {
-      const res = await requestFn();
-      const data = await res.json();
-      const formattedData = JSON.stringify(data, null, 2);
+      const parsedParams = JSON.parse(values.params);
+      const result = await callBroker(values.service, values.operation, parsedParams);
 
-      if (!res.ok) {
-        throw new Error(
-          `Server responded with ${res.status}: ${formattedData}`
-        );
+      if (result.error) {
+        throw new Error(result.error);
       }
+
+      const formattedData = JSON.stringify(result, null, 2);
       setResponse({ data: formattedData, error: false });
     } catch (error) {
       const errorMessage =
@@ -99,17 +98,6 @@ export function BrokerApiTester() {
       });
     }
     setLoading(false);
-  };
-
-  const onJsonSubmit = (values: z.infer<typeof formSchema>) => {
-    const parsedParams = JSON.parse(values.params);
-    handleRequest(() =>
-      fetch("/api/broker/submitRequest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, params: parsedParams }),
-      })
-    );
   };
 
   return (

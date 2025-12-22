@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useBrokerApi } from "@/hooks/use-broker-api";
 
 const formSchema = z.object({
   name: z.string().min(3, "Forum name must be at least 3 characters."),
@@ -37,6 +38,7 @@ type ResponseState = {
 };
 
 export function CreateForum() {
+  const { callBroker } = useBrokerApi();
   const [response, setResponse] = useState<ResponseState>({
     data: null,
     error: false,
@@ -51,26 +53,22 @@ export function CreateForum() {
     },
   });
 
-  const handleRequest = async (
-    requestFn: () => Promise<Response>
-  ): Promise<void> => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
     setResponse({ data: null, error: false });
     try {
-      const res = await requestFn();
-      const data = await res.json();
-      const formattedData = JSON.stringify(data, null, 2);
+      const result = await callBroker("forumService", "create", { name: values.name });
 
-      if (!res.ok) {
-        throw new Error(
-          `Server responded with ${res.status}: ${formattedData}`
-        );
+      if (result.error) {
+        throw new Error(result.error);
       }
+
+      const formattedData = JSON.stringify(result, null, 2);
       setResponse({ data: formattedData, error: false });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
-      setResponse({ data: `Failed to fetch: ${errorMessage}`, error: true });
+      setResponse({ data: `Failed to create forum: ${errorMessage}`, error: true });
       toast({
         variant: "destructive",
         title: "API Error",
@@ -78,23 +76,6 @@ export function CreateForum() {
       });
     }
     setLoading(false);
-  };
-
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const requestBody = {
-      service: "forumService",
-      operation: "create",
-      requestId: uuidv4(),
-      params: { name: values.name },
-    };
-    
-    handleRequest(() =>
-      fetch("/api/broker/submitRequest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      })
-    );
   };
 
   return (

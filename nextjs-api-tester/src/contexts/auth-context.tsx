@@ -10,6 +10,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { useNavigation } from "./navigation-context";
 import { useRouter } from "next/navigation";
+import { useBrokerApi } from "@/hooks/use-broker-api";
 
 interface LoginResponse {
   token: string;
@@ -55,6 +56,7 @@ const dummyUser: User = {
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<(User & { token?: string }) | null>(isDebugMode ? dummyUser : null);
     const { setActiveSection, setCurrentRoute } = useNavigation();
+    const { callBroker } = useBrokerApi();
     const router = useRouter();
 
   // Function to ensure user directory exists
@@ -113,31 +115,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const requestBody = {
-      service: "loginService",
-      operation: "login",
-      requestId: uuidv4(),
-      params: { alias, identifier },
-    };
+    const result = await callBroker("loginService", "login", { alias, identifier });
 
-    const response = await fetch("/api/broker/submitRequest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    });
-
-    const data: LoginResponse = await response.json();
-    
-    if (!response.ok || !data.ok) {
-      const errorDetails = data.errors?.[0]?.message || "Login failed";
-      throw new Error(errorDetails);
+    if (result.error) {
+      throw new Error(result.error);
     }
 
     // If the API doesn't return user data, create a minimal user object
-    if (data.user) {
-      setUser(data.user);
+    if (result.user) {
+      setUser(result.user);
       // Create user directory after successful login
-      await ensureUserDirectoryExists(data.user.alias);
+      await ensureUserDirectoryExists(result.user.alias);
     } else {
       // Create a minimal user object from the login parameters
       const minimalUser: User = {
@@ -164,28 +152,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    const requestBody = {
-      service: "userService",
-      operation: "createUser",
-      requestId: uuidv4(),
-      params: { email, alias, identifier },
-    };
+    const result = await callBroker("userService", "createUser", { email, alias, identifier });
 
-    const response = await fetch("/api/broker/submitRequest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    });
-
-    const data: LoginResponse = await response.json();
-    
-    if (!response.ok || !data.ok) {
-      const errorDetails = data.errors?.[0]?.message || "User creation failed";
-      throw new Error(errorDetails);
+    if (result.error) {
+      throw new Error(result.error);
     }
 
     // Return the created user data if needed
-    return data;
+    return result;
   };
 
   const logout = () => {

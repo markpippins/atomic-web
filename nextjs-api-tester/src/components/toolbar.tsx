@@ -2,17 +2,20 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { useNavigation } from "@/contexts/navigation-context";
+import { useBrokerUrl } from "@/contexts/broker-url-context";
 import { Button } from "@/components/ui/button";
 import { LoginDialog } from "@/components/login-dialog";
 import { CreateUserDialog } from "@/components/create-user-dialog";
+import { BrokerUrlDialog } from "@/components/broker-url-dialog";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Waypoints, Settings, Users, TestTube } from "lucide-react";
+import { Waypoints, Settings, Users, TestTube, Settings2, Server } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Toolbar() {
   const { isLoggedIn, user, logout } = useAuth();
   const { activeSection, setActiveSection, currentRoute, setCurrentRoute, getSectionRoutes } = useNavigation();
+  const { brokerUrl } = useBrokerUrl();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -47,14 +50,14 @@ export function Toolbar() {
       <div className="container mx-auto px-4 sm:px-8 flex items-center justify-between h-12">
         {/* Left side - Logo and main sections */}
         <div className="flex items-center gap-6">
-          <button 
+          <button
             onClick={handleHomeClick}
             className="flex items-center gap-2 font-bold text-lg hover:text-primary transition-colors"
           >
             <Waypoints className="h-6 w-6 text-primary" />
             <span>API Tester</span>
           </button>
-          
+
           {isLoggedIn && (
             <div className="flex items-center gap-2">
               <Button
@@ -88,8 +91,26 @@ export function Toolbar() {
           )}
         </div>
 
-        {/* Center - Dynamic section buttons */}
-        {isLoggedIn && activeSection && (
+        {/* Center - Broker URL display and edit */}
+        {isLoggedIn && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Server className="h-4 w-4" />
+              <span className="hidden sm:inline-block">Broker:</span>
+              <span className="font-mono text-xs sm:text-sm bg-muted px-2 py-0.5 rounded truncate max-w-[120px] sm:max-w-[200px]">
+                {new URL(brokerUrl).host}
+              </span>
+            </div>
+            <BrokerUrlDialog>
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </BrokerUrlDialog>
+          </div>
+        )}
+
+        {/* Center - Dynamic section buttons (only when not showing broker URL) */}
+        {!isLoggedIn && activeSection && (
           <div className="flex items-center gap-2">
             {sectionRoutes.map((route) => (
               <Button
