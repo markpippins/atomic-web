@@ -1,4 +1,4 @@
-# Project Root Documentation (`/Gemini.md`)
+# Throttler Project Root Documentation (`/Gemini.md`)
 
 This document provides a high-level overview of the files located in the project's root directory.
 

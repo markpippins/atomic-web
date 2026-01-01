@@ -1,18 +1,14 @@
-# Throttler - A Web-Based File Explorer
-
-Throttler is a modern, web-based file explorer clone inspired by the Windows Explorer interface. It's built with Angular and features a dynamic, component-based architecture that allows for navigating both a mock local file system and a remote file system.
+# Throttler - Search & Discovery Engine
+Throttler is a modern, web-based knowledge discovery tool. Inspired by file explorers, it repurposes the interface for navigating vast amounts of information, search results, and digital assets. It connects to various search APIs and provides an "Idea Stream" for rapid information consumption.
 
 ## Key Design Goals & Features
-
-- **Modern Angular:** Built with the latest standalone components, signals for state management, and zoneless change detection for high performance.
-- **Virtual & Remote File Systems:** Seamlessly navigate and manage files across a virtual "Session" system (persisted in browser storage) and any number of user-configured remote servers.
-- **Dual Pane View:** Toggle between a single or a split-view interface to manage files across two directories simultaneously.
-- **Idea Stream:** A dynamic, contextual pane provides related web search results, images, videos, and AI-generated summaries based on the current context.
-- **Details Pane & Bookmarking:** Save any item from the Idea Stream as a bookmark associated with the current folder. View and manage these bookmarks in the slide-out Details Pane.
-- **Theming:** Choose between Light, Steel, and Dark themes to customize the user interface. The selected theme is persisted in local storage.
-- **Comprehensive File Operations:** Supports creating files/folders, renaming, deleting, cut, copy, paste, and context menu actions in both the main view and the folder tree.
-- **Drag & Drop:** Upload files by dragging them from your desktop into the explorer. Move items by dragging them between folders or panes.
-- **Filtering:** A filter bar is available to quickly find files within the current location by name.
+- **Idea Stream:** A dynamic, contextual pane provides real-time web search results, images, videos, and AI-generated summaries.
+- **Search & Discovery:** Serves as a central hub for finding information across the local context and the web.
+- **Smart Bookmarking:** Save any item from the Idea Stream as a bookmark. Organize findings into "folders" for distinct research topics.
+- **Virtual Session Filesystem:** Navigates a virtual file system persisted in browser storage, perfect for organizing ephemeral research sessions.
+- **Dual Pane View:** Compare search results or manage different research topics simultaneously.
+- **Modern Angular:** Built with the latest standalone components, signals, and zoneless change detection.
+- **Theming:** Integrated Light, Steel, and Dark themes.
 
 ## Running the Application (Web Version)
 

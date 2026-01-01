@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import {
   ServiceInstance,
   ServiceDependency,
+  Deployment,
   GraphNode,
   GraphEdge,
   HealthStatus
@@ -29,11 +30,12 @@ declare var d3: any;
 export class ServiceGraphComponent implements AfterViewInit {
   services = input<ServiceInstance[]>([]);
   dependencies = input<ServiceDependency[]>([]);
+  deployments = input<Deployment[]>([]);
   selectedNode = output<ServiceInstance>();
-  
+
   private svgRef = viewChild<ElementRef>('svgContainer');
   private initialized = signal(false);
-  
+
   constructor() {
     // Set up reactive effect to update the graph when services or dependencies change
     effect(() => {
@@ -172,11 +174,11 @@ export class ServiceGraphComponent implements AfterViewInit {
 
   private updateGraph(): void {
     if (!this.initialized() || !this.svgRef()) return;
-    
+
     const svg = d3.select(this.svgRef()?.nativeElement);
     const width = parseInt(svg.style('width'));
     const height = parseInt(svg.style('height'));
-    
+
     // Get existing simulation if available
     // For now, we'll recreate the entire graph
     this.renderGraph();
@@ -184,14 +186,24 @@ export class ServiceGraphComponent implements AfterViewInit {
 
   private createNodes(): GraphNode[] {
     const services = this.services();
-    const dependencies = this.dependencies();
-    
+    const allDeployments = this.deployments();
+
     return services.map(service => {
       // Find all deployments for this service to determine health status
-      // For simplicity, we'll use the first deployment's status or default to UNKNOWN
-      // In a real implementation, this would come from the service mesh service
-      const status: HealthStatus = 'UNKNOWN';
-      
+      const serviceDeployments = allDeployments.filter(d => d.service?.id === service.id);
+
+      let status: HealthStatus = 'UNKNOWN';
+      if (serviceDeployments.length > 0) {
+        const healthStatuses = serviceDeployments.map(d => d.healthStatus);
+        if (healthStatuses.some(s => s === 'UNHEALTHY')) {
+          status = 'UNHEALTHY';
+        } else if (healthStatuses.some(s => s === 'DEGRADED')) {
+          status = 'DEGRADED';
+        } else if (healthStatuses.every(s => s === 'HEALTHY')) {
+          status = 'HEALTHY';
+        }
+      }
+
       return {
         id: service.id.toString(),
         name: service.name,

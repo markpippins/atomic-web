@@ -10,6 +10,7 @@ import { ServiceDetailsComponent } from '../service-details/service-details.comp
 import {
   ServiceInstance,
   ServiceDependency,
+  Deployment,
   ServiceMeshSummary
 } from '../../models/service-mesh.model.js';
 
@@ -34,6 +35,7 @@ export class ServiceMeshComponent implements OnInit {
   // State
   services = signal<ServiceInstance[]>([]);
   dependencies = signal<ServiceDependency[]>([]);
+  deployments = signal<Deployment[]>([]);
   selectedService = signal<ServiceInstance | null>(null);
   viewMode = signal<'tree' | 'graph'>('tree'); // Default to tree view
   isRefreshing = signal(false);
@@ -49,9 +51,11 @@ export class ServiceMeshComponent implements OnInit {
     });
 
     effect(() => {
-      // For now, dependencies are not directly available from the service
-      // This would be updated when the service provides dependency data
-      this.dependencies.set([]);
+      this.dependencies.set(this.serviceMeshService.dependencies());
+    });
+
+    effect(() => {
+      this.deployments.set(this.serviceMeshService.deployments());
     });
 
     // Start polling when the component is created

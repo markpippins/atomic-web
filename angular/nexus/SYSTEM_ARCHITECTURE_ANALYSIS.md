@@ -37,7 +37,7 @@ This document provides a comprehensive analysis of the Atomic Platform's current
   - Same API contracts as Spring Boot version
   - Native compilation support
 
-#### 4. **Angular Throttler** (`web/angular-throttler`)
+#### 4. **Angular Nexus** (`web/angular/nexus`)
 - **Role**: Service mesh visualization and management interface
 - **Key Features**:
   - Tree-based service navigation
@@ -206,7 +206,7 @@ class ServiceRegistrar:
 
 #### A. **Dedicated Service Mesh Component**
 ```typescript
-// web/angular-throttler/src/components/service-mesh/service-mesh.component.ts
+// web/angular/nexus/src/components/service-mesh/service-mesh.component.ts
 @Component({
   selector: 'app-service-mesh',
   template: `
@@ -241,7 +241,7 @@ export class ServiceMeshComponent {
 
 #### B. **Service Mesh Data Service**
 ```typescript
-// web/angular-throttler/src/services/service-mesh.service.ts
+// web/angular/nexus/src/services/service-mesh.service.ts
 @Injectable({ providedIn: 'root' })
 export class ServiceMeshService {
   private hostServerUrl = 'http://localhost:8085';
@@ -269,7 +269,7 @@ export class ServiceMeshService {
 
 #### C. **Service Tree Component Enhancement**
 ```typescript
-// web/angular-throttler/src/components/service-tree/service-tree.component.ts
+// web/angular/nexus/src/components/service-tree/service-tree.component.ts
 @Component({
   selector: 'app-service-tree',
   template: `
@@ -334,7 +334,7 @@ export class ServiceTreeComponent {
 ### 3. **Service Dependency Graph Visualization**
 
 ```typescript
-// web/angular-throttler/src/components/service-graph/service-graph.component.ts
+// web/angular/nexus/src/components/service-graph/service-graph.component.ts
 @Component({
   selector: 'app-service-graph',
   template: `
@@ -394,7 +394,7 @@ export class ServiceGraphComponent implements OnInit {
 ### 4. **Real-time Service Monitoring**
 
 ```typescript
-// web/angular-throttler/src/services/service-monitor.service.ts
+// web/angular/nexus/src/services/service-monitor.service.ts
 @Injectable({ providedIn: 'root' })
 export class ServiceMonitorService {
   private wsConnection: WebSocket | null = null;

@@ -39,6 +39,7 @@ export class ServiceTreeComponent {
 
   services = input<ServiceInstance[]>([]);
   dependencies = input<ServiceDependency[]>([]);
+  deployments = input<Deployment[]>([]);
   selectedService = output<ServiceInstance>();
   restartService = output<ServiceInstance>();
   viewLogs = output<ServiceInstance>();
@@ -46,7 +47,7 @@ export class ServiceTreeComponent {
   groupedServices = computed<GroupedService[]>(() => {
     const services = this.services();
     const deployments = this.getAllDeployments();
-    
+
     // Group services by framework
     const frameworkMap = new Map<number, Framework>();
     const serviceMap = new Map<number, ServiceInstance[]>();
@@ -73,13 +74,13 @@ export class ServiceTreeComponent {
     const result: GroupedService[] = [];
     for (const [frameworkId, framework] of frameworkMap) {
       const frameworkServices = serviceMap.get(frameworkId) || [];
-      const frameworkDeployments = frameworkServices.flatMap(service => 
+      const frameworkDeployments = frameworkServices.flatMap(service =>
         deploymentMap.get(service.id) || []
       );
 
       const healthy = frameworkDeployments.filter(d => d.healthStatus === 'HEALTHY').length;
       const unhealthy = frameworkDeployments.filter(d => d.healthStatus === 'UNHEALTHY').length;
-      const unknown = frameworkDeployments.filter(d => 
+      const unknown = frameworkDeployments.filter(d =>
         d.healthStatus === 'UNKNOWN' || d.healthStatus === 'DEGRADED'
       ).length;
 
@@ -155,15 +156,11 @@ export class ServiceTreeComponent {
   }
 
   private getAllDeployments(): Deployment[] {
-    // In a real implementation, this would come from an input
-    // For now, we'll return an empty array
-    return [];
+    return this.deployments();
   }
 
   getDeploymentsForService(serviceId: number): Deployment[] {
-    // In a real implementation, this would filter from a deployment input
-    // For now, we'll return an empty array
-    return [];
+    return this.deployments().filter(d => d.service.id === serviceId);
   }
 
   getFrameworkIcon(category: string): string {
@@ -184,7 +181,7 @@ export class ServiceTreeComponent {
     // Otherwise, if any is degraded, return degraded
     // Otherwise, if all are healthy, return healthy
     const healthStatuses = deployments.map(d => d.healthStatus);
-    
+
     if (healthStatuses.some(s => s === 'UNHEALTHY')) {
       return 'UNHEALTHY';
     } else if (healthStatuses.some(s => s === 'DEGRADED')) {
@@ -207,7 +204,7 @@ export class ServiceTreeComponent {
     // Otherwise, if any is failed, return failed
     // Otherwise, if all are stopped, return stopped
     const statuses = deployments.map(d => d.status);
-    
+
     if (statuses.some(s => s === 'RUNNING')) {
       return 'RUNNING';
     } else if (statuses.some(s => s === 'STARTING')) {

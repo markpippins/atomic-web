@@ -187,7 +187,7 @@ export class AppComponent implements OnInit, OnDestroy {
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
-  currentViewMode = signal<'file-explorer' | 'service-mesh'>('file-explorer');  // Default to file explorer
+  currentViewMode = signal<'file-explorer' | 'service-mesh'>('service-mesh');  // Default to service mesh
 
   // --- Pane Visibility State (from service) ---
   isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
@@ -486,27 +486,29 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor() {
     // Initialize adapters for each Host Server root
-    this.treeAdapters.set('Services', new TreeProviderAdapter(this.hostServerProvider, 'services'));
-    this.treeAdapters.set('Users', new TreeProviderAdapter(this.hostServerProvider, 'users'));
-    this.treeAdapters.set('Search & Discovery', new TreeProviderAdapter(this.hostServerProvider, 'search'));
-    this.treeAdapters.set('File Systems', new TreeProviderAdapter(this.hostServerProvider, 'filesystems'));
-    this.treeAdapters.set('Platform Management', new TreeProviderAdapter(this.hostServerProvider, 'platform'));
+    // Initialize adapters for each Host Server root
+    // Services, Users, Search etc are now handled by ServiceMeshComponent and no longer mapped to file system
+    // this.treeAdapters.set('Services', new TreeProviderAdapter(this.hostServerProvider, 'services'));
+    // this.treeAdapters.set('Users', new TreeProviderAdapter(this.hostServerProvider, 'users'));
+    // this.treeAdapters.set('Search & Discovery', new TreeProviderAdapter(this.hostServerProvider, 'search'));
+    // this.treeAdapters.set('File Systems', new TreeProviderAdapter(this.hostServerProvider, 'filesystems'));
+    // this.treeAdapters.set('Platform Management', new TreeProviderAdapter(this.hostServerProvider, 'platform'));
 
     this.homeProvider = {
       getContents: async (path: string[]) => {
         if (path.length > 0) throw new Error('Home provider does not support subdirectories.');
 
-        // Get Host Server children
-        const hostChildren = await this.hostServerProvider.getChildren('root');
-        const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
-          name: node.name,
-          type: 'folder',
-          id: node.id,
-          metadata: node.metadata,
-          children: [],
-          childrenLoaded: false,
-          isServerRoot: false // Treat as regular folders for now
-        }));
+        // Get Host Server children - Commented out as they are now handled by ServiceMeshComponent
+        // const hostChildren = await this.hostServerProvider.getChildren('root');
+        // const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
+        //   name: node.name,
+        //   type: 'folder',
+        //   id: node.id,
+        //   metadata: node.metadata,
+        //   children: [],
+        //   childrenLoaded: false,
+        //   isServerRoot: false // Treat as regular folders for now
+        // }));
 
         // Get Local Session
         const sessionNode = await this.sessionFs.getFolderTree();
@@ -531,7 +533,8 @@ export class AppComponent implements OnInit, OnDestroy {
           };
         });
 
-        return [sessionNode, ...hostNodes, ...serverProfileNodes];
+        // return [sessionNode, ...hostNodes, ...serverProfileNodes];
+        return [sessionNode, ...serverProfileNodes];
       },
       getFolderTree: () => this.buildCombinedFolderTree(),
       ...readOnlyProviderOps,

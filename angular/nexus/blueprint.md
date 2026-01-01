@@ -1,7 +1,11 @@
 # Project Blueprint
 
 ## Overview
-Angular Throttler is a web application providing a file-explorer interface for managing Atomic services, Host Servers, and unrelated file systems. It allows users to browse services, users, and platform configurations via a tree-based navigation system. It distinguishes between **Broker Gateways** (entry points) and **Host Servers** (managed infrastructure).
+Nexus is the dedicated Service Mesh Management Console for the Atomic platform. Originally derived from the `Throttler` project, it has been specialized to focus solely on managing infrastructure, services, and configurations. It allows users to browse service registries, manage host servers, and configure broker gateways via a hierarchical navigation system.
+
+## Project Split
+- **Nexus**: Focuses on "Infrastructure & Operations" (Services, Servers, Deployments).
+- **Throttler**: Focuses on "Search & Discovery" (Idea Stream, Knowledge Management).
 
 ## Version History
 - **Current State**: The application supports distinct configuration and management for Broker Gateways and Host Servers.

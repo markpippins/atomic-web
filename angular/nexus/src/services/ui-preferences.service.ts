@@ -39,8 +39,8 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   isDetailPaneOpen: true,
   isSavedItemsVisible: true,
   isRssFeedVisible: true,
-  isStreamVisible: true,
-  isConsoleCollapsed: false,
+  isStreamVisible: false,
+  isConsoleCollapsed: true,
   isStreamPaneCollapsed: false,
   isChatPaneCollapsed: false,
   isNotesPaneCollapsed: false,
@@ -149,7 +149,7 @@ export class UiPreferencesService {
   toggleRssFeed(): void {
     this.preferences.update(p => ({ ...p, isRssFeedVisible: !p.isRssFeedVisible }));
   }
-  
+
   toggleStream(): void {
     this.preferences.update(p => ({ ...p, isStreamVisible: !p.isStreamVisible }));
   }
@@ -190,11 +190,11 @@ export class UiPreferencesService {
   setSplitViewPaneWidth(width: number): void {
     this.preferences.update(p => ({ ...p, splitViewPaneWidth: width }));
   }
-  
+
   setExplorerStreamHeight(height: number): void {
     this.preferences.update(p => ({ ...p, explorerStreamHeight: height }));
   }
-  
+
   setExplorerConsoleHeight(height: number): void {
     this.preferences.update(p => ({ ...p, explorerConsoleHeight: height }));
   }

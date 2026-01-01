@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, interval, BehaviorSubject, of, firstValueFrom } from 'rxjs';
 import { switchMap, map, catchError, tap, shareReplay, takeUntil } from 'rxjs/operators';
@@ -45,6 +45,7 @@ export class ServiceMeshService {
   private _services = signal<ServiceInstance[]>([]);
   private _servers = signal<Server[]>([]);
   private _deployments = signal<Deployment[]>([]);
+  private _dependencies = signal<ServiceDependency[]>([]);
   private _connections = signal<Map<string, ServiceMeshConnection>>(new Map());
   private _isPolling = signal(false);
   private _lastUpdated = signal<Date | null>(null);
@@ -54,9 +55,23 @@ export class ServiceMeshService {
   readonly services = this._services.asReadonly();
   readonly servers = this._servers.asReadonly();
   readonly deployments = this._deployments.asReadonly();
+  readonly dependencies = this._dependencies.asReadonly();
   readonly connections = this._connections.asReadonly();
   readonly isPolling = this._isPolling.asReadonly();
   readonly lastUpdated = this._lastUpdated.asReadonly();
+
+  constructor() {
+    // Auto-connect to all host profiles on startup/change
+    effect(() => {
+      const profiles = this.hostProfileService.profiles();
+      // Simple strategy: try to connect to all of them if not already connected
+      profiles.forEach(profile => {
+        if (!this._connections().has(profile.id)) {
+          this.connectToProfile(profile);
+        }
+      });
+    }, { allowSignalWrites: true });
+  }
 
   // Computed summary
   readonly summary = computed<ServiceMeshSummary>(() => {
@@ -201,20 +216,23 @@ export class ServiceMeshService {
     const allServices: ServiceInstance[] = [];
     const allServers: Server[] = [];
     const allDeployments: Deployment[] = [];
+    const allDependencies: ServiceDependency[] = [];
 
     for (const connection of connections) {
       try {
-        const [frameworks, services, servers, deployments] = await Promise.all([
+        const [frameworks, services, servers, deployments, dependencies] = await Promise.all([
           this.fetchFrameworks(connection.baseUrl),
           this.fetchServices(connection.baseUrl),
           this.fetchServers(connection.baseUrl),
-          this.fetchDeployments(connection.baseUrl)
+          this.fetchDeployments(connection.baseUrl),
+          this.fetchDependencies(connection.baseUrl)
         ]);
 
         allFrameworks.push(...frameworks);
         allServices.push(...services);
         allServers.push(...servers);
         allDeployments.push(...deployments);
+        allDependencies.push(...dependencies);
       } catch (error) {
         console.error(`Failed to fetch data from ${connection.profile.name}:`, error);
       }
@@ -224,6 +242,7 @@ export class ServiceMeshService {
     this._services.set(allServices);
     this._servers.set(allServers);
     this._deployments.set(allDeployments);
+    this._dependencies.set(allDependencies);
     this._lastUpdated.set(new Date());
   }
 
@@ -261,6 +280,16 @@ export class ServiceMeshService {
     try {
       return await firstValueFrom(
         this.http.get<Deployment[]>(`${baseUrl}/api/deployments`)
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  private async fetchDependencies(baseUrl: string): Promise<ServiceDependency[]> {
+    try {
+      return await firstValueFrom(
+        this.http.get<ServiceDependency[]>(`${baseUrl}/api/dependencies`)
       );
     } catch {
       return [];
