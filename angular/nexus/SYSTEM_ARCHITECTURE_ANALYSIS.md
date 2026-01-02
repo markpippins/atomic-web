@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document provides a comprehensive analysis of the Atomic Platform's current architecture, focusing on the service mesh implementation and the Angular Throttler application's representation of services. The analysis reveals both strengths and critical gaps in the current implementation that need to be addressed to achieve a truly comprehensive service mesh visualization.
+This document provides a comprehensive analysis of the Atomic Platform's current architecture, focusing on the service mesh implementation and the Angular Nexus application's representation of services. The analysis reveals both strengths and critical gaps in the current implementation that need to be addressed to achieve a truly comprehensive service mesh visualization.
 
 ## Current Architecture Overview
 
@@ -94,7 +94,7 @@ This document provides a comprehensive analysis of the Atomic Platform's current
   - `node/*` services (broker-service-proxy, moleculer-search, etc.)
   - `python/*` services (fs-crawler, fs-crawler-adapter)
 
-#### 2. **Angular Throttler Service Mesh Representation Issues**
+#### 2. **Angular Nexus Service Mesh Representation Issues**
 
 **Current Implementation Problems:**
 ```typescript
@@ -189,7 +189,7 @@ class ServiceRegistrar {
 
 #### C. **Python Services Registration**
 ```python
-# python/common/service_registrar.py
+// python/common/service_registrar.py
 class ServiceRegistrar:
     async def register(self):
         registration = {
@@ -199,7 +199,7 @@ class ServiceRegistrar:
             "port": int(os.getenv("PORT")),
             "health_check_path": "/health"
         }
-        # POST to host-server/api/registry/services
+        // POST to host-server/api/registry/services
 ```
 
 ### 2. **Enhanced Angular Service Mesh Visualization**
@@ -471,7 +471,7 @@ export class ServiceMonitorService {
 
 ## Expected Outcomes
 
-After implementing these improvements, the Angular Throttler application will provide:
+After implementing these improvements, the Angular Nexus application will provide:
 
 1. **Comprehensive Service Mesh Visualization**
    - Real-time service topology with dependency graphs
@@ -493,4 +493,4 @@ After implementing these improvements, the Angular Throttler application will pr
    - Real-time service status updates
    - Integrated service operation controls
 
-This enhanced architecture will transform the Angular Throttler from a file explorer with basic service awareness into a comprehensive service mesh management and visualization platform.
+This enhanced architecture will transform the Angular Nexus from a file explorer with basic service awareness into a comprehensive service mesh management and visualization platform.
