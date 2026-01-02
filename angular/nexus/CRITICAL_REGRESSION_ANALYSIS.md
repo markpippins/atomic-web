@@ -1,8 +1,8 @@
-# Angular Throttler - Critical Regression Analysis
+# Angular Nexus - Critical Regression Analysis
 
 ## Issue Summary
 
-**CRITICAL REGRESSION**: Broker-gateway services that were previously visible as child nodes in the Angular Throttler service tree are no longer appearing. This is a high-priority issue affecting service visibility and management capabilities.
+**CRITICAL REGRESSION**: Broker-gateway services that were previously visible as child nodes in the Angular Nexus service tree are no longer appearing. This is a high-priority issue affecting service visibility and management capabilities.
 
 ## Root Cause Analysis
 

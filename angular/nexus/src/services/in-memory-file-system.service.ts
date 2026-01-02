@@ -71,7 +71,7 @@ export class SessionService implements FileSystemProvider {
                 name: 'Projects',
                 type: 'folder',
                 children: [
-                  { name: 'Throttler', type: 'folder', children: [{ name: '.magnet', type: 'file', content: '', modified: '2023-10-20T09:00:00Z' }], modified: '2023-10-20T09:00:00Z' },
+                  { name: 'Nexus', type: 'folder', children: [{ name: '.magnet', type: 'file', content: '', modified: '2023-10-20T09:00:00Z' }], modified: '2023-10-20T09:00:00Z' },
                   { name: 'Atomix', type: 'folder', children: [], modified: '2023-10-18T16:20:00Z' },
                 ],
                 modified: '2023-10-20T09:00:00Z'
@@ -123,11 +123,11 @@ export class SessionService implements FileSystemProvider {
         children: [],
         modified: '2023-08-01T09:00:00Z'
       },
-      { 
-        name: 'README.txt', 
-        type: 'file', 
-        content: 'This is a virtual file system stored in your browser\'s local storage.', 
-        modified: '2023-08-01T09:00:00Z' 
+      {
+        name: 'README.txt',
+        type: 'file',
+        content: 'This is a virtual file system stored in your browser\'s local storage.',
+        modified: '2023-08-01T09:00:00Z'
       }
     ],
     modified: new Date().toISOString()
@@ -216,13 +216,13 @@ export class SessionService implements FileSystemProvider {
         // Find the original node in the tree to inspect its children
         const originalFolderNode = this.findNodeInTree(this.rootNode(), [...path, nodeClone.name]);
         const hasMagnetFile = originalFolderNode?.children?.some(c => c.name === '.magnet' && c.type === 'file') ?? false;
-        
+
         if (hasMagnetFile) {
           nodeClone.isMagnet = true;
           nodeClone.magnetFile = '.magnet';
         }
       }
-      
+
       processedItems.push(nodeClone);
     }
     return processedItems;
@@ -254,7 +254,7 @@ export class SessionService implements FileSystemProvider {
 
       parentNode.children[fileIndex] = updatedFile;
       parentNode.modified = new Date().toISOString();
-      
+
       return newRoot;
     });
   }
@@ -292,7 +292,7 @@ export class SessionService implements FileSystemProvider {
       const newFolder: FileSystemNode = { name, type: 'folder', children: [], modified: new Date().toISOString() };
       parentNode.children = [...currentChildren, newFolder];
       parentNode.modified = new Date().toISOString();
-      
+
       return newRoot;
     });
   }
@@ -305,7 +305,7 @@ export class SessionService implements FileSystemProvider {
       if (!parentNode || parentNode.type !== 'folder') {
         throw new Error('Path not found or is not a folder.');
       }
-      
+
       const currentChildren = parentNode.children ?? [];
       if (currentChildren.some(c => c.name === name)) {
         throw new Error(`An item named '${name}' already exists.`);
@@ -314,7 +314,7 @@ export class SessionService implements FileSystemProvider {
       const newFile: FileSystemNode = { name, type: 'file', content: '', modified: new Date().toISOString() };
       parentNode.children = [...currentChildren, newFile];
       parentNode.modified = new Date().toISOString();
-      
+
       return newRoot;
     });
   }
@@ -327,11 +327,11 @@ export class SessionService implements FileSystemProvider {
 
       const childExists = parentNode.children.some(c => c.name === name && c.type === 'folder');
       if (!childExists) throw new Error(`Directory '${name}' not found.`);
-      
+
       // The directory and all its contents (including any .magnet file) are removed.
       parentNode.children = parentNode.children.filter(c => c.name !== name);
       parentNode.modified = new Date().toISOString();
-      
+
       return newRoot;
     });
   }
@@ -344,10 +344,10 @@ export class SessionService implements FileSystemProvider {
 
       const childExists = parentNode.children.some(c => c.name === name && c.type === 'file');
       if (!childExists) throw new Error(`File '${name}' not found.`);
-      
+
       parentNode.children = parentNode.children.filter(c => c.name !== name);
       parentNode.modified = new Date().toISOString();
-      
+
       return newRoot;
     });
   }
@@ -361,18 +361,18 @@ export class SessionService implements FileSystemProvider {
       if (oldName !== newName && parentNode.children.some(c => c.name === newName)) {
         throw new Error(`An item named '${newName}' already exists.`);
       }
-      
+
       const childToRename = parentNode.children.find(c => c.name === oldName);
       if (!childToRename) throw new Error(`Item '${oldName}' not found.`);
 
       const newChildren = [...parentNode.children];
       const childIndex = newChildren.findIndex(c => c.name === oldName);
       if (childIndex > -1) {
-          newChildren[childIndex] = { ...newChildren[childIndex], name: newName, modified: new Date().toISOString() };
+        newChildren[childIndex] = { ...newChildren[childIndex], name: newName, modified: new Date().toISOString() };
       }
 
       // No special handling needed for .magnet files as they are inside the folder.
-      
+
       parentNode.children = newChildren;
       parentNode.modified = new Date().toISOString();
       return newRoot;
@@ -415,7 +415,7 @@ export class SessionService implements FileSystemProvider {
       if (itemsToMove.length === 0) {
         return currentRoot; // No change
       }
-      
+
       if (!destParent.children) {
         destParent.children = [];
       }
@@ -451,53 +451,53 @@ export class SessionService implements FileSystemProvider {
       finalName = `${baseName}${suffix}${extension}`;
       copyIndex++;
     } while (existingChildren.some(c => c.name === finalName));
-    
+
     return finalName;
   }
-  
+
   async copy(sourcePath: string[], destPath: string[], items: ItemReference[]): Promise<void> {
     this.rootNode.update(root => {
-        const newRoot = cloneNode(root);
+      const newRoot = cloneNode(root);
 
-        const sourceParent = this.findNodeInTree(newRoot, sourcePath);
-        if (!sourceParent?.children) {
-            throw new Error('Copy failed: Source path not found.');
-        }
+      const sourceParent = this.findNodeInTree(newRoot, sourcePath);
+      if (!sourceParent?.children) {
+        throw new Error('Copy failed: Source path not found.');
+      }
 
-        const destParent = this.findNodeInTree(newRoot, destPath);
-        if (!destParent || destParent.type !== 'folder') {
-            throw new Error('Copy failed: Destination path is not a valid folder.');
-        }
+      const destParent = this.findNodeInTree(newRoot, destPath);
+      if (!destParent || destParent.type !== 'folder') {
+        throw new Error('Copy failed: Destination path is not a valid folder.');
+      }
 
-        const nodesToProcess = sourceParent.children.filter(child => 
-            items.some(itemRef => itemRef.name === child.name && itemRef.type === child.type)
-        );
+      const nodesToProcess = sourceParent.children.filter(child =>
+        items.some(itemRef => itemRef.name === child.name && itemRef.type === child.type)
+      );
 
-        if (nodesToProcess.length === 0) {
-            return root; // No change needed
-        }
-        
-        // No special handling for magnet files; they are cloned with their parent folder via cloneNode.
-        const nodesToCopy: FileSystemNode[] = nodesToProcess;
+      if (nodesToProcess.length === 0) {
+        return root; // No change needed
+      }
 
-        const existingDestChildren = [...(destParent.children || [])];
-        const newClonesToAdd: FileSystemNode[] = [];
+      // No special handling for magnet files; they are cloned with their parent folder via cloneNode.
+      const nodesToCopy: FileSystemNode[] = nodesToProcess;
 
-        for (const item of nodesToCopy) {
-            const itemCopy = cloneNode(item);
-            const combinedChildrenCheck = [...existingDestChildren, ...newClonesToAdd];
-            itemCopy.name = this.getUniqueCopyName(item.name, combinedChildrenCheck);
-            itemCopy.modified = new Date().toISOString();
-            newClonesToAdd.push(itemCopy);
-        }
-        
-        if (!destParent.children) {
-            destParent.children = [];
-        }
-        destParent.children.push(...newClonesToAdd);
-        destParent.modified = new Date().toISOString();
+      const existingDestChildren = [...(destParent.children || [])];
+      const newClonesToAdd: FileSystemNode[] = [];
 
-        return newRoot;
+      for (const item of nodesToCopy) {
+        const itemCopy = cloneNode(item);
+        const combinedChildrenCheck = [...existingDestChildren, ...newClonesToAdd];
+        itemCopy.name = this.getUniqueCopyName(item.name, combinedChildrenCheck);
+        itemCopy.modified = new Date().toISOString();
+        newClonesToAdd.push(itemCopy);
+      }
+
+      if (!destParent.children) {
+        destParent.children = [];
+      }
+      destParent.children.push(...newClonesToAdd);
+      destParent.modified = new Date().toISOString();
+
+      return newRoot;
     });
   }
 
@@ -510,19 +510,19 @@ export class SessionService implements FileSystemProvider {
     this.rootNode.update(currentRoot => {
       const newRoot = cloneNode(currentRoot);
       const destNode = this.findNodeInTree(newRoot, destPath);
-  
+
       if (!destNode || destNode.type !== 'folder') {
         throw new Error('Import failed: Destination path is not a valid folder.');
       }
-      
+
       const merge = (targetNode: FileSystemNode, sourceNode: FileSystemNode) => {
         if (sourceNode.type !== 'folder') return;
         if (!targetNode.children) {
           targetNode.children = [];
         }
-  
+
         let existingChild = targetNode.children.find(c => c.name === sourceNode.name && c.type === 'folder');
-  
+
         if (existingChild) {
           if (sourceNode.children) {
             sourceNode.children.forEach(sourceChild => merge(existingChild!, sourceChild));
@@ -530,17 +530,17 @@ export class SessionService implements FileSystemProvider {
         } else {
           const clonedSource = cloneNode(sourceNode);
           const setModifiedDates = (node: FileSystemNode) => {
-              node.modified = new Date().toISOString();
-              if (node.children) node.children.forEach(setModifiedDates);
+            node.modified = new Date().toISOString();
+            if (node.children) node.children.forEach(setModifiedDates);
           };
           setModifiedDates(clonedSource);
           targetNode.children.push(clonedSource);
         }
       };
-  
+
       merge(destNode, data);
       destNode.modified = new Date().toISOString();
-  
+
       return newRoot;
     });
   }

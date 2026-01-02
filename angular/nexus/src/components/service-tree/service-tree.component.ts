@@ -40,7 +40,8 @@ export class ServiceTreeComponent {
   services = input<ServiceInstance[]>([]);
   dependencies = input<ServiceDependency[]>([]);
   deployments = input<Deployment[]>([]);
-  selectedService = output<ServiceInstance>();
+  selectedService = input<ServiceInstance | null>(null);
+  serviceSelected = output<ServiceInstance>();
   restartService = output<ServiceInstance>();
   viewLogs = output<ServiceInstance>();
 
@@ -115,7 +116,7 @@ export class ServiceTreeComponent {
   }
 
   selectService(service: ServiceInstance): void {
-    this.selectedService.emit(service);
+    this.serviceSelected.emit(service);
   }
 
   canRestart(service: ServiceInstance): boolean {

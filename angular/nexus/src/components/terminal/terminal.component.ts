@@ -41,38 +41,38 @@ export class TerminalComponent implements AfterViewInit, OnDestroy {
       fontFamily: `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`,
       fontSize: 13,
     });
-    
+
     this.applyTheme(); // Apply initial theme
 
     this.fitAddon = new FitAddon.FitAddon();
     this.term.loadAddon(this.fitAddon);
-    
+
     this.term.open(this.terminalEl.nativeElement);
-    
+
     this.fitAddon.fit();
-    
-    this.term.writeln('\x1B[1;3;34mWelcome to the Throttler Console!\x1B[0m');
+
+    this.term.writeln('\x1B[1;3;34mWelcome to the Nexus Console!\x1B[0m');
     this.term.writeln('----------------------------------');
     this.term.write('$ ');
 
     // Mock terminal interaction
     this.term.onData((data: string) => {
-        if (data === '\r') { // Enter key
-            this.term.write('\r\n$ ');
-        } else if (data === '\x7F') { // Backspace
-            // Do not delete the prompt
-            if (this.term.buffer.active.cursorX > 2) {
-                this.term.write('\b \b');
-            }
-        } else {
-            this.term.write(data);
+      if (data === '\r') { // Enter key
+        this.term.write('\r\n$ ');
+      } else if (data === '\x7F') { // Backspace
+        // Do not delete the prompt
+        if (this.term.buffer.active.cursorX > 2) {
+          this.term.write('\b \b');
         }
+      } else {
+        this.term.write(data);
+      }
     });
 
     this.resizeObserver = new ResizeObserver(() => {
       try {
         setTimeout(() => this.fitAddon?.fit(), 0);
-      } catch(e) {
+      } catch (e) {
         console.warn("FitAddon resize failed. This can happen during rapid resizing.", e);
       }
     });

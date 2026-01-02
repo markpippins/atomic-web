@@ -1,8 +1,8 @@
-# Angular Throttler - Tree Management API Requirements
+# Angular Nexus - Tree Management API Requirements
 
 ## Overview
 
-Transform Angular Throttler from a traditional file explorer into a **universal hierarchical data browser** that maintains the familiar file explorer UI while enabling management of the entire Atomic Platform ecosystem through tree-based operations.
+Transform Angular Nexus from a traditional file explorer into a **universal hierarchical data browser** that maintains the familiar file explorer UI while enabling management of the entire Atomic Platform ecosystem through tree-based operations.
 
 ## Core Concept
 
@@ -449,4 +449,4 @@ class UserProvider implements TreeProvider {
 
 ## Conclusion
 
-This transformation will evolve Angular Throttler from a simple file explorer into a **comprehensive platform management console** while preserving the familiar and beloved file explorer interface. Users will gain powerful service management capabilities without losing the intuitive navigation experience they expect.
+This transformation will evolve Angular Nexus from a simple file explorer into a **comprehensive platform management console** while preserving the familiar and beloved file explorer interface. Users will gain powerful service management capabilities without losing the intuitive navigation experience they expect.

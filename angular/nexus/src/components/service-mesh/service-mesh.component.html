@@ -63,7 +63,8 @@
         [services]="services()"
         [dependencies]="dependencies()"
         [deployments]="deployments()"
-        (selectedService)="onServiceSelected($event)"
+        [selectedService]="selectedService()"
+        (serviceSelected)="onServiceSelected($event)"
         (restartService)="onServiceRestart($event)"
         (viewLogs)="onServiceLogs($event)"
       ></app-service-tree>
