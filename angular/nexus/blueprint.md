@@ -14,8 +14,10 @@ This feature adds the ability to manage the underlying metadata of the service m
   - `PlatformManagementComponent`: A reusable component for listing and managing entities.
   - `UpsertServiceDialog`: specific form for adding/editing Services.
   - `UpsertFrameworkDialog`: specific form for adding/editing Frameworks.
+  - `UpsertDeploymentDialog`: specific form for adding/editing Deployments (including Service, Server, Environment lookups).
+  - `UpsertServerDialog`: specific form for adding/editing Hosts (including Type, Enviroment, OS lookups).
   
 ### Next Steps
-- Implement `UpsertDeploymentDialog`
-- Implement `UpsertServerDialog`
 - Add UI for Lookup Tables (Service Types, Environment Types, etc.)
+- Implement more robust validation for forms.
+- Address missing backend controllers for certain lookups (e.g., OperatingSystem).

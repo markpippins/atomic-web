@@ -51,9 +51,13 @@ export interface Framework {
   description?: string;
   category: FrameworkCategoryEntity;
   language: FrameworkLanguage;
-  latestVersion: string;
+  currentVersion?: string;
+  ltsVersion?: string;
+  url?: string;
+  // Keep legacy fields optional to avoid breaking other parts potentially
+  latestVersion?: string;
   documentationUrl?: string;
-  supportsBrokerPattern: boolean;
+  supportsBrokerPattern?: boolean;
 }
 
 // ============================================================================
