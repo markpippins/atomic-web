@@ -50,6 +50,10 @@ export class ServiceMeshService {
   private _isPolling = signal(false);
   private _lastUpdated = signal<Date | null>(null);
 
+  // Selection State
+  private _selectedService = signal<ServiceInstance | null>(null);
+  private _selectedServiceConfigurations = signal<ServiceConfiguration[]>([]);
+
   // Public readonly signals
   readonly frameworks = this._frameworks.asReadonly();
   readonly services = this._services.asReadonly();
@@ -59,6 +63,9 @@ export class ServiceMeshService {
   readonly connections = this._connections.asReadonly();
   readonly isPolling = this._isPolling.asReadonly();
   readonly lastUpdated = this._lastUpdated.asReadonly();
+
+  readonly selectedService = this._selectedService.asReadonly();
+  readonly selectedServiceConfigurations = this._selectedServiceConfigurations.asReadonly();
 
   constructor() {
     // Auto-connect to all host profiles on startup/change
@@ -201,6 +208,35 @@ export class ServiceMeshService {
   }
 
   // =========================================================================
+  // Selection Management
+  // =========================================================================
+
+  async selectService(service: ServiceInstance | null): Promise<void> {
+    this._selectedService.set(service);
+
+    if (service) {
+      // Find a connected profile to fetch detailed configurations
+      // Ideally we would know which profile the service belongs to, but for now we look for any connected profile
+      // or iterate through them.
+      // Since ServiceInstance does not explicitly store 'originProfileId' in its basic interface currently,
+      // we might just try the first connected profile or all.
+
+      const connections = Array.from(this._connections().values()).filter(c => c.connected);
+      if (connections.length > 0) {
+        // Try to fetch configurations from the first available connection
+        // Refinement: We should probably store which profile a service came from.
+        const connection = connections[0];
+        const configs = await this.getServiceConfigurations(service.id, connection.baseUrl);
+        this._selectedServiceConfigurations.set(configs);
+      } else {
+        this._selectedServiceConfigurations.set([]);
+      }
+    } else {
+      this._selectedServiceConfigurations.set([]);
+    }
+  }
+
+  // =========================================================================
   // Data Fetching
   // =========================================================================
 
@@ -326,7 +362,7 @@ export class ServiceMeshService {
   // Service Details
   // =========================================================================
 
-  async getServiceById(serviceId: number, baseUrl: string): Promise<ServiceInstance | null> {
+  async getServiceById(serviceId: string, baseUrl: string): Promise<ServiceInstance | null> {
     try {
       return await firstValueFrom(
         this.http.get<ServiceInstance>(`${baseUrl}/api/services/${serviceId}`)
@@ -336,7 +372,7 @@ export class ServiceMeshService {
     }
   }
 
-  async getServiceDependencies(serviceId: number, baseUrl: string): Promise<ServiceInstance[]> {
+  async getServiceDependencies(serviceId: string, baseUrl: string): Promise<ServiceInstance[]> {
     try {
       return await firstValueFrom(
         this.http.get<ServiceInstance[]>(`${baseUrl}/api/services/${serviceId}/dependencies`)
@@ -346,7 +382,7 @@ export class ServiceMeshService {
     }
   }
 
-  async getServiceDependents(serviceId: number, baseUrl: string): Promise<ServiceInstance[]> {
+  async getServiceDependents(serviceId: string, baseUrl: string): Promise<ServiceInstance[]> {
     try {
       return await firstValueFrom(
         this.http.get<ServiceInstance[]>(`${baseUrl}/api/services/${serviceId}/dependents`)
@@ -356,7 +392,7 @@ export class ServiceMeshService {
     }
   }
 
-  async getServiceConfigurations(serviceId: number, baseUrl: string): Promise<ServiceConfiguration[]> {
+  async getServiceConfigurations(serviceId: string, baseUrl: string): Promise<ServiceConfiguration[]> {
     try {
       return await firstValueFrom(
         this.http.get<ServiceConfiguration[]>(`${baseUrl}/api/configurations/service/${serviceId}`)
@@ -366,7 +402,7 @@ export class ServiceMeshService {
     }
   }
 
-  async getDeploymentsForService(serviceId: number, baseUrl: string): Promise<Deployment[]> {
+  async getDeploymentsForService(serviceId: string, baseUrl: string): Promise<Deployment[]> {
     try {
       return await firstValueFrom(
         this.http.get<Deployment[]>(`${baseUrl}/api/deployments/service/${serviceId}`)
@@ -433,7 +469,7 @@ export class ServiceMeshService {
       this.notifyUpdate({
         type: 'STATUS_CHANGE',
         hostProfileId: connection?.profileId || 'unknown',
-        serviceId: -1, // We'll need a better way to get serviceId if needed
+        serviceId: '-1', // We'll need a better way to get serviceId if needed
         deploymentId,
         newValue: operation,
       });
@@ -464,7 +500,7 @@ export class ServiceMeshService {
     });
   }
 
-  async executeServiceOperation(serviceId: number, operation: ServiceOperation, profile: HostProfile): Promise<OperationResult> {
+  async executeServiceOperation(serviceId: string, operation: ServiceOperation, profile: HostProfile): Promise<OperationResult> {
     let baseUrl = profile.hostServerUrl;
     if (!baseUrl.startsWith('http')) {
       baseUrl = `http://${baseUrl}`;
@@ -480,7 +516,7 @@ export class ServiceMeshService {
       return {
         success: false,
         operation,
-        deploymentId: -1,
+        deploymentId: '-1',
         message: 'No deployments found for this service',
         timestamp: new Date()
       };
@@ -503,7 +539,7 @@ export class ServiceMeshService {
     return {
       success: allSuccessful,
       operation,
-      deploymentId: -1, // Not applicable for service-wide operations
+      deploymentId: '-1', // Not applicable for service-wide operations
       message: allSuccessful
         ? `Operation ${operation} completed on all deployments of service ${serviceId}`
         : `Operation ${operation} failed on one or more deployments`,
@@ -513,7 +549,7 @@ export class ServiceMeshService {
   }
 
   async updateDeploymentHealth(
-    deploymentId: number,
+    deploymentId: string,
     healthStatus: HealthStatus,
     baseUrl: string
   ): Promise<boolean> {

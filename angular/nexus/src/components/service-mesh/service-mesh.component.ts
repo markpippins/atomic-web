@@ -4,9 +4,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
+import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ServiceTreeComponent } from '../service-tree/service-tree.component.js';
 import { ServiceGraphComponent } from '../service-graph/service-graph.component.js';
-import { ServiceDetailsComponent } from '../service-details/service-details.component.js';
+
 import {
   ServiceInstance,
   ServiceDependency,
@@ -23,20 +24,20 @@ import {
     MatIconModule,
     MatTabsModule,
     ServiceTreeComponent,
-    ServiceGraphComponent,
-    ServiceDetailsComponent
+    ServiceGraphComponent
   ],
   templateUrl: './service-mesh.component.html',
   styleUrls: ['./service-mesh.component.css']
 })
 export class ServiceMeshComponent implements OnInit {
   private serviceMeshService = inject(ServiceMeshService);
+  private uiPreferencesService = inject(UiPreferencesService);
 
   // State
   services = signal<ServiceInstance[]>([]);
   dependencies = signal<ServiceDependency[]>([]);
   deployments = signal<Deployment[]>([]);
-  selectedService = signal<ServiceInstance | null>(null);
+  selectedService = this.serviceMeshService.selectedService;
   viewMode = signal<'tree' | 'graph'>('tree'); // Default to tree view
   isRefreshing = signal(false);
 
@@ -69,6 +70,7 @@ export class ServiceMeshComponent implements OnInit {
 
   ngOnDestroy(): void {
     this.serviceMeshService.stopPolling();
+    this.serviceMeshService.selectService(null);
   }
 
   refreshData(): void {
@@ -79,7 +81,10 @@ export class ServiceMeshComponent implements OnInit {
   }
 
   onServiceSelected(service: ServiceInstance): void {
-    this.selectedService.set(service);
+    this.serviceMeshService.selectService(service);
+    if (!this.uiPreferencesService.isDetailPaneOpen()) {
+      this.uiPreferencesService.toggleDetailPane();
+    }
   }
 
   async onServiceRestart(service: ServiceInstance): Promise<void> {

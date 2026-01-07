@@ -27,12 +27,30 @@ export type FrameworkCategory =
   | 'RUST_ACTIX'
   | 'OTHER';
 
-export interface Framework {
-  id: number;
+export interface FrameworkLanguage {
+  id: string;
   name: string;
   description?: string;
-  category: FrameworkCategory;
-  language: string;
+}
+
+export interface FrameworkCategoryEntity {
+  id: string;
+  name: string; // This corresponds to the FrameworkCategory (string union) values potentially
+  description?: string;
+}
+
+export interface ServiceTypeEntity {
+  id: string;
+  name: string; // This corresponds to ServiceType (string union) values potentially
+  description?: string;
+}
+
+export interface Framework {
+  id: string;
+  name: string;
+  description?: string;
+  category: FrameworkCategoryEntity;
+  language: FrameworkLanguage;
   latestVersion: string;
   documentationUrl?: string;
   supportsBrokerPattern: boolean;
@@ -57,11 +75,11 @@ export type ServiceType =
 export type ServiceStatus = 'ACTIVE' | 'DEPRECATED' | 'ARCHIVED' | 'PLANNED';
 
 export interface ServiceInstance {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   framework: Framework;
-  type: ServiceType;
+  type: ServiceTypeEntity;
   defaultPort: number;
   healthCheckPath?: string;
   apiBasePath?: string;
@@ -83,7 +101,7 @@ export type ServerEnvironment = 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' | 'TEST
 export type ServerStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | 'DECOMMISSIONED';
 
 export interface Server {
-  id: number;
+  id: string;
   hostname: string;
   ipAddress: string;
   type: ServerType;
@@ -115,7 +133,7 @@ export type DeploymentStatus =
 export type HealthStatus = 'HEALTHY' | 'UNHEALTHY' | 'DEGRADED' | 'UNKNOWN';
 
 export interface Deployment {
-  id: number;
+  id: string;
   service: ServiceInstance;
   server: Server;
   port: number;
@@ -147,8 +165,8 @@ export type ConfigType =
   | 'API_KEY';
 
 export interface ServiceConfiguration {
-  id: number;
-  service: { id: number };
+  id: string;
+  service: { id: string };
   configKey: string;
   configValue: string;
   environment: ConfigEnvironment;
@@ -164,8 +182,8 @@ export interface ServiceConfiguration {
 // ============================================================================
 
 export interface ServiceDependency {
-  sourceServiceId: number;
-  targetServiceId: number;
+  sourceServiceId: string;
+  targetServiceId: string;
   sourceService: ServiceInstance;
   targetService: ServiceInstance;
   dependencyType?: 'REQUIRED' | 'OPTIONAL';
@@ -176,7 +194,7 @@ export interface ServiceDependency {
 // ============================================================================
 
 export interface ServiceMetrics {
-  serviceId: number;
+  serviceId: string;
   timestamp: Date;
   requestsPerSecond?: number;
   averageResponseTimeMs?: number;
@@ -189,8 +207,8 @@ export interface ServiceMetrics {
 export interface ServiceUpdate {
   type: 'STATUS_CHANGE' | 'HEALTH_CHANGE' | 'DEPLOYMENT_CHANGE' | 'CONFIG_CHANGE';
   hostProfileId: string;
-  serviceId: number;
-  deploymentId?: number;
+  serviceId: string;
+  deploymentId?: string;
   previousValue?: string;
   newValue: string;
   timestamp: Date;
@@ -243,7 +261,7 @@ export type ServiceOperation =
   | 'view-config';
 
 export interface OperationRequest {
-  deploymentId: number;
+  deploymentId: string;
   operation: ServiceOperation;
   params?: Record<string, unknown>;
 }
@@ -251,7 +269,7 @@ export interface OperationRequest {
 export interface OperationResult {
   success: boolean;
   operation: ServiceOperation;
-  deploymentId: number;
+  deploymentId: string;
   message?: string;
   data?: unknown;
   timestamp: Date;
@@ -307,7 +325,7 @@ export function getDeploymentStatusColor(status: DeploymentStatus): string {
   }
 }
 
-export function getFrameworkIcon(category: FrameworkCategory): string {
+export function getFrameworkIcon(category: FrameworkCategory | string): string {
   switch (category) {
     case 'JAVA_SPRING':
     case 'JAVA_QUARKUS':

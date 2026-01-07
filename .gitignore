@@ -40322,3 +40322,8 @@ angular/throttler/.angular/cache/20.3.13/app/vite/deps/rxjs.js.map
 nextjs/spring-broker-gateway-api-tester/.idx/icon.png
 nextjs/cool-people/.idx/icon.png
 .gitignore
+angular/nexus/dist/main-TJCTCKMU.js
+nextjs/broker-gateway-api-tester/bun.lock
+nextjs/broker-gateway-api-tester/server_output.log
+nextjs/broker-gateway-api-tester/server.log
+nextjs/broker-gateway-api-tester/.idx/icon.png

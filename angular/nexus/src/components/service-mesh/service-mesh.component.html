@@ -82,20 +82,5 @@
       ></app-service-graph>
     </div>
     }
-
-    <!-- Service Details Panel (when service selected) -->
-    @if (selectedService()) {
-    <div class="service-details-panel">
-      <app-service-details
-        [service]="selectedService()"
-        [deployments]="[]"
-        [configurations]="[]"
-        (restartService)="onServiceRestart($event)"
-        (viewLogs)="onServiceLogs($event)"
-        (startService)="onServiceRestart($event)"
-        (stopService)="onServiceRestart($event)"
-      ></app-service-details>
-    </div>
-    }
   </div>
 </div>

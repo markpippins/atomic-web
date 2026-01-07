@@ -50,9 +50,9 @@ export class ServiceTreeComponent {
     const deployments = this.getAllDeployments();
 
     // Group services by framework
-    const frameworkMap = new Map<number, Framework>();
-    const serviceMap = new Map<number, ServiceInstance[]>();
-    const deploymentMap = new Map<number, Deployment[]>();
+    const frameworkMap = new Map<string, Framework>();
+    const serviceMap = new Map<string, ServiceInstance[]>();
+    const deploymentMap = new Map<string, Deployment[]>();
 
     // Populate maps
     services.forEach(service => {
@@ -160,7 +160,7 @@ export class ServiceTreeComponent {
     return this.deployments();
   }
 
-  getDeploymentsForService(serviceId: number): Deployment[] {
+  getDeploymentsForService(serviceId: string): Deployment[] {
     return this.deployments().filter(d => d.service.id === serviceId);
   }
 

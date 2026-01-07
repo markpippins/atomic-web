@@ -141,7 +141,7 @@ export class ServiceGraphComponent implements AfterViewInit {
         .on('end', (event: any, d: any) => this.dragended(event, d, simulation)))
       .on('click', (event: any, d: GraphNode) => {
         event.stopPropagation();
-        const service = this.services().find(s => s.id === parseInt(d.id));
+        const service = this.services().find(s => s.id === d.id);
         if (service) {
           this.selectedNode.emit(service);
         }

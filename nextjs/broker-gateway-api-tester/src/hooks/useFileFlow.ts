@@ -40,11 +40,11 @@ export function useFileFlow() {
         setItems([]);
     }
   }, [toast]);
-  
+
   const refresh = useCallback(() => {
     fetchItems(alias, path);
   }, [alias, path, fetchItems]);
-  
+
   useEffect(() => {
     fetchItems(alias, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,7 +53,7 @@ export function useFileFlow() {
   const navigateTo = (newPath: string[]) => {
     fetchItems(alias, newPath);
   };
-  
+
   const handleCreateDirectory = async (name: string) => {
     setLoading(true);
     const res = await createDirectory(alias, path, name);
@@ -89,7 +89,7 @@ export function useFileFlow() {
     }
     setLoading(false);
   };
-  
+
   const handleRenameItem = async (oldName: string, newName: string) => {
     setLoading(true);
     const res = await renameItem(alias, path, oldName, newName);

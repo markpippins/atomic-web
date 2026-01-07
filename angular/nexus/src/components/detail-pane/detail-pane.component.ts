@@ -5,12 +5,14 @@ import { Bookmark } from '../../models/bookmark.model.js';
 import { RssFeedComponent } from '../rss-feed/rss-feed.component.js';
 import { WebviewService } from '../../services/webview.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
+import { ServiceMeshService } from '../../services/service-mesh.service.js';
+import { ServiceDetailsComponent } from '../service-details/service-details.component.js';
 
 @Component({
   selector: 'app-detail-pane',
   standalone: true,
   templateUrl: './detail-pane.component.html',
-  imports: [CommonModule, RssFeedComponent],
+  imports: [CommonModule, RssFeedComponent, ServiceDetailsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DetailPaneComponent implements OnDestroy {
@@ -24,19 +26,20 @@ export class DetailPaneComponent implements OnDestroy {
   private webviewService = inject(WebviewService);
   private renderer = inject(Renderer2);
   private uiPreferencesService = inject(UiPreferencesService);
+  public serviceMeshService = inject(ServiceMeshService);
 
   // --- Resizing State & Logic for pane width ---
   width = signal(this.uiPreferencesService.detailPaneWidth() ?? 320);
   isResizing = signal(false);
   private unlistenMouseMove: (() => void) | null = null;
   private unlistenMouseUp: (() => void) | null = null;
-  
+
   // --- Vertical Resizing State for internal panes ---
   savedPaneHeight = signal(this.uiPreferencesService.detailPaneSavedHeight() ?? 50); // This is a percentage
   isResizingVertical = signal(false);
   private unlistenVerticalMouseMove: (() => void) | null = null;
   private unlistenVerticalMouseUp: (() => void) | null = null;
-  
+
   @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
 
   filterQuery = signal('');
@@ -45,7 +48,7 @@ export class DetailPaneComponent implements OnDestroy {
     const allBookmarks = this.bookmarkService.allBookmarks();
     const currentPathString = this.path().join('/');
     const query = this.filterQuery().toLowerCase();
-    
+
     return allBookmarks
       .filter(b => b.path.startsWith(currentPathString))
       .filter(b => !query || b.title.toLowerCase().includes(query) || b.snippet?.toLowerCase().includes(query));
@@ -64,7 +67,7 @@ export class DetailPaneComponent implements OnDestroy {
   openBookmark(bookmark: Bookmark): void {
     this.webviewService.open(bookmark.link, bookmark.title);
   }
-  
+
   startResize(event: MouseEvent): void {
     this.isResizing.set(true);
     const startX = event.clientX;
@@ -75,10 +78,10 @@ export class DetailPaneComponent implements OnDestroy {
     this.unlistenMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
       const dx = startX - e.clientX;
       let newWidth = startWidth + dx;
-      
+
       if (newWidth < 200) newWidth = 200;
       if (newWidth > 600) newWidth = 600;
-      
+
       this.width.set(newWidth);
     });
 
@@ -100,7 +103,7 @@ export class DetailPaneComponent implements OnDestroy {
     }
     this.uiPreferencesService.setDetailPaneWidth(this.width());
   }
-  
+
   startVerticalResize(event: MouseEvent): void {
     this.isResizingVertical.set(true);
     const container = this.contentContainerEl.nativeElement;
@@ -109,34 +112,34 @@ export class DetailPaneComponent implements OnDestroy {
     event.preventDefault();
 
     this.unlistenVerticalMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-        const mouseY = e.clientY - containerRect.top;
-        let newHeightPercent = (mouseY / containerRect.height) * 100;
+      const mouseY = e.clientY - containerRect.top;
+      let newHeightPercent = (mouseY / containerRect.height) * 100;
 
-        const minHeightPercent = 15;
-        const maxHeightPercent = 85;
-        if (newHeightPercent < minHeightPercent) newHeightPercent = minHeightPercent;
-        if (newHeightPercent > maxHeightPercent) newHeightPercent = maxHeightPercent;
+      const minHeightPercent = 15;
+      const maxHeightPercent = 85;
+      if (newHeightPercent < minHeightPercent) newHeightPercent = minHeightPercent;
+      if (newHeightPercent > maxHeightPercent) newHeightPercent = maxHeightPercent;
 
-        this.savedPaneHeight.set(newHeightPercent);
+      this.savedPaneHeight.set(newHeightPercent);
     });
-    
+
     this.unlistenVerticalMouseUp = this.renderer.listen('document', 'mouseup', () => {
-        this.stopVerticalResize();
+      this.stopVerticalResize();
     });
   }
 
   private stopVerticalResize(): void {
-      if (!this.isResizingVertical()) return;
-      this.isResizingVertical.set(false);
-      if (this.unlistenVerticalMouseMove) {
-          this.unlistenVerticalMouseMove();
-          this.unlistenVerticalMouseMove = null;
-      }
-      if (this.unlistenVerticalMouseUp) {
-          this.unlistenVerticalMouseUp();
-          this.unlistenVerticalMouseUp = null;
-      }
-      this.uiPreferencesService.setDetailPaneSavedHeight(this.savedPaneHeight());
+    if (!this.isResizingVertical()) return;
+    this.isResizingVertical.set(false);
+    if (this.unlistenVerticalMouseMove) {
+      this.unlistenVerticalMouseMove();
+      this.unlistenVerticalMouseMove = null;
+    }
+    if (this.unlistenVerticalMouseUp) {
+      this.unlistenVerticalMouseUp();
+      this.unlistenVerticalMouseUp = null;
+    }
+    this.uiPreferencesService.setDetailPaneSavedHeight(this.savedPaneHeight());
   }
 
   ngOnDestroy(): void {

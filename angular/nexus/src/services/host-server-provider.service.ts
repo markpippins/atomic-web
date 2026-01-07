@@ -133,13 +133,11 @@ export class HostServerProvider implements TreeProvider {
             const parts = nodeId.split('-');
             if (parts.length >= 3) {
                 const profileId = parts[1];
-                const serviceId = parseInt(parts.slice(2).join('-')); // Handle cases where serviceId might contain '-'
+                const serviceId = parts.slice(2).join('-'); // Handle cases where serviceId might contain '-'
 
-                if (!isNaN(serviceId)) {
-                    const profile = this.profileService.profiles().find(p => p.id === profileId);
-                    if (profile) {
-                        return this.fetchDeploymentsForService(profile, serviceId);
-                    }
+                const profile = this.profileService.profiles().find(p => p.id === profileId);
+                if (profile) {
+                    return this.fetchDeploymentsForService(profile, serviceId);
                 }
             }
             return [];
@@ -314,7 +312,7 @@ export class HostServerProvider implements TreeProvider {
         }
     }
 
-    private async fetchDeploymentsForService(profile: HostProfile, serviceId: number): Promise<TreeNode[]> {
+    private async fetchDeploymentsForService(profile: HostProfile, serviceId: string): Promise<TreeNode[]> {
         try {
             let baseUrl = profile.hostServerUrl;
 
@@ -398,7 +396,7 @@ export class HostServerProvider implements TreeProvider {
         if (nodeId.startsWith('service-')) {
             const parts = nodeId.split('-');
             const profileId = parts[1];
-            const serviceId = parseInt(parts.slice(2).join('-'));
+            const serviceId = parts.slice(2).join('-');
             const profile = this.profileService.profiles().find(p => p.id === profileId);
 
             if (profile) {
@@ -411,7 +409,7 @@ export class HostServerProvider implements TreeProvider {
         if (nodeId.startsWith('deployment-')) {
             const parts = nodeId.split('-');
             const profileId = parts[1];
-            const deploymentId = parseInt(parts.slice(2).join('-'));
+            const deploymentId = parts.slice(2).join('-');
             const profile = this.profileService.profiles().find(p => p.id === profileId);
 
             if (profile) {
