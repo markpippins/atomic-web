@@ -78,6 +78,13 @@
         [configurations]="serviceMeshService.selectedServiceConfigurations()"
       ></app-service-details>
     </div>
+    } @else if (platformNode()) {
+    <div class="flex-1 overflow-y-auto bg-[rgb(var(--color-surface))]">
+      <app-platform-management
+        [managementType]="platformNode()!.type"
+        [baseUrl]="platformNode()!.baseUrl"
+      ></app-platform-management>
+    </div>
     } @else { @if (isSavedItemsVisible()) {
     <!-- Top Pane: Saved Items -->
     <div

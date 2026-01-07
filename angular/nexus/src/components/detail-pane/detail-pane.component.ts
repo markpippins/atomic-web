@@ -7,12 +7,14 @@ import { WebviewService } from '../../services/webview.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { ServiceDetailsComponent } from '../service-details/service-details.component.js';
+import { PlatformManagementComponent } from '../platform-management/platform-management.component.js';
+import { HostProfileService } from '../../services/host-profile.service.js';
 
 @Component({
   selector: 'app-detail-pane',
   standalone: true,
   templateUrl: './detail-pane.component.html',
-  imports: [CommonModule, RssFeedComponent, ServiceDetailsComponent],
+  imports: [CommonModule, RssFeedComponent, ServiceDetailsComponent, PlatformManagementComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DetailPaneComponent implements OnDestroy {
@@ -27,6 +29,7 @@ export class DetailPaneComponent implements OnDestroy {
   private renderer = inject(Renderer2);
   private uiPreferencesService = inject(UiPreferencesService);
   public serviceMeshService = inject(ServiceMeshService);
+  private hostProfileService = inject(HostProfileService);
 
   // --- Resizing State & Logic for pane width ---
   width = signal(this.uiPreferencesService.detailPaneWidth() ?? 320);
@@ -43,6 +46,49 @@ export class DetailPaneComponent implements OnDestroy {
   @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
 
   filterQuery = signal('');
+
+  platformNode = computed(() => {
+    const path = this.path();
+    // Check if we are in a platform management path
+    // Path structure: Root(ProfileName) / Platform Management / ManagementType
+    // Or potentially deeper if nested
+
+    // Find "Platform Management" in the path
+    const pmIndex = path.indexOf('Platform Management');
+
+    if (pmIndex !== -1 && pmIndex + 1 < path.length) {
+      const managementType = path[pmIndex + 1].toLowerCase();
+
+      // Root is at path[0] (or we need to find profile name from path)
+      // If "Platform Control" is at index 1, root is 0.
+      // If it is nested, we might look for root name.
+
+      // HostServerProvider roots are usually at top level?
+      // Let's assume root is path[0]
+      const profileName = path[0];
+
+      const profile = this.hostProfileService.profiles().find(p => p.name === profileName);
+
+      if (profile) {
+        const allowedTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables'];
+        // Normalize type (remove spaces, etc if needed, but here simple match)
+        // 'lookup tables' might need handling if path segment is 'Lookup Tables'
+
+        const segment = path[pmIndex + 1].toLowerCase();
+        const normalizedType = allowedTypes.find(t => t === segment);
+
+        if (normalizedType) {
+          // Calculate baseUrl
+          let baseUrl = profile.hostServerUrl;
+          if (!baseUrl.startsWith('http')) baseUrl = `http://${baseUrl}`;
+          if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
+          return { type: normalizedType, baseUrl };
+        }
+      }
+    }
+    return null;
+  });
 
   bookmarks = computed(() => {
     const allBookmarks = this.bookmarkService.allBookmarks();

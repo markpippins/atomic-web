@@ -234,6 +234,56 @@ export class HostServerProvider implements TreeProvider {
         const baseUrl = this.getBaseUrl(profile);
         return [
             {
+                id: `platform-services-${profile.id}`,
+                name: 'Services',
+                type: NodeType.FOLDER,
+                icon: 'dns',
+                hasChildren: false,
+                operations: ['manage-services'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/services`, managementType: 'services' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-frameworks-${profile.id}`,
+                name: 'Frameworks',
+                type: NodeType.FOLDER,
+                icon: 'code',
+                hasChildren: false,
+                operations: ['manage-frameworks'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/frameworks`, managementType: 'frameworks' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-deployments-${profile.id}`,
+                name: 'Deployments',
+                type: NodeType.FOLDER,
+                icon: 'cloud_upload',
+                hasChildren: false,
+                operations: ['manage-deployments'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/deployments`, managementType: 'deployments' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-servers-${profile.id}`,
+                name: 'Servers',
+                type: NodeType.FOLDER,
+                icon: 'storage',
+                hasChildren: false,
+                operations: ['manage-servers'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/servers`, managementType: 'servers' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-lookup-${profile.id}`,
+                name: 'Lookup Tables',
+                type: NodeType.FOLDER,
+                icon: 'table_chart',
+                hasChildren: false,
+                operations: ['manage-lookups'],
+                metadata: { hostProfileId: profile.id, baseUrl, managementType: 'lookups' },
+                lastUpdated: new Date()
+            },
+            {
                 id: `platform-health-${profile.id}`,
                 name: 'System Health',
                 type: NodeType.HEALTH_CHECK,
@@ -241,16 +291,6 @@ export class HostServerProvider implements TreeProvider {
                 hasChildren: false,
                 operations: ['check-health'],
                 metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/platform/health` },
-                lastUpdated: new Date()
-            },
-            {
-                id: `platform-logs-${profile.id}`,
-                name: 'Service Logs',
-                type: NodeType.FOLDER,
-                icon: 'receipt_long',
-                hasChildren: false,
-                operations: ['view-logs'],
-                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/platform/logs` },
                 lastUpdated: new Date()
             }
         ];

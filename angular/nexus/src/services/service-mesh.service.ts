@@ -52,12 +52,14 @@ export class ServiceMeshService {
 
   // Selection State
   private _selectedService = signal<ServiceInstance | null>(null);
+  private _selectedPlatformNode = signal<{ type: string, baseUrl: string } | null>(null);
   private _selectedServiceConfigurations = signal<ServiceConfiguration[]>([]);
 
   // Public readonly signals
   readonly frameworks = this._frameworks.asReadonly();
   readonly services = this._services.asReadonly();
   readonly servers = this._servers.asReadonly();
+  readonly selectedPlatformNode = this._selectedPlatformNode.asReadonly();
   readonly deployments = this._deployments.asReadonly();
   readonly dependencies = this._dependencies.asReadonly();
   readonly connections = this._connections.asReadonly();
@@ -212,6 +214,10 @@ export class ServiceMeshService {
   // =========================================================================
 
   async selectService(service: ServiceInstance | null): Promise<void> {
+    if (service) {
+      this._selectedPlatformNode.set(null);
+    }
+
     this._selectedService.set(service);
 
     if (service) {
@@ -234,6 +240,11 @@ export class ServiceMeshService {
     } else {
       this._selectedServiceConfigurations.set([]);
     }
+  }
+
+  async selectPlatformNode(type: string, baseUrl: string): Promise<void> {
+    this._selectedService.set(null);
+    this._selectedPlatformNode.set({ type, baseUrl });
   }
 
   // =========================================================================
