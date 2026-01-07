@@ -48,6 +48,7 @@ export class DetailPaneComponent implements OnDestroy {
   filterQuery = signal('');
 
   platformNode = computed(() => {
+    // Detect Platform Management nodes in the path
     const path = this.path();
     if (!path || path.length < 2) return null;
 
