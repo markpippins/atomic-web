@@ -49,45 +49,36 @@ export class DetailPaneComponent implements OnDestroy {
 
   platformNode = computed(() => {
     const path = this.path();
-    // Check if we are in a platform management path
-    // Path structure: Root(ProfileName) / Platform Management / ManagementType
-    // Or potentially deeper if nested
+    if (!path || path.length < 2) return null;
 
-    // Find "Platform Management" in the path
-    const pmIndex = path.indexOf('Platform Management');
+    // Find "Platform Management" in the path (case-insensitive)
+    const pmIndex = path.findIndex(p => p.toLowerCase() === 'platform management');
 
-    if (pmIndex !== -1 && pmIndex + 1 < path.length) {
-      const managementType = path[pmIndex + 1].toLowerCase();
+    if (pmIndex === -1) return null;
 
-      // Root is at path[0] (or we need to find profile name from path)
-      // If "Platform Control" is at index 1, root is 0.
-      // If it is nested, we might look for root name.
+    // Check if there's a child node after "Platform Management"
+    if (pmIndex + 1 >= path.length) return null;
 
-      // HostServerProvider roots are usually at top level?
-      // Let's assume root is path[0]
-      const profileName = path[0];
+    const managementTypeSegment = path[pmIndex + 1];
+    const managementType = managementTypeSegment.toLowerCase();
 
-      const profile = this.hostProfileService.profiles().find(p => p.name === profileName);
+    // Valid management types
+    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables'];
 
-      if (profile) {
-        const allowedTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables'];
-        // Normalize type (remove spaces, etc if needed, but here simple match)
-        // 'lookup tables' might need handling if path segment is 'Lookup Tables'
+    if (!validTypes.includes(managementType)) return null;
 
-        const segment = path[pmIndex + 1].toLowerCase();
-        const normalizedType = allowedTypes.find(t => t === segment);
+    // Get the profile name (should be the first segment)
+    const profileName = path[0];
+    const profile = this.hostProfileService.profiles().find(p => p.name === profileName);
 
-        if (normalizedType) {
-          // Calculate baseUrl
-          let baseUrl = profile.hostServerUrl;
-          if (!baseUrl.startsWith('http')) baseUrl = `http://${baseUrl}`;
-          if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+    if (!profile) return null;
 
-          return { type: normalizedType, baseUrl };
-        }
-      }
-    }
-    return null;
+    // Build baseUrl
+    let baseUrl = profile.hostServerUrl;
+    if (!baseUrl.startsWith('http')) baseUrl = `http://${baseUrl}`;
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+
+    return { type: managementType, baseUrl };
   });
 
   bookmarks = computed(() => {
