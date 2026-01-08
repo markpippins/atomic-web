@@ -297,11 +297,9 @@ export class PlatformManagementService {
         // Endpoint mapping
         let endpoint = type;
         if (type === 'service-types') endpoint = 'service-types';
-        else if (type === 'server-types') endpoint = 'server-types'; // Assuming this is correct endpoint
+        else if (type === 'server-types') endpoint = 'server-types';
         else if (type === 'framework-categories') endpoint = 'framework-categories';
         else if (type === 'framework-languages') endpoint = 'framework-languages';
-
-        // If type passed is already the endpoint (e.g. 'framework-categories')
 
         try {
             const url = `${baseUrl}/api/${endpoint}`;
@@ -309,6 +307,62 @@ export class PlatformManagementService {
         } catch (e) {
             console.error(`Failed to fetch lookup ${type}`, e);
             throw e;
+        }
+    }
+
+    // Generic Lookup CRUD
+    async createLookup(baseUrl: string, type: string, item: Partial<LookupItem>): Promise<LookupItem> {
+        const endpoint = this.getLookupEndpoint(type);
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/${endpoint}`;
+            return await firstValueFrom(this.http.post<LookupItem>(url, item));
+        } catch (e) {
+            this.error.set(`Failed to create ${type}`);
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async updateLookup(baseUrl: string, type: string, id: number, item: Partial<LookupItem>): Promise<LookupItem> {
+        const endpoint = this.getLookupEndpoint(type);
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/${endpoint}/${id}`;
+            return await firstValueFrom(this.http.put<LookupItem>(url, item));
+        } catch (e) {
+            this.error.set(`Failed to update ${type}`);
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async deleteLookup(baseUrl: string, type: string, id: number): Promise<void> {
+        const endpoint = this.getLookupEndpoint(type);
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/${endpoint}/${id}`;
+            await firstValueFrom(this.http.delete<void>(url));
+        } catch (e) {
+            this.error.set(`Failed to delete ${type}`);
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    private getLookupEndpoint(type: string): string {
+        switch (type) {
+            case 'service-types': return 'service-types';
+            case 'server-types': return 'server-types';
+            case 'framework-categories': return 'framework-categories';
+            case 'framework-languages': return 'framework-languages';
+            default: return type;
         }
     }
 }

@@ -293,7 +293,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private getPlatformNodeForPath(path: string[]) {
     // Valid management types
-    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables'];
+    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'service definitions'];
     const profiles = this.hostProfileService.profiles();
 
     if (!path || path.length === 0) {
@@ -310,7 +310,9 @@ export class AppComponent implements OnInit, OnDestroy {
         if (profile) {
           const baseUrl = profile.hostServerUrl.startsWith('http') ? profile.hostServerUrl.replace(/\/$/, '') : `http://${profile.hostServerUrl.replace(/\/$/, '')}`;
           console.log('[AppComponent] Matched single-element path', { type, baseUrl });
-          return { type, baseUrl };
+          let normalizedType = type.replace(/\s+/g, '-');
+          if (normalizedType === 'service-definitions') normalizedType = 'services';
+          return { type: normalizedType, baseUrl };
         }
       }
       return null;
@@ -345,7 +347,9 @@ export class AppComponent implements OnInit, OnDestroy {
         if (finalProfile) {
           const baseUrl = finalProfile.hostServerUrl.startsWith('http') ? finalProfile.hostServerUrl.replace(/\/$/, '') : `http://${finalProfile.hostServerUrl.replace(/\/$/, '')}`;
           console.log('[AppComponent] Matched Platform Management path', { type, baseUrl, targetProfileName });
-          return { type, baseUrl };
+          let normalizedType = type.replace(/\s+/g, '-');
+          if (normalizedType === 'service-definitions') normalizedType = 'services';
+          return { type: normalizedType, baseUrl };
         }
       }
     } else {
@@ -358,7 +362,9 @@ export class AppComponent implements OnInit, OnDestroy {
         if (profile) {
           const baseUrl = profile.hostServerUrl.startsWith('http') ? profile.hostServerUrl.replace(/\/$/, '') : `http://${profile.hostServerUrl.replace(/\/$/, '')}`;
           console.log('[AppComponent] Matched direct management path', { type: lastElement, baseUrl, profileName: path[0] });
-          return { type: lastElement, baseUrl };
+          let normalizedType = lastElement.replace(/\s+/g, '-');
+          if (normalizedType === 'service-definitions') normalizedType = 'services';
+          return { type: normalizedType, baseUrl };
         }
       }
     }

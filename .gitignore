@@ -40327,3 +40327,6 @@ nextjs/broker-gateway-api-tester/bun.lock
 nextjs/broker-gateway-api-tester/server_output.log
 nextjs/broker-gateway-api-tester/server.log
 nextjs/broker-gateway-api-tester/.idx/icon.png
+angular/nexus/dist/main-IU7CXYMK.js
+angular/nexus/package-lock.json
+.gitignore

@@ -100,12 +100,13 @@ export class HostServerProvider implements TreeProvider {
         }
 
         if (nodeId === 'services') {
-            // List all configured host profiles
+            // List all configured host profiles (Services Root)
+            // Under here we will have: Service Definitions, Frameworks, Lookups
             const profiles = this.profileService.profiles();
             return profiles.map(profile => ({
-                id: `host-${profile.id}`,
+                id: `host-services-${profile.id}`, // Changed from 'host-' to 'host-services-' to separate from platform
                 name: profile.name,
-                type: NodeType.HOST_SERVER,
+                type: NodeType.FOLDER, // Changed to FOLDER as it now contains config sections
                 icon: 'server',
                 hasChildren: true,
                 operations: [],
@@ -114,16 +115,13 @@ export class HostServerProvider implements TreeProvider {
             }));
         }
 
-        if (nodeId.startsWith('host-')) {
-            const profileId = nodeId.replace('host-', '');
+        if (nodeId.startsWith('host-services-')) {
+            const profileId = nodeId.replace('host-services-', '');
             const profile = this.profileService.profiles().find(p => p.id === profileId);
 
-            if (!profile) {
-                // Return empty if profile not found (might have been deleted)
-                return [];
-            }
+            if (!profile) return [];
 
-            return this.fetchServices(profile);
+            return this.fetchServiceConfig(profile);
         }
 
         // If we have a service node, return its deployments
@@ -185,6 +183,13 @@ export class HostServerProvider implements TreeProvider {
             return [];
         }
 
+        if (nodeId.startsWith('platform-lookup-')) {
+            const profileId = nodeId.replace('platform-lookup-', '');
+            const profile = this.profileService.profiles().find(p => p.id === profileId);
+            if (profile) return this.fetchLookupTypes(profile);
+            return [];
+        }
+
         if (nodeId === 'filesystems') {
             // Future implementation: fetch connected file systems
             return [];
@@ -230,12 +235,12 @@ export class HostServerProvider implements TreeProvider {
         }
     }
 
-    private async fetchPlatformInfo(profile: HostProfile): Promise<TreeNode[]> {
+    private async fetchServiceConfig(profile: HostProfile): Promise<TreeNode[]> {
         const baseUrl = this.getBaseUrl(profile);
         return [
             {
-                id: `platform-services-${profile.id}`,
-                name: 'Services',
+                id: `platform-services-${profile.id}`, // Keep ID consistent for routing or update if needed. Let's keep platform- prefix for now as it maps to the component type
+                name: 'Service Definitions',
                 type: NodeType.FOLDER,
                 icon: 'dns',
                 hasChildren: false,
@@ -253,6 +258,32 @@ export class HostServerProvider implements TreeProvider {
                 metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/frameworks`, managementType: 'frameworks' },
                 lastUpdated: new Date()
             },
+            {
+                id: `platform-lookup-${profile.id}`,
+                name: 'Lookup Tables',
+                type: NodeType.FOLDER,
+                icon: 'table_chart',
+                hasChildren: true,
+                operations: ['manage-lookups'],
+                metadata: { hostProfileId: profile.id, baseUrl, managementType: 'lookups' },
+                lastUpdated: new Date()
+            }
+        ];
+    }
+
+    private async fetchPlatformInfo(profile: HostProfile): Promise<TreeNode[]> {
+        const baseUrl = this.getBaseUrl(profile);
+
+        // Fetch running services for the 'Service Mesh' view
+        let serviceNodes: TreeNode[] = [];
+        try {
+            serviceNodes = await this.fetchServices(profile);
+        } catch (e) {
+            console.warn('Failed to fetch service mesh for platform view', e);
+        }
+
+        return [
+            ...serviceNodes, // Running Services (limit or group if too many?)
             {
                 id: `platform-deployments-${profile.id}`,
                 name: 'Deployments',
@@ -274,16 +305,6 @@ export class HostServerProvider implements TreeProvider {
                 lastUpdated: new Date()
             },
             {
-                id: `platform-lookup-${profile.id}`,
-                name: 'Lookup Tables',
-                type: NodeType.FOLDER,
-                icon: 'table_chart',
-                hasChildren: false,
-                operations: ['manage-lookups'],
-                metadata: { hostProfileId: profile.id, baseUrl, managementType: 'lookups' },
-                lastUpdated: new Date()
-            },
-            {
                 id: `platform-health-${profile.id}`,
                 name: 'System Health',
                 type: NodeType.HEALTH_CHECK,
@@ -291,6 +312,52 @@ export class HostServerProvider implements TreeProvider {
                 hasChildren: false,
                 operations: ['check-health'],
                 metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/platform/health` },
+                lastUpdated: new Date()
+            }
+        ];
+    }
+
+    private async fetchLookupTypes(profile: HostProfile): Promise<TreeNode[]> {
+        const baseUrl = this.getBaseUrl(profile);
+        return [
+            {
+                id: `lookup-service-types-${profile.id}`,
+                name: 'Service Types',
+                type: NodeType.FOLDER,
+                icon: 'category',
+                hasChildren: false,
+                operations: [],
+                metadata: { hostProfileId: profile.id, baseUrl, managementType: 'service-types' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `lookup-server-types-${profile.id}`,
+                name: 'Server Types',
+                type: NodeType.FOLDER,
+                icon: 'dns',
+                hasChildren: false,
+                operations: [],
+                metadata: { hostProfileId: profile.id, baseUrl, managementType: 'server-types' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `lookup-framework-languages-${profile.id}`,
+                name: 'Framework Languages',
+                type: NodeType.FOLDER,
+                icon: 'language',
+                hasChildren: false,
+                operations: [],
+                metadata: { hostProfileId: profile.id, baseUrl, managementType: 'framework-languages' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `lookup-framework-categories-${profile.id}`,
+                name: 'Framework Categories',
+                type: NodeType.FOLDER,
+                icon: 'class',
+                hasChildren: false,
+                operations: [],
+                metadata: { hostProfileId: profile.id, baseUrl, managementType: 'framework-categories' },
                 lastUpdated: new Date()
             }
         ];
