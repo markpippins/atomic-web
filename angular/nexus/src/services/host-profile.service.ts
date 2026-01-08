@@ -8,7 +8,13 @@ import { DbService } from './db.service.js';
 export class HostProfileService {
     private dbService = inject(DbService);
 
-    readonly profiles = signal<HostProfile[]>([]);
+    readonly profiles = signal<HostProfile[]>([{
+        id: 'default-local-host',
+        name: 'Local Host',
+        hostServerUrl: 'http://localhost:8085',
+        imageUrl: '',
+        description: 'Default local host server'
+    }]);
 
     constructor() {
         this.loadProfiles();
@@ -16,8 +22,13 @@ export class HostProfileService {
 
     async loadProfiles(): Promise<void> {
         const profiles = await this.dbService.getAllHostProfiles();
-        // If no profiles exist, we could add defaults here, but for now just empty.
-        this.profiles.set(profiles);
+        // If DB has profiles, use them. Otherwise keep the default.
+        if (profiles.length > 0) {
+            this.profiles.set(profiles);
+            console.log('[HostProfileService] Loaded profiles from DB', profiles);
+        } else {
+            console.log('[HostProfileService] Using default profile');
+        }
     }
 
     async saveProfile(profile: HostProfile): Promise<void> {

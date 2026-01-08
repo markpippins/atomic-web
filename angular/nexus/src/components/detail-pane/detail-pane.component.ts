@@ -7,14 +7,12 @@ import { WebviewService } from '../../services/webview.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { ServiceDetailsComponent } from '../service-details/service-details.component.js';
-import { PlatformManagementComponent } from '../platform-management/platform-management.component.js';
-import { HostProfileService } from '../../services/host-profile.service.js';
 
 @Component({
   selector: 'app-detail-pane',
   standalone: true,
   templateUrl: './detail-pane.component.html',
-  imports: [CommonModule, RssFeedComponent, ServiceDetailsComponent, PlatformManagementComponent],
+  imports: [CommonModule, RssFeedComponent, ServiceDetailsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DetailPaneComponent implements OnDestroy {
@@ -29,7 +27,6 @@ export class DetailPaneComponent implements OnDestroy {
   private renderer = inject(Renderer2);
   private uiPreferencesService = inject(UiPreferencesService);
   public serviceMeshService = inject(ServiceMeshService);
-  private hostProfileService = inject(HostProfileService);
 
   // --- Resizing State & Logic for pane width ---
   width = signal(this.uiPreferencesService.detailPaneWidth() ?? 320);
@@ -47,40 +44,6 @@ export class DetailPaneComponent implements OnDestroy {
 
   filterQuery = signal('');
 
-  platformNode = computed(() => {
-    // Detect Platform Management nodes in the path
-    const path = this.path();
-    if (!path || path.length < 2) return null;
-
-    // Find "Platform Management" in the path (case-insensitive)
-    const pmIndex = path.findIndex(p => p.toLowerCase() === 'platform management');
-
-    if (pmIndex === -1) return null;
-
-    // Check if there's a child node after "Platform Management"
-    if (pmIndex + 1 >= path.length) return null;
-
-    const managementTypeSegment = path[pmIndex + 1];
-    const managementType = managementTypeSegment.toLowerCase();
-
-    // Valid management types
-    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables'];
-
-    if (!validTypes.includes(managementType)) return null;
-
-    // Get the profile name (should be the first segment)
-    const profileName = path[0];
-    const profile = this.hostProfileService.profiles().find(p => p.name === profileName);
-
-    if (!profile) return null;
-
-    // Build baseUrl
-    let baseUrl = profile.hostServerUrl;
-    if (!baseUrl.startsWith('http')) baseUrl = `http://${baseUrl}`;
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-
-    return { type: managementType, baseUrl };
-  });
 
   bookmarks = computed(() => {
     const allBookmarks = this.bookmarkService.allBookmarks();

@@ -80,6 +80,8 @@ export class ServiceMeshService {
         }
       });
     }, { allowSignalWrites: true });
+
+    this.startPolling();
   }
 
   // Computed summary
@@ -180,6 +182,9 @@ export class ServiceMeshService {
         newMap.set(profile.id, connection);
         return newMap;
       });
+
+      // Trigger initial data fetch for this profile
+      void this.fetchAllData();
 
       return true;
     } catch (error) {

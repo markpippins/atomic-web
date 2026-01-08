@@ -73,6 +73,8 @@ import { TreeProviderAdapter } from './services/tree-provider-adapter.js';
 import { NodeType } from './models/tree-node.model.js';
 import { ServiceMeshComponent } from './components/service-mesh/service-mesh.component.js';
 import { CreateUserDialogComponent } from './components/create-user/create-user-dialog.component.js';
+import { PlatformManagementComponent } from './components/platform-management/platform-management.component.js';
+import { ServiceMeshService } from './services/service-mesh.service.js';
 
 interface PanePath {
   id: number;
@@ -129,7 +131,7 @@ const disconnectedProvider: FileSystemProvider = {
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, BrokerProfilesDialogComponent, HostProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ServiceMeshComponent, CreateUserDialogComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, BrokerProfilesDialogComponent, HostProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ServiceMeshComponent, CreateUserDialogComponent, PlatformManagementComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -166,6 +168,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private healthCheckService = inject(HealthCheckService);
   private treeManager = inject(TreeManagerService);
   private hostServerProvider = inject(HostServerProvider);
+  private serviceMeshService = inject(ServiceMeshService);
 
   private initialAutoConnectAttempted = false;
 
@@ -284,6 +287,85 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2Provider = computed<FileSystemProvider>(() => this.getProvider(this.pane2Path()));
   pane1ImageService = computed<ImageService>(() => this.getImageService(this.pane1Path()));
   pane2ImageService = computed<ImageService>(() => this.getImageService(this.pane2Path()));
+
+  pane1PlatformNode = computed(() => this.getPlatformNodeForPath(this.pane1Path()));
+  pane2PlatformNode = computed(() => this.getPlatformNodeForPath(this.pane2Path()));
+
+  private getPlatformNodeForPath(path: string[]) {
+    // Valid management types
+    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables'];
+    const profiles = this.hostProfileService.profiles();
+
+    if (!path || path.length === 0) {
+      return null;
+    }
+
+    console.log('[AppComponent] getPlatformNodeForPath', { path, profilesCount: profiles.length });
+
+    // Handle single-element path (direct child of root - e.g., ["Services"])
+    if (path.length === 1) {
+      const type = path[0].toLowerCase();
+      if (validTypes.includes(type)) {
+        const profile = profiles[0];
+        if (profile) {
+          const baseUrl = profile.hostServerUrl.startsWith('http') ? profile.hostServerUrl.replace(/\/$/, '') : `http://${profile.hostServerUrl.replace(/\/$/, '')}`;
+          console.log('[AppComponent] Matched single-element path', { type, baseUrl });
+          return { type, baseUrl };
+        }
+      }
+      return null;
+    }
+
+    // Handle multi-element path
+    const pmIndex = path.findIndex(p => p.toLowerCase() === 'platform management');
+
+    if (pmIndex !== -1) {
+      // Path contains "Platform Management"
+      const remaining = path.slice(pmIndex + 1);
+
+      let type: string | null = null;
+      let targetProfileName: string | null = null;
+
+      if (remaining.length === 0) {
+        // Parent "Platform Management" selected - do NOT default to services.
+        type = null;
+      } else if (validTypes.includes(remaining[0].toLowerCase())) {
+        type = remaining[0].toLowerCase();
+      } else if (remaining.length >= 2 && validTypes.includes(remaining[1].toLowerCase())) {
+        targetProfileName = remaining[0];
+        type = remaining[1].toLowerCase();
+      }
+
+      if (type) {
+        const profile = targetProfileName
+          ? profiles.find(p => p.name === targetProfileName)
+          : (path[0] !== 'Platform Management' ? profiles.find(p => p.name === path[0]) : profiles[0]);
+
+        const finalProfile = profile || profiles[0];
+        if (finalProfile) {
+          const baseUrl = finalProfile.hostServerUrl.startsWith('http') ? finalProfile.hostServerUrl.replace(/\/$/, '') : `http://${finalProfile.hostServerUrl.replace(/\/$/, '')}`;
+          console.log('[AppComponent] Matched Platform Management path', { type, baseUrl, targetProfileName });
+          return { type, baseUrl };
+        }
+      }
+    } else {
+      // Path does NOT contain "Platform Management" but might still be a valid management path
+      // e.g., ['Local Host', 'Services'] or ['Profile Name', 'Frameworks']
+      const lastElement = path[path.length - 1].toLowerCase();
+      if (validTypes.includes(lastElement)) {
+        // Try to find profile by first element of path, or use default
+        const profile = profiles.find(p => p.name === path[0]) || profiles[0];
+        if (profile) {
+          const baseUrl = profile.hostServerUrl.startsWith('http') ? profile.hostServerUrl.replace(/\/$/, '') : `http://${profile.hostServerUrl.replace(/\/$/, '')}`;
+          console.log('[AppComponent] Matched direct management path', { type: lastElement, baseUrl, profileName: path[0] });
+          return { type: lastElement, baseUrl };
+        }
+      }
+    }
+
+    console.log('[AppComponent] No match found, returning null');
+    return null;
+  }
 
   // --- Toolbar State Management ---
   toolbarAction = signal<{ name: string; payload?: any; id: number } | null>(null);
@@ -973,6 +1055,19 @@ export class AppComponent implements OnInit, OnDestroy {
       const otherPanes = paths.filter(p => p.id !== activeId);
       return [...otherPanes, { id: activeId, path }];
     });
+
+    // Check if the selected node is the "Platform Management" root
+    const isPlatformRoot = path.length > 0 && path[path.length - 1] === 'Platform Management';
+
+    if (isPlatformRoot) {
+      if (this.currentViewMode() !== 'service-mesh') {
+        this.currentViewMode.set('service-mesh');
+      }
+    } else {
+      if (this.currentViewMode() !== 'file-explorer') {
+        this.currentViewMode.set('file-explorer');
+      }
+    }
   }
 
   // --- Server Profile Dialog ---
@@ -1559,7 +1654,7 @@ export class AppComponent implements OnInit, OnDestroy {
         };
         promises.push(
           this.googleSearchService.search(searchParams)
-            .then(results => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
+            .then((results: any[]) => results.map(r => ({ ...r, type: 'web' as const, paneId: id })))
         );
 
         // Gemini Search (could be real or mock depending on API key)
@@ -1572,17 +1667,17 @@ export class AppComponent implements OnInit, OnDestroy {
         // Call all the mock services.
         promises.push(
           this.unsplashService.search(query)
-            .then(results => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
+            .then((results: any[]) => results.map(r => ({ ...r, type: 'image' as const, paneId: id })))
         );
 
         promises.push(
           this.youtubeSearchService.search(query)
-            .then(results => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
+            .then((results: any[]) => results.map(r => ({ ...r, type: 'youtube' as const, paneId: id })))
         );
 
         promises.push(
           this.academicSearchService.search(query)
-            .then(results => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
+            .then((results: any[]) => results.map(r => ({ ...r, type: 'academic' as const, paneId: id })))
         );
 
         promises.push(

@@ -172,7 +172,12 @@
                   [class.flex-shrink-0]="isSplitView()"
                   [style.width.%]="isSplitView() ? pane1Width() : undefined"
                 >
-                  @if (currentViewMode() === 'file-explorer') {
+                  @if (currentViewMode() === 'file-explorer') { @if (pane1PlatformNode()) {
+                  <app-platform-management
+                    [managementType]="pane1PlatformNode()!.type"
+                    [baseUrl]="pane1PlatformNode()!.baseUrl"
+                  ></app-platform-management>
+                  } @else {
                   <app-file-explorer
                     [id]="1"
                     [path]="pane1Path()"
@@ -204,7 +209,7 @@
                     (editLocalConfig)="openLocalConfigDialog()"
                   >
                   </app-file-explorer>
-                  } @else if (currentViewMode() === 'service-mesh') {
+                  } } @else if (currentViewMode() === 'service-mesh') {
                   <app-service-mesh></app-service-mesh>
                   }
                 </div>
@@ -219,6 +224,12 @@
                   ></div>
                 </div>
                 <div class="flex-1 h-full">
+                  @if (pane2PlatformNode()) {
+                  <app-platform-management
+                    [managementType]="pane2PlatformNode()!.type"
+                    [baseUrl]="pane2PlatformNode()!.baseUrl"
+                  ></app-platform-management>
+                  } @else {
                   <app-file-explorer
                     [id]="2"
                     [path]="pane2Path()"
@@ -250,6 +261,7 @@
                     (editLocalConfig)="openLocalConfigDialog()"
                   >
                   </app-file-explorer>
+                  }
                 </div>
                 }
               </div>
