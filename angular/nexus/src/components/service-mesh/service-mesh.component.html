@@ -1,0 +1,86 @@
+<div class="service-mesh-container">
+  <!-- Header with summary and controls -->
+  <div class="header">
+    <div class="title-bar">
+      <h2>Service Mesh</h2>
+      <div class="controls">
+        <button mat-button (click)="refreshData()" [disabled]="isRefreshing()" class="refresh-btn">
+          <mat-icon [class.spinning]="isRefreshing()">refresh</mat-icon>
+          Refresh
+        </button>
+        <button
+          mat-button
+          [class.active]="viewMode() === 'tree'"
+          (click)="switchToTreeView()"
+          class="view-toggle-btn"
+        >
+          <mat-icon>view_list</mat-icon>
+          Tree View
+        </button>
+        <button
+          mat-button
+          [class.active]="viewMode() === 'graph'"
+          (click)="switchToGraphView()"
+          class="view-toggle-btn"
+        >
+          <mat-icon>account_tree</mat-icon>
+          Graph View
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="card-value">{{ summary().totalServices }}</div>
+        <div class="card-label">Total Services</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-value">{{ summary().activeServices }}</div>
+        <div class="card-label">Active Services</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-value">{{ summary().healthyDeployments }}</div>
+        <div class="card-label">Healthy Deployments</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-value">{{ summary().unhealthyDeployments }}</div>
+        <div class="card-label">Unhealthy Deployments</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-value">{{ summary().totalServers }}</div>
+        <div class="card-label">Total Servers</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content area -->
+  <div class="content-area">
+    <!-- Service Tree View -->
+    @if (viewMode() === 'tree') {
+    <div class="service-tree-container">
+      <app-service-tree
+        [services]="services()"
+        [dependencies]="dependencies()"
+        [deployments]="deployments()"
+        [selectedService]="selectedService()"
+        (serviceSelected)="onServiceSelected($event)"
+        (restartService)="onServiceRestart($event)"
+        (viewLogs)="onServiceLogs($event)"
+      ></app-service-tree>
+    </div>
+    }
+
+    <!-- Graph View -->
+    @if (viewMode() === 'graph') {
+    <div class="service-graph-container">
+      <app-service-graph
+        [services]="services()"
+        [dependencies]="dependencies()"
+        [deployments]="deployments()"
+        (selectedNode)="onServiceSelected($event)"
+      ></app-service-graph>
+    </div>
+    }
+  </div>
+</div>
