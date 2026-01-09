@@ -1062,10 +1062,10 @@ export class AppComponent implements OnInit, OnDestroy {
       return [...otherPanes, { id: activeId, path }];
     });
 
-    // Check if the selected node is the "Platform Management" root
-    const isPlatformRoot = path.length > 0 && path[path.length - 1] === 'Platform Management';
+    // Check if the selected node is "Service Mesh"
+    const isServiceMesh = path.length > 0 && path[path.length - 1] === 'Service Mesh';
 
-    if (isPlatformRoot) {
+    if (isServiceMesh) {
       if (this.currentViewMode() !== 'service-mesh') {
         this.currentViewMode.set('service-mesh');
       }

@@ -259,6 +259,16 @@ export class HostServerProvider implements TreeProvider {
                 lastUpdated: new Date()
             },
             {
+                id: `platform-mesh-config-${profile.id}`,
+                name: 'Service Mesh',
+                type: NodeType.FOLDER,
+                icon: 'hub',
+                hasChildren: false,
+                operations: ['view-mesh'],
+                metadata: { hostProfileId: profile.id, viewMode: 'service-mesh' },
+                lastUpdated: new Date()
+            },
+            {
                 id: `platform-lookup-${profile.id}`,
                 name: 'Lookup Tables',
                 type: NodeType.FOLDER,
@@ -283,7 +293,17 @@ export class HostServerProvider implements TreeProvider {
         }
 
         return [
-            ...serviceNodes, // Running Services (limit or group if too many?)
+            ...serviceNodes, // Running Services
+            {
+                id: `platform-mesh-${profile.id}`,
+                name: 'Service Mesh',
+                type: NodeType.FOLDER, // Use FOLDER to allow navigation selection
+                icon: 'hub',
+                hasChildren: false,
+                operations: ['view-mesh'],
+                metadata: { hostProfileId: profile.id, viewMode: 'service-mesh' },
+                lastUpdated: new Date()
+            },
             {
                 id: `platform-deployments-${profile.id}`,
                 name: 'Deployments',
