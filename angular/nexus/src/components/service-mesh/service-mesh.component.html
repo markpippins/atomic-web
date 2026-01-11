@@ -10,12 +10,12 @@
         </button>
         <button
           mat-button
-          [class.active]="viewMode() === 'tree'"
-          (click)="switchToTreeView()"
+          [class.active]="viewMode() === 'console'"
+          (click)="switchToConsoleView()"
           class="view-toggle-btn"
         >
-          <mat-icon>view_list</mat-icon>
-          Tree View
+          <mat-icon>dashboard</mat-icon>
+          Console
         </button>
         <button
           mat-button
@@ -29,7 +29,8 @@
       </div>
     </div>
 
-    <!-- Summary cards -->
+    <!-- Summary cards (shown in console mode) -->
+    @if (viewMode() === 'console') {
     <div class="summary-cards">
       <div class="summary-card">
         <div class="card-value">{{ summary().totalServices }}</div>
@@ -52,22 +53,45 @@
         <div class="card-label">Total Servers</div>
       </div>
     </div>
+    }
   </div>
 
   <!-- Main content area -->
   <div class="content-area">
-    <!-- Service Tree View -->
-    @if (viewMode() === 'tree') {
-    <div class="service-tree-container">
-      <app-service-tree
-        [services]="services()"
-        [dependencies]="dependencies()"
-        [deployments]="deployments()"
-        [selectedService]="selectedService()"
-        (serviceSelected)="onServiceSelected($event)"
-        (restartService)="onServiceRestart($event)"
-        (viewLogs)="onServiceLogs($event)"
-      ></app-service-tree>
+    <!-- Console View - Service details and management -->
+    @if (viewMode() === 'console') {
+    <div class="console-container">
+      @if (selectedService(); as service) {
+      <div class="service-detail-panel">
+        <h3>{{ service.name }}</h3>
+        <div class="service-meta">
+          <span class="framework">{{ service.framework.name }}</span>
+          <span class="version">v{{ service.version }}</span>
+          <span class="type">{{ service.type.name }}</span>
+          @if (service.defaultPort) {
+          <span class="port">Port: {{ service.defaultPort }}</span>
+          }
+        </div>
+        @if (service.description) {
+        <p class="description">{{ service.description }}</p>
+        }
+        <div class="service-actions-panel">
+          <button mat-button (click)="onServiceRestart(service)" class="action-btn">
+            <mat-icon>refresh</mat-icon>
+            Restart
+          </button>
+          <button mat-button (click)="onServiceLogs(service)" class="action-btn">
+            <mat-icon>description</mat-icon>
+            View Logs
+          </button>
+        </div>
+      </div>
+      } @else {
+      <div class="no-selection">
+        <mat-icon class="large-icon">touch_app</mat-icon>
+        <p>Select a service from the sidebar to view details</p>
+      </div>
+      }
     </div>
     }
 

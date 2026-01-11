@@ -1,11 +1,10 @@
-import { Component, computed, inject, signal, OnInit, effect } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
-import { ServiceTreeComponent } from '../service-tree/service-tree.component.js';
 import { ServiceGraphComponent } from '../service-graph/service-graph.component.js';
 
 import {
@@ -17,17 +16,16 @@ import {
 
 @Component({
   selector: 'app-service-mesh',
-  standalone: true,
   imports: [
     CommonModule,
     MatButtonModule,
     MatIconModule,
     MatTabsModule,
-    ServiceTreeComponent,
     ServiceGraphComponent
   ],
   templateUrl: './service-mesh.component.html',
-  styleUrls: ['./service-mesh.component.css']
+  styleUrls: ['./service-mesh.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ServiceMeshComponent implements OnInit {
   private serviceMeshService = inject(ServiceMeshService);
@@ -38,7 +36,7 @@ export class ServiceMeshComponent implements OnInit {
   dependencies = signal<ServiceDependency[]>([]);
   deployments = signal<Deployment[]>([]);
   selectedService = this.serviceMeshService.selectedService;
-  viewMode = signal<'tree' | 'graph'>('tree'); // Default to tree view
+  viewMode = signal<'console' | 'graph'>('console'); // Default to console view
   isRefreshing = signal(false);
 
   // Computed properties
@@ -137,7 +135,7 @@ export class ServiceMeshComponent implements OnInit {
     this.viewMode.set('graph');
   }
 
-  switchToTreeView(): void {
-    this.viewMode.set('tree');
+  switchToConsoleView(): void {
+    this.viewMode.set('console');
   }
 }

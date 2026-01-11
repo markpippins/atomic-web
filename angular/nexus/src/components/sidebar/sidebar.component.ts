@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ChatComponent } from '../chat/chat.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeViewComponent } from '../tree-view/tree-view.component.js';
+import { ServiceTreeComponent } from '../service-tree/service-tree.component.js';
 import { ImageService } from '../../services/image.service.js';
 import { DragDropPayload } from '../../services/drag-drop.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
@@ -11,18 +12,20 @@ import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.compone
 import { FileSystemProvider } from '../../services/file-system-provider.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { NotesComponent } from '../notes/notes.component.js';
+import { ServiceMeshService } from '../../services/service-mesh.service.js';
+import { ServiceInstance } from '../../models/service-mesh.model.js';
 
 @Component({
   selector: 'app-sidebar',
-  standalone: true,
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, ChatComponent, TreeViewComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
+  imports: [CommonModule, ChatComponent, TreeViewComponent, ServiceTreeComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
   private uiPreferencesService = inject(UiPreferencesService);
+  private serviceMeshService = inject(ServiceMeshService);
 
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input.required<string[]>();
@@ -52,6 +55,13 @@ export class SidebarComponent implements OnDestroy {
   disconnectFromServer = output<string>();
   editServerProfile = output<string>();
   openCreateUser = output<void>();
+  serviceSelected = output<ServiceInstance>();
+
+  // Service Mesh data bindings (from ServiceMeshService)
+  services = computed(() => this.serviceMeshService.services());
+  dependencies = computed(() => this.serviceMeshService.dependencies());
+  deployments = computed(() => this.serviceMeshService.deployments());
+  selectedService = this.serviceMeshService.selectedService;
 
   width = signal(this.uiPreferencesService.sidebarWidth() ?? 288);
   isResizing = signal(false);
@@ -246,6 +256,11 @@ export class SidebarComponent implements OnDestroy {
 
   onViewModeChange(mode: 'file-explorer' | 'service-mesh'): void {
     this.viewModeChange.emit(mode);
+  }
+
+  onServiceSelected(service: ServiceInstance): void {
+    this.serviceMeshService.selectService(service);
+    this.serviceSelected.emit(service);
   }
 
   onTreeViewPathChange(path: string[]): void {

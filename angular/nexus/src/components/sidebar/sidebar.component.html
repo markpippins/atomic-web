@@ -12,7 +12,7 @@
       class="flex-shrink-0 flex items-center justify-between h-12 px-4 border-b border-[rgb(var(--color-border-base))]"
     >
       <h3 class="font-semibold text-lg text-[rgb(var(--color-text-base))] truncate">
-        {{ viewMode() === 'file-explorer' ? 'Explorer' : 'Service Mesh' }}
+        {{ viewMode() === 'file-explorer' ? 'Explorer' : 'Atomic Service Mesh' }}
       </h3>
       <div
         class="flex items-center space-x-1 bg-[rgb(var(--color-background))] rounded-lg p-1 border border-[rgb(var(--color-border-muted))] ml-2 flex-shrink-0"
@@ -263,7 +263,11 @@
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                   <span>Create User...</span>
                 </div>
@@ -275,7 +279,16 @@
 
         <!-- Tree View Content -->
         <div class="flex-1 overflow-y-auto" (contextmenu)="onSidebarAreaContextMenu($event)">
-          @if (folderTree(); as tree) {
+          @if (viewMode() === 'service-mesh') {
+          <app-service-tree
+            [services]="services()"
+            [dependencies]="dependencies()"
+            [deployments]="deployments()"
+            [selectedService]="selectedService()"
+            (serviceSelected)="onServiceSelected($event)"
+          >
+          </app-service-tree>
+          } @else { @if (folderTree(); as tree) {
           <app-tree-view
             [rootNode]="tree"
             [currentPath]="currentPath()"
@@ -289,7 +302,7 @@
             (contextMenuRequest)="onTreeContextMenu($event)"
           >
           </app-tree-view>
-          }
+          } }
         </div>
       </div>
       } @if (isTreeVisible() && (isChatVisible() || isNotesVisible())) {
