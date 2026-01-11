@@ -191,6 +191,7 @@ export class AppComponent implements OnInit, OnDestroy {
   connectionStatus = signal<ConnectionStatus>('disconnected');
   refreshPanes = signal(0);
   currentViewMode = signal<'file-explorer' | 'service-mesh'>('service-mesh');  // Default to service mesh
+  meshViewMode = signal<'console' | 'graph'>('console');  // Sub-mode when in service-mesh
 
   // --- Pane Visibility State (from service) ---
   isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
@@ -1023,6 +1024,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.currentViewMode.update(mode =>
       mode === 'file-explorer' ? 'service-mesh' : 'file-explorer'
     );
+  }
+
+  onMeshViewModeChange(mode: 'console' | 'graph'): void {
+    this.meshViewMode.set(mode);
   }
 
   // --- Toolbar Action Handling ---

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit, effect } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit, effect, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,6 +6,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ServiceGraphComponent } from '../service-graph/service-graph.component.js';
+import { ServiceDetailsComponent } from '../service-details/service-details.component.js';
 
 import {
   ServiceInstance,
@@ -21,7 +22,8 @@ import {
     MatButtonModule,
     MatIconModule,
     MatTabsModule,
-    ServiceGraphComponent
+    ServiceGraphComponent,
+    ServiceDetailsComponent
   ],
   templateUrl: './service-mesh.component.html',
   styleUrls: ['./service-mesh.component.css'],
@@ -39,9 +41,13 @@ export class ServiceMeshComponent implements OnInit {
   viewMode = signal<'console' | 'graph'>('console'); // Default to console view
   isRefreshing = signal(false);
 
+  // Output for parent synchronization
+  viewModeChange = output<'console' | 'graph'>();
+
   // Computed properties
   summary = computed(() => this.serviceMeshService.summary());
   frameworkGroups = computed(() => this.serviceMeshService.frameworkGroups());
+  selectedServiceConfigurations = computed(() => this.serviceMeshService.selectedServiceConfigurations());
 
   constructor() {
     // Set up reactive effects to update component state from service
@@ -133,9 +139,11 @@ export class ServiceMeshComponent implements OnInit {
 
   switchToGraphView(): void {
     this.viewMode.set('graph');
+    this.viewModeChange.emit('graph');
   }
 
   switchToConsoleView(): void {
     this.viewMode.set('console');
+    this.viewModeChange.emit('console');
   }
 }

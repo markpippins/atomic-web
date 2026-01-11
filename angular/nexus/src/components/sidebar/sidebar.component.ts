@@ -4,6 +4,7 @@ import { ChatComponent } from '../chat/chat.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeViewComponent } from '../tree-view/tree-view.component.js';
 import { ServiceTreeComponent } from '../service-tree/service-tree.component.js';
+import { ComponentPaletteComponent } from '../component-palette/component-palette.component.js';
 import { ImageService } from '../../services/image.service.js';
 import { DragDropPayload } from '../../services/drag-drop.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
@@ -14,11 +15,13 @@ import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { NotesComponent } from '../notes/notes.component.js';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { ServiceInstance } from '../../models/service-mesh.model.js';
+import { ArchitectureVizService } from '../../services/architecture-viz.service.js';
+import { NodeType } from '../../models/component-config.js';
 
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, ChatComponent, TreeViewComponent, ServiceTreeComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
+  imports: [CommonModule, ChatComponent, TreeViewComponent, ServiceTreeComponent, ComponentPaletteComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
@@ -26,6 +29,7 @@ export class SidebarComponent implements OnDestroy {
   private elementRef = inject(ElementRef);
   private uiPreferencesService = inject(UiPreferencesService);
   private serviceMeshService = inject(ServiceMeshService);
+  private vizService = inject(ArchitectureVizService);
 
   folderTree = input<FileSystemNode | null>(null);
   currentPath = input.required<string[]>();
@@ -35,6 +39,7 @@ export class SidebarComponent implements OnDestroy {
   isChatVisible = input(true);
   isNotesVisible = input(true);
   viewMode = input<'file-explorer' | 'service-mesh'>('file-explorer');
+  meshViewMode = input<'console' | 'graph'>('console'); // Sub-mode when in service-mesh
 
   pathChange = output<string[]>();
   refreshTree = output<void>();
@@ -261,6 +266,15 @@ export class SidebarComponent implements OnDestroy {
   onServiceSelected(service: ServiceInstance): void {
     this.serviceMeshService.selectService(service);
     this.serviceSelected.emit(service);
+  }
+
+  onAddComponent(type: NodeType): void {
+    // Add a new node at a random position
+    const x = (Math.random() - 0.5) * 40;
+    const y = (Math.random() - 0.5) * 20 + 10;
+    const z = (Math.random() - 0.5) * 20;
+    const id = this.vizService.addNode(type, { x, y, z });
+    this.vizService.selectNode(id);
   }
 
   onTreeViewPathChange(path: string[]): void {

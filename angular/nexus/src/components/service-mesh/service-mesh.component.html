@@ -62,29 +62,12 @@
     @if (viewMode() === 'console') {
     <div class="console-container">
       @if (selectedService(); as service) {
-      <div class="service-detail-panel">
-        <h3>{{ service.name }}</h3>
-        <div class="service-meta">
-          <span class="framework">{{ service.framework.name }}</span>
-          <span class="version">v{{ service.version }}</span>
-          <span class="type">{{ service.type.name }}</span>
-          @if (service.defaultPort) {
-          <span class="port">Port: {{ service.defaultPort }}</span>
-          }
-        </div>
-        @if (service.description) {
-        <p class="description">{{ service.description }}</p>
-        }
-        <div class="service-actions-panel">
-          <button mat-button (click)="onServiceRestart(service)" class="action-btn">
-            <mat-icon>refresh</mat-icon>
-            Restart
-          </button>
-          <button mat-button (click)="onServiceLogs(service)" class="action-btn">
-            <mat-icon>description</mat-icon>
-            View Logs
-          </button>
-        </div>
+      <div class="service-details-wrapper">
+        <app-service-details
+          [service]="service"
+          [deployments]="deployments()"
+          [configurations]="selectedServiceConfigurations()"
+        ></app-service-details>
       </div>
       } @else {
       <div class="no-selection">
@@ -102,6 +85,7 @@
         [services]="services()"
         [dependencies]="dependencies()"
         [deployments]="deployments()"
+        [showInternalPanels]="false"
         (selectedNode)="onServiceSelected($event)"
       ></app-service-graph>
     </div>

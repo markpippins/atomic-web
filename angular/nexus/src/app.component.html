@@ -13,6 +13,7 @@
       [isChatVisible]="isChatVisible()"
       [isNotesVisible]="isNotesVisible()"
       [viewMode]="currentViewMode()"
+      [meshViewMode]="meshViewMode()"
       (pathChange)="onSidebarNavigation($event)"
       (refreshTree)="loadFolderTree()"
       (loadChildren)="onLoadChildren($event)"
@@ -210,7 +211,9 @@
                   >
                   </app-file-explorer>
                   } } @else if (currentViewMode() === 'service-mesh') {
-                  <app-service-mesh></app-service-mesh>
+                  <app-service-mesh
+                    (viewModeChange)="onMeshViewModeChange($event)"
+                  ></app-service-mesh>
                   }
                 </div>
 
@@ -944,6 +947,7 @@
         [path]="activePanePath()"
         [isSavedItemsVisible]="isSavedItemsVisible()"
         [isRssFeedVisible]="isRssFeedVisible()"
+        [meshViewMode]="meshViewMode()"
         (close)="toggleDetailPane()"
         (manageRssFeeds)="openRssFeedsDialog()"
         class="flex-shrink-0 bg-[rgb(var(--color-surface-dialog))] border-l border-[rgb(var(--color-border-base))]"

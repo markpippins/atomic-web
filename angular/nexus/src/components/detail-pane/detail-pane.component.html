@@ -70,13 +70,84 @@
   </div>
 
   <div #contentContainer class="flex-1 flex flex-col overflow-hidden">
-    @if (serviceMeshService.selectedService()) {
+    @if (meshViewMode() === 'graph') {
+    <!-- Graph Mode: Show Object Inspector -->
     <div class="flex-1 overflow-y-auto bg-[rgb(var(--color-surface))]">
-      <app-service-details
-        [service]="serviceMeshService.selectedService()"
-        [deployments]="serviceMeshService.deployments()"
-        [configurations]="serviceMeshService.selectedServiceConfigurations()"
-      ></app-service-details>
+      <app-object-inspector></app-object-inspector>
+    </div>
+    } @else if (serviceMeshService.selectedService(); as service) {
+    <!-- Console Mode: Show simple summary card -->
+    <div class="flex-1 overflow-y-auto bg-[rgb(var(--color-surface))] p-4">
+      <div class="service-summary-card">
+        <h3 class="text-lg font-semibold text-[rgb(var(--color-text-base))] mb-3">
+          {{ service.name }}
+        </h3>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-[rgb(var(--color-accent-bg))] text-[rgb(var(--color-accent-text))]"
+          >
+            {{ service.framework.name }}
+          </span>
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-[rgb(var(--color-surface-muted))] text-[rgb(var(--color-text-muted))]"
+          >
+            v{{ service.version }}
+          </span>
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-[rgb(var(--color-surface-muted))] text-[rgb(var(--color-text-muted))]"
+          >
+            {{ service.type.name }}
+          </span>
+          @if (service.defaultPort) {
+          <span
+            class="px-2 py-1 text-xs rounded-full bg-[rgb(var(--color-surface-muted))] text-[rgb(var(--color-text-muted))]"
+          >
+            Port: {{ service.defaultPort }}
+          </span>
+          }
+        </div>
+        @if (service.description) {
+        <p class="text-sm text-[rgb(var(--color-text-muted))] mb-4 line-clamp-3">
+          {{ service.description }}
+        </p>
+        }
+        <div class="flex gap-2 pt-3 border-t border-[rgb(var(--color-border-base))]">
+          <button
+            class="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Restart
+          </button>
+          <button
+            class="flex items-center gap-1 px-3 py-1.5 text-xs rounded-md bg-[rgb(var(--color-surface-muted))] hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            View Logs
+          </button>
+        </div>
+      </div>
     </div>
     } @else { @if (isSavedItemsVisible()) {
     <!-- Top Pane: Saved Items -->

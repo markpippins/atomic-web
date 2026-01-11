@@ -80,6 +80,7 @@
     <input type="file" #fileInput (change)="onFileSelected($event)" accept=".json" class="hidden" />
 
     <!-- Left Sidebar: Palette -->
+    @if (showInternalPanels()) {
     <div class="sidebar left" [class.collapsed]="!isPaletteOpen()">
       <button (click)="togglePalette()" class="sidebar-toggle">
         {{ isPaletteOpen() ? '◀' : '▶' }}
@@ -105,8 +106,10 @@
         </div>
       </div>
     </div>
+    }
 
     <!-- Right Sidebar: Inspector -->
+    @if (showInternalPanels()) {
     <div class="sidebar right" [class.collapsed]="!isInspectorOpen()">
       <button (click)="toggleInspector()" class="sidebar-toggle">
         {{ isInspectorOpen() ? '▶' : '◀' }}
@@ -212,5 +215,6 @@
         }
       </div>
     </div>
+    }
   </div>
 </div>

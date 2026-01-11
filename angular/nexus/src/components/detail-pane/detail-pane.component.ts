@@ -6,19 +6,19 @@ import { RssFeedComponent } from '../rss-feed/rss-feed.component.js';
 import { WebviewService } from '../../services/webview.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
-import { ServiceDetailsComponent } from '../service-details/service-details.component.js';
+import { ObjectInspectorComponent } from '../object-inspector/object-inspector.component.js';
 
 @Component({
   selector: 'app-detail-pane',
-  standalone: true,
   templateUrl: './detail-pane.component.html',
-  imports: [CommonModule, RssFeedComponent, ServiceDetailsComponent],
+  imports: [CommonModule, RssFeedComponent, ObjectInspectorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DetailPaneComponent implements OnDestroy {
   path = input.required<string[]>();
   isSavedItemsVisible = input(true);
   isRssFeedVisible = input(true);
+  meshViewMode = input<'console' | 'graph'>('console'); // To know when to show object inspector
   close = output<void>();
   manageRssFeeds = output<void>();
 

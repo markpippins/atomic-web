@@ -36,6 +36,7 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
   services = input<ServiceInstance[]>([]);
   dependencies = input<ServiceDependency[]>([]);
   deployments = input<Deployment[]>([]);
+  showInternalPanels = input(true); // When false, hide internal palette and inspector sidebars
   selectedNode = output<ServiceInstance>();
 
   @ViewChild('canvasContainer') canvasContainer!: ElementRef<HTMLDivElement>;
