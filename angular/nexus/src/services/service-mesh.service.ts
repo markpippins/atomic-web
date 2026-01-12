@@ -290,11 +290,32 @@ export class ServiceMeshService {
       }
     }
 
-    this._frameworks.set(allFrameworks);
-    this._services.set(allServices);
-    this._servers.set(allServers);
-    this._deployments.set(allDeployments);
-    this._dependencies.set(allDependencies);
+    // Deduplicate by ID to prevent showing duplicates when multiple profiles return same data
+    const dedupById = <T extends { id: string }>(arr: T[]): T[] => {
+      const seen = new Set<string>();
+      return arr.filter(item => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+    };
+
+    // Deduplicate dependencies by composite key (sourceServiceId + targetServiceId)
+    const dedupDependencies = (deps: ServiceDependency[]): ServiceDependency[] => {
+      const seen = new Set<string>();
+      return deps.filter(dep => {
+        const key = `${dep.sourceServiceId}->${dep.targetServiceId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
+
+    this._frameworks.set(dedupById(allFrameworks));
+    this._services.set(dedupById(allServices));
+    this._servers.set(dedupById(allServers));
+    this._deployments.set(dedupById(allDeployments));
+    this._dependencies.set(dedupDependencies(allDependencies));
     this._lastUpdated.set(new Date());
   }
 

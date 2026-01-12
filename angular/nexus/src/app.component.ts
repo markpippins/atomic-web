@@ -589,32 +589,25 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.homeProvider = {
       getContents: async (path: string[]) => {
-        if (path.length > 0) throw new Error('Home provider does not support subdirectories.');
-
-        // Get Host Server children - Commented out as they are now handled by ServiceMeshComponent
-        // const hostChildren = await this.hostServerProvider.getChildren('root');
-        // const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
-        //   name: node.name,
-        //   type: 'folder',
-        //   id: node.id,
-        //   metadata: node.metadata,
-        //   children: [],
-        //   childrenLoaded: false,
-        //   isServerRoot: false // Treat as regular folders for now
-        // }));
+        // Get Host Server children (for platform categories like Services, Users, etc.)
+        const hostChildren = await this.hostServerProvider.getChildren('root');
+        const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
+          name: node.name,
+          type: 'folder',
+          id: node.id,
+          metadata: node.metadata,
+          children: [],
+          childrenLoaded: false,
+          isServerRoot: false
+        }));
 
         // Get Local Session
         const sessionNode = await this.sessionFs.getFolderTree();
 
-        // Get Server Profiles (Legacy/Migration) - Optional, maybe we hide them if we are moving to Host Server?
-        // But for now let's keep them or maybe put them under "File Systems" if we could.
-        // The requirements say "The host-server becomes the root... replacing localStorage server profiles".
-        // So we should probably NOT show server profiles at root anymore if we want to follow requirements strictly.
-        // But we might want to keep them accessible.
-        // Let's append them for now to be safe.
-        const allProfiles = this.profileService.profiles();
+        // Build broker gateway nodes for the Gateways folder
+        const allBrokerProfiles = this.profileService.profiles();
         const mountedIds = this.mountedProfileIds();
-        const serverProfileNodes = allProfiles.map(p => {
+        const brokerProfileNodes: FileSystemNode[] = allBrokerProfiles.map(p => {
           const isConnected = mountedIds.includes(p.id);
           return {
             name: p.name,
@@ -623,11 +616,94 @@ export class AppComponent implements OnInit, OnDestroy {
             profileId: p.id,
             connected: isConnected,
             modified: isConnected ? new Date().toISOString() : undefined,
+            children: [],
+            childrenLoaded: false,
           };
         });
 
-        // return [sessionNode, ...hostNodes, ...serverProfileNodes];
-        return [sessionNode, ...serverProfileNodes];
+        // Build host server profile nodes for the Host Servers folder
+        const allHostProfiles = this.hostProfileService.profiles();
+        const hostProfileNodes: FileSystemNode[] = allHostProfiles.map(p => ({
+          name: p.name,
+          type: 'folder' as const,
+          isServerRoot: true,
+          profileId: p.id,
+          connected: true, // Host servers are considered connected if they exist
+          children: [],
+          childrenLoaded: false,
+        }));
+
+        // Handle subdirectory paths for virtual organization folders
+        if (path.length > 0) {
+          const rootName = path[0];
+
+          // File Systems folder - contains Local Session
+          if (rootName === 'File Systems') {
+            return [sessionNode];
+          }
+
+          // Gateways folder - contains broker gateway nodes
+          if (rootName === 'Gateways') {
+            return brokerProfileNodes;
+          }
+
+          // Host Servers folder - contains host server profile nodes
+          if (rootName === 'Host Servers') {
+            return hostProfileNodes;
+          }
+
+          // Services, Users, Search & Discovery, Platform Management - show empty (managed by HostServerProvider)
+          const hostNodeNames = hostNodes.map(n => n.name);
+          if (hostNodeNames.includes(rootName)) {
+            return []; // These nodes are placeholders, no children to show in main area
+          }
+
+          // Unknown path
+          throw new Error(`Home provider does not support path: ${path.join('/')}`);
+        }
+
+        // Root path [] - return all children
+        // Create "Gateways" virtual folder containing broker profiles
+        const gatewaysNode: FileSystemNode = {
+          name: 'Gateways',
+          type: 'folder',
+          children: brokerProfileNodes,
+          childrenLoaded: true,
+          isVirtualFolder: true,
+        };
+
+        // Create "Host Servers" virtual folder containing host server profiles
+        const hostServersNode: FileSystemNode = {
+          name: 'Host Servers',
+          type: 'folder',
+          children: hostProfileNodes,
+          childrenLoaded: true,
+          isVirtualFolder: true,
+        };
+
+        // Find the "File Systems" node and add Local Session as its child
+        const fileSystemsNode = hostNodes.find(n => n.name === 'File Systems');
+        if (fileSystemsNode) {
+          fileSystemsNode.children = [sessionNode];
+          fileSystemsNode.childrenLoaded = true;
+        }
+
+        // Filter out "File Systems" from hostNodes since we've modified it
+        const otherHostNodes = hostNodes.filter(n => n.name !== 'File Systems');
+
+        // Build the root children:
+        // - Other host nodes (Services, Users, Search & Discovery, Platform Management)
+        // - File Systems (containing Local Session)
+        // - Gateways (containing broker gateways) - only if there are profiles
+        // - Host Servers (containing host server profiles)
+        const rootChildren = [
+          ...otherHostNodes,
+          ...(fileSystemsNode ? [fileSystemsNode] : [sessionNode]),
+          ...(allBrokerProfiles.length > 0 ? [gatewaysNode] : []),
+          ...(allHostProfiles.length > 0 ? [hostServersNode] : []),
+        ];
+
+        return rootChildren;
       },
       getFolderTree: () => this.buildCombinedFolderTree(),
       ...readOnlyProviderOps,
@@ -696,12 +772,70 @@ export class AppComponent implements OnInit, OnDestroy {
     if (path.length === 0) return this.homeProvider;
     const rootName = path[0];
 
-    // Check if it's one of the Host Server root nodes
+    // Handle "Gateways" virtual folder - broker gateways are nested under it
+    if (rootName === 'Gateways') {
+      if (path.length === 1) {
+        // At the Gateways folder level itself - return home provider 
+        // (children are already loaded in the tree)
+        return this.homeProvider;
+      }
+      // Path is like ['Gateways', 'ServerName', ...]
+      const serverName = path[1];
+      const remoteProvider = this.remoteProviders().get(serverName);
+      if (remoteProvider) {
+        return remoteProvider;
+      }
+      // Server is known but not mounted
+      const isServerProfile = this.profileService.profiles().some(p => p.name === serverName);
+      if (isServerProfile) {
+        return disconnectedProvider;
+      }
+      return this.homeProvider;
+    }
+
+    // Handle "File Systems" folder - Local Session is nested under it
+    if (rootName === 'File Systems') {
+      if (path.length === 1) {
+        // At the File Systems folder level itself
+        return this.homeProvider;
+      }
+      // Path is like ['File Systems', 'Local Session', ...]
+      const sessionName = this.localConfigService.sessionName();
+      if (path[1] === sessionName) {
+        // Return session provider, but adjust the path (skip 'File Systems')
+        return this.sessionFs;
+      }
+      return this.homeProvider;
+    }
+
+    // Handle "Host Servers" virtual folder - host server profiles are nested under it
+    if (rootName === 'Host Servers') {
+      if (path.length === 1) {
+        // At the Host Servers folder level itself - return home provider
+        // (children are already loaded in the tree)
+        return this.homeProvider;
+      }
+      // Path is like ['Host Servers', 'ProfileName', ...]
+      // For now, host server profiles don't have navigable children in file explorer
+      // They are informational only
+      return this.homeProvider;
+    }
+
+    // Handle virtual organization folders (Platform Management, Search & Discovery, Users, Services)
+    // These are top-level categories that don't have navigable children in the file explorer main area
+    const virtualOrgFolders = ['Platform Management', 'Search & Discovery', 'Users', 'Services'];
+    if (virtualOrgFolders.includes(rootName)) {
+      // Return homeProvider which will return empty array for these
+      return this.homeProvider;
+    }
+
+    // Check if it's one of the Host Server root nodes (for tree navigation only)
     if (this.treeAdapters.has(rootName)) {
       return this.treeAdapters.get(rootName)!;
     }
 
-    // Check if the root of the path corresponds to a known server profile.
+    // Legacy/fallback: Check if the root of the path corresponds to a known server profile directly
+    // (This supports old paths like ['ServerName', ...] for backwards compatibility)
     const isServerProfile = this.profileService.profiles().some(p => p.name === rootName);
 
     if (isServerProfile) {
@@ -720,13 +854,24 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   getImageService = (path: string[]): ImageService => {
-    const rootName = path.length > 0 ? path[0] : this.localConfigService.sessionName();
-    const remote = this.remoteImageServices().get(rootName);
+    let effectiveRootName = path.length > 0 ? path[0] : this.localConfigService.sessionName();
+
+    // Handle "Gateways" virtual folder - server name is at path[1]
+    if (effectiveRootName === 'Gateways' && path.length > 1) {
+      effectiveRootName = path[1];
+    }
+
+    // Handle "File Systems" folder - Local Session is at path[1]
+    if (effectiveRootName === 'File Systems' && path.length > 1) {
+      effectiveRootName = path[1];
+    }
+
+    const remote = this.remoteImageServices().get(effectiveRootName);
 
     // Check if it's a HOST_SERVER
     // In HostServerProvider, we use 'host-<profileId>' for ID, but name is profile.name
     // We can check if the profile type is 'host'
-    const profile = this.profileService.profiles().find(p => p.name === rootName);
+    const profile = this.profileService.profiles().find(p => p.name === effectiveRootName);
     // const isHostServer = profile?.type === 'host'; // BrokerProfile no longer has type
 
     if (remote) {
@@ -777,6 +922,7 @@ export class AppComponent implements OnInit, OnDestroy {
       isServerRoot: false
     }));
 
+    // Build broker gateway nodes
     for (const profile of allProfiles) {
       const isConnected = mountedIds.includes(profile.id);
 
@@ -828,10 +974,63 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     }
 
+    // Create "Gateways" parent node for broker gateways
+    const gatewaysNode: FileSystemNode = {
+      name: 'Gateways',
+      type: 'folder',
+      children: remoteRoots,
+      childrenLoaded: true,
+      isVirtualFolder: true, // Mark as a virtual organizational folder
+    };
+
+    // Find the "File Systems" node and add Local Session as its child
+    const fileSystemsNode = hostNodes.find(n => n.name === 'File Systems');
+    if (fileSystemsNode) {
+      fileSystemsNode.children = [sessionTree];
+      fileSystemsNode.childrenLoaded = true;
+    }
+
+    // Build host server profile nodes for the Host Servers folder
+    const allHostProfiles = this.hostProfileService.profiles();
+    const hostProfileNodes: FileSystemNode[] = allHostProfiles.map(p => ({
+      name: p.name,
+      type: 'folder' as const,
+      isServerRoot: true,
+      profileId: p.id,
+      connected: true, // Host servers are considered connected if they exist
+      children: [],
+      childrenLoaded: false,
+    }));
+
+    // Create "Host Servers" parent node
+    const hostServersNode: FileSystemNode = {
+      name: 'Host Servers',
+      type: 'folder',
+      children: hostProfileNodes,
+      childrenLoaded: true,
+      isVirtualFolder: true,
+    };
+
+    // Filter out "File Systems" from hostNodes since we've modified it
+    // and we want to put the modified version back
+    const otherHostNodes = hostNodes.filter(n => n.name !== 'File Systems');
+
+    // Build the final tree structure:
+    // - Other host nodes (Services, Users, Search & Discovery, Platform Management)
+    // - File Systems (containing Local Session)
+    // - Gateways (containing broker gateways)
+    // - Host Servers (containing host server profiles)
+    const rootChildren = [
+      ...otherHostNodes,
+      ...(fileSystemsNode ? [fileSystemsNode] : [sessionTree]), // fallback: if no File Systems node, show session at root
+      ...(remoteRoots.length > 0 ? [gatewaysNode] : []), // Only show Gateways if there are broker profiles
+      ...(allHostProfiles.length > 0 ? [hostServersNode] : []), // Only show Host Servers if there are host profiles
+    ];
+
     return {
       name: 'Home',
       type: 'folder',
-      children: [sessionTree, ...hostNodes, ...remoteRoots],
+      children: rootChildren,
       childrenLoaded: true,
     };
   }
@@ -848,14 +1047,33 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onLoadChildren = async (path: string[]) => {
     const provider = this.getProvider(path);
-    if (provider === this.homeProvider || provider === this.sessionFs) {
-      // SessionFS is fully loaded, no need to lazy load.
+    if (provider === this.homeProvider) {
+      // Home provider children are already loaded, no need to lazy load
+      return;
+    }
+
+    // For sessionFs, the children are also fully loaded
+    if (provider === this.sessionFs) {
       return;
     }
 
     try {
-      // Provider path doesn't include the root name
-      const children = await provider.getContents(path.slice(1));
+      // Calculate the provider-relative path by removing the routing prefix
+      let providerPath: string[];
+      const rootName = path[0];
+
+      if (rootName === 'Gateways' && path.length > 1) {
+        // Path is ['Gateways', 'ServerName', ...], provider expects path without 'Gateways' and 'ServerName'
+        providerPath = path.slice(2);
+      } else if (rootName === 'File Systems' && path.length > 1) {
+        // Path is ['File Systems', 'Local Session', ...], provider expects path without both prefixes
+        providerPath = path.slice(2);
+      } else {
+        // Legacy or other paths: just remove the root name
+        providerPath = path.slice(1);
+      }
+
+      const children = await provider.getContents(providerPath);
 
       this.folderTree.update(currentTree => {
         if (!currentTree) return null;

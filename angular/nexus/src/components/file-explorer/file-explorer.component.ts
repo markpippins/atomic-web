@@ -180,7 +180,33 @@ export class FileExplorerComponent implements OnDestroy {
 
   private providerPath = computed(() => {
     const p = this.path();
-    return p.length > 0 ? p.slice(1) : [];
+    if (p.length === 0) return [];
+
+    const rootName = p[0];
+
+    // For Gateways/ServerName/..., slice off both Gateways and ServerName
+    if (rootName === 'Gateways' && p.length > 1) {
+      return p.slice(2);
+    }
+
+    // For File Systems/Local Session/..., slice off both File Systems and Local Session
+    if (rootName === 'File Systems' && p.length > 1) {
+      return p.slice(2);
+    }
+
+    // For Host Servers/ProfileName/..., slice off both Host Servers and ProfileName
+    if (rootName === 'Host Servers' && p.length > 1) {
+      return p.slice(2);
+    }
+
+    // Virtual organization folders that need their path passed to homeProvider
+    const virtualFolders = ['File Systems', 'Gateways', 'Host Servers', 'Platform Management', 'Search & Discovery', 'Users', 'Services'];
+    if (virtualFolders.includes(rootName)) {
+      return p; // homeProvider needs to see the full path like ['Platform Management'] or ['Gateways']
+    }
+
+    // For other nodes, slice off just the root name
+    return p.slice(1);
   });
 
   sortedItems = computed(() => {

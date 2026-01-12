@@ -16,6 +16,8 @@ export interface FileSystemNode {
   metadata?: Record<string, any>;
   isMagnet?: boolean;
   magnetFile?: string;
+  // Virtual organizational folders (like 'Gateways' container)
+  isVirtualFolder?: boolean;
 }
 
 export interface SearchResultNode extends FileSystemNode {
