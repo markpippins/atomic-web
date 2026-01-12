@@ -77,6 +77,7 @@ export class ArchitectureVizService {
     public allNodes: WritableSignal<NodeData[]> = signal([]);
     public nodeDoubleClicked = new Subject<string>();
     public modeSignal: WritableSignal<'camera' | 'edit'> = signal('camera');
+    public webglError: WritableSignal<string | null> = signal(null);
 
     private raycaster = new THREE.Raycaster();
     private mouse = new THREE.Vector2();
@@ -96,8 +97,53 @@ export class ArchitectureVizService {
         this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
         this.camera.position.set(-20, 40, 120);
 
-        // 3. Setup Renderer
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        // 3. Setup Renderer with WebGL error handling
+        try {
+            this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+            // Check if context was actually created
+            const gl = this.renderer.getContext();
+            if (!gl) {
+                throw new Error('WebGL context is null');
+            }
+        } catch (e) {
+            const errorMsg = 'WebGL is not available. This may be due to:\n' +
+                '• Running in a virtual machine without GPU passthrough\n' +
+                '• Disabled hardware acceleration in browser settings\n' +
+                '• Outdated or incompatible GPU drivers\n\n' +
+                'Try: chrome://settings/system → Enable "Use hardware acceleration"';
+            console.error('WebGL initialization failed:', e);
+            this.webglError.set(errorMsg);
+
+            // Create a fallback message in the container
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                padding: 2rem;
+                text-align: center;
+                color: #94a3b8;
+                background: #0f172a;
+            `;
+            fallbackDiv.innerHTML = `
+                <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+                <h3 style="color: #f59e0b; margin-bottom: 0.5rem;">WebGL Not Available</h3>
+                <p style="max-width: 400px; line-height: 1.5;">
+                    3D visualization requires WebGL support.<br><br>
+                    <strong>Possible solutions:</strong><br>
+                    • Enable hardware acceleration in browser settings<br>
+                    • Update your GPU drivers<br>
+                    • Try a different browser (Firefox often has better WebGL support)<br>
+                    • If using a VM, enable GPU passthrough
+                </p>
+            `;
+            container.appendChild(fallbackDiv);
+            return;
+        }
+
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.domElement.style.outline = 'none';
@@ -186,6 +232,39 @@ export class ArchitectureVizService {
         this.camera.position.copy(this.controls.target).add(offset);
         this.camera.lookAt(this.controls.target);
         this.controls.update();
+    }
+
+    // Convenience methods for toolbar
+    public zoomIn() {
+        this.zoomCamera(15);
+    }
+
+    public zoomOut() {
+        this.zoomCamera(-15);
+    }
+
+    public resetCamera() {
+        if (!this.camera || !this.controls) return;
+        this.camera.position.set(-20, 40, 120);
+        this.controls.target.set(0, 15, 0);
+        this.camera.lookAt(this.controls.target);
+        this.controls.update();
+    }
+
+    public setMode(mode: 'camera' | 'edit') {
+        this.setInteractionMode(mode);
+    }
+
+    public exportScene(): object {
+        return Array.from(this.nodes.values()).map(n => n.data);
+    }
+
+    public importScene(data: unknown) {
+        if (!Array.isArray(data)) {
+            console.error('Invalid scene data: expected array');
+            return;
+        }
+        this.importSceneFromJson(JSON.stringify(data));
     }
 
     // --- Raycasting Helpers for Context Menu ---

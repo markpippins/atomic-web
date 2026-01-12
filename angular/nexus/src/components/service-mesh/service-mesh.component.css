@@ -179,6 +179,12 @@
   overflow: hidden;
 }
 
+.component-creator-container {
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
 .service-details-panel {
   width: 300px;
   padding: 1rem;

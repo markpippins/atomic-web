@@ -12,7 +12,6 @@ export interface SortCriteria {
 
 @Component({
   selector: 'app-toolbar',
-  standalone: true,
   templateUrl: './toolbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DestinationNodeComponent],
@@ -27,8 +26,13 @@ export class ToolbarComponent {
   isCopyToOpen = signal(false);
   isMoveToOpen = signal(false);
   isHamburgerMenuOpen = signal(false);
+  isColorPickerOpen = signal(false);
 
-  // Inputs for button states
+  // View mode inputs
+  viewMode = input<'file-explorer' | 'service-mesh'>('file-explorer');
+  meshViewMode = input<'console' | 'graph'>('console');
+
+  // Inputs for button states (file explorer)
   canCreate = input(true);
   canCut = input(false);
   canCopy = input(false);
@@ -45,7 +49,7 @@ export class ToolbarComponent {
   filterQuery = input('');
   isSplitViewActive = input(false);
   isDetailPaneActive = input(false);
-  
+
   // Inputs for pane visibility status
   isSidebarVisible = input(true);
   isTreeVisible = input(true);
@@ -55,7 +59,13 @@ export class ToolbarComponent {
   isRssFeedVisible = input(true);
   isStreamVisible = input(true);
 
-  // Outputs for events
+  // Service Mesh / Graph inputs
+  graphInteractionMode = input<'camera' | 'edit'>('camera');
+  isSimulationActive = input(false);
+  backgroundColor = input('#000510');
+  graphSubView = input<'canvas' | 'creator'>('canvas');
+
+  // Outputs for events (file explorer)
   newFolderClick = output<void>();
   newFileClick = output<void>();
   filesUploaded = output<FileList>();
@@ -76,7 +86,7 @@ export class ToolbarComponent {
   themeMenuClick = output<HTMLElement>();
   rssFeedsMenuClick = output<void>();
   preferencesMenuClick = output<void>();
-  
+
   // Outputs for pane visibility toggles
   toggleSidebar = output<void>();
   toggleTree = output<void>();
@@ -86,7 +96,31 @@ export class ToolbarComponent {
   toggleRssFeed = output<void>();
   toggleStream = output<void>();
 
+  // Graph/Mesh outputs
+  graphModeChange = output<'camera' | 'edit'>();
+  toggleSimulation = output<void>();
+  saveGraph = output<void>();
+  loadGraph = output<void>();
+  backgroundColorChange = output<string>();
+  zoomIn = output<void>();
+  zoomOut = output<void>();
+  rotateLeft = output<void>();
+  rotateRight = output<void>();
+  resetCamera = output<void>();
+  clearGraph = output<void>();
+  graphSubViewChange = output<'canvas' | 'creator'>();
+
   fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  colorInput = viewChild<ElementRef<HTMLInputElement>>('colorInput');
+
+  onColorChange(event: Event): void {
+    const color = (event.target as HTMLInputElement).value;
+    this.backgroundColorChange.emit(color);
+  }
+
+  openColorPicker(): void {
+    this.colorInput()?.nativeElement.click();
+  }
 
   toggleNewDropdown(event: MouseEvent): void {
     event.stopPropagation();
@@ -97,7 +131,7 @@ export class ToolbarComponent {
     event.stopPropagation();
     this.isSortDropdownOpen.update(v => !v);
   }
-  
+
   toggleCopyToDropdown(event: MouseEvent): void {
     event.stopPropagation();
     this.isMoveToOpen.set(false);
@@ -109,12 +143,12 @@ export class ToolbarComponent {
     this.isCopyToOpen.set(false);
     this.isMoveToOpen.update(v => !v);
   }
-  
+
   toggleHamburgerMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.isHamburgerMenuOpen.update(v => !v);
   }
-  
+
   onThemeMenuItemClick(buttonElement: HTMLElement): void {
     this.themeMenuClick.emit(buttonElement);
     this.isHamburgerMenuOpen.set(false);
@@ -134,7 +168,7 @@ export class ToolbarComponent {
     this.newFolderClick.emit();
     this.isNewDropdownOpen.set(false);
   }
-  
+
   onNewFileItemClick(): void {
     this.newFileClick.emit();
     this.isNewDropdownOpen.set(false);
@@ -166,12 +200,12 @@ export class ToolbarComponent {
     this.sortChange.emit({ key, direction });
     this.isSortDropdownOpen.set(false);
   }
-  
+
   onDestinationSelectedForCopy(path: string[]): void {
     this.copyItemsTo.emit(path);
     this.isCopyToOpen.set(false);
   }
-  
+
   onDestinationSelectedForMove(path: string[]): void {
     this.moveItemsTo.emit(path);
     this.isCopyToOpen.set(false);

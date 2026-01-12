@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit, effect, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit, effect, output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ServiceGraphComponent } from '../service-graph/service-graph.component.js';
 import { ServiceDetailsComponent } from '../service-details/service-details.component.js';
+import { ComponentCreatorComponent } from '../component-creator/component-creator.component.js';
 
 import {
   ServiceInstance,
@@ -23,7 +24,8 @@ import {
     MatIconModule,
     MatTabsModule,
     ServiceGraphComponent,
-    ServiceDetailsComponent
+    ServiceDetailsComponent,
+    ComponentCreatorComponent
   ],
   templateUrl: './service-mesh.component.html',
   styleUrls: ['./service-mesh.component.css'],
@@ -33,16 +35,21 @@ export class ServiceMeshComponent implements OnInit {
   private serviceMeshService = inject(ServiceMeshService);
   private uiPreferencesService = inject(UiPreferencesService);
 
+  // Input from parent (controlled mode)
+  meshViewMode = input<'console' | 'graph'>('console');
+  graphSubView = input<'canvas' | 'creator'>('canvas');
+
   // State
   services = signal<ServiceInstance[]>([]);
   dependencies = signal<ServiceDependency[]>([]);
   deployments = signal<Deployment[]>([]);
   selectedService = this.serviceMeshService.selectedService;
-  viewMode = signal<'console' | 'graph'>('console'); // Default to console view
+  viewMode = signal<'console' | 'graph'>('console'); // Internal state, synced with input
   isRefreshing = signal(false);
 
   // Output for parent synchronization
   viewModeChange = output<'console' | 'graph'>();
+  graphSubViewChange = output<'canvas' | 'creator'>();
 
   // Computed properties
   summary = computed(() => this.serviceMeshService.summary());
@@ -61,6 +68,12 @@ export class ServiceMeshComponent implements OnInit {
 
     effect(() => {
       this.deployments.set(this.serviceMeshService.deployments());
+    });
+
+    // Sync view mode from parent input
+    effect(() => {
+      const mode = this.meshViewMode();
+      this.viewMode.set(mode);
     });
 
     // Start polling when the component is created

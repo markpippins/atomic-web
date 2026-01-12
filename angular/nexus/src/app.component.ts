@@ -75,6 +75,7 @@ import { ServiceMeshComponent } from './components/service-mesh/service-mesh.com
 import { CreateUserDialogComponent } from './components/create-user/create-user-dialog.component.js';
 import { PlatformManagementComponent } from './components/platform-management/platform-management.component.js';
 import { ServiceMeshService } from './services/service-mesh.service.js';
+import { ArchitectureVizService } from './services/architecture-viz.service.js';
 
 interface PanePath {
   id: number;
@@ -169,6 +170,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private treeManager = inject(TreeManagerService);
   private hostServerProvider = inject(HostServerProvider);
   private serviceMeshService = inject(ServiceMeshService);
+  public vizService = inject(ArchitectureVizService);  // Made public for template access
 
   private initialAutoConnectAttempted = false;
 
@@ -192,6 +194,8 @@ export class AppComponent implements OnInit, OnDestroy {
   refreshPanes = signal(0);
   currentViewMode = signal<'file-explorer' | 'service-mesh'>('service-mesh');  // Default to service mesh
   meshViewMode = signal<'console' | 'graph'>('console');  // Sub-mode when in service-mesh
+  graphBackgroundColor = signal('#000510');  // Graph background color
+  graphSubView = signal<'canvas' | 'creator'>('canvas');  // Sub-view when in graph mode (canvas vs creator)
 
   // --- Pane Visibility State (from service) ---
   isSidebarVisible = this.uiPreferencesService.isSidebarVisible;
@@ -1028,6 +1032,89 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onMeshViewModeChange(mode: 'console' | 'graph'): void {
     this.meshViewMode.set(mode);
+  }
+
+  onGraphSubViewChange(view: 'canvas' | 'creator'): void {
+    this.graphSubView.set(view);
+  }
+
+  onRefreshServices(): void {
+    this.serviceMeshService.fetchAllData();
+  }
+
+  // --- Graph Visualization Control Handlers ---
+  onGraphModeChange(mode: 'camera' | 'edit'): void {
+    this.vizService.setMode(mode);
+  }
+
+  onToggleSimulation(): void {
+    const isActive = this.vizService.isSimulationActive();
+    this.vizService.toggleSimulation(!isActive);
+  }
+
+  onSaveGraph(): void {
+    const data = this.vizService.exportScene();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = this.document.createElement('a');
+    a.href = url;
+    a.download = 'service-mesh-graph.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    this.toastService.show('Graph saved successfully', 'success');
+  }
+
+  onLoadGraph(): void {
+    const input = this.document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result as string);
+            this.vizService.importScene(data);
+            this.toastService.show('Graph loaded successfully', 'success');
+          } catch (err) {
+            this.toastService.show('Failed to load graph file', 'error');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  }
+
+  onBackgroundColorChange(color: string): void {
+    this.graphBackgroundColor.set(color);
+    this.vizService.setBackgroundColor(color);
+  }
+
+  onZoomIn(): void {
+    this.vizService.zoomIn();
+  }
+
+  onZoomOut(): void {
+    this.vizService.zoomOut();
+  }
+
+  onRotateLeft(): void {
+    this.vizService.rotateCamera(-Math.PI / 8);
+  }
+
+  onRotateRight(): void {
+    this.vizService.rotateCamera(Math.PI / 8);
+  }
+
+  onResetCamera(): void {
+    this.vizService.resetCamera();
+  }
+
+  onClearGraph(): void {
+    this.vizService.clearScene();
+    this.toastService.show('Graph cleared', 'info');
   }
 
   // --- Toolbar Action Handling ---

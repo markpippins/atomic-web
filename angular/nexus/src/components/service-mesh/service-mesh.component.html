@@ -1,36 +1,13 @@
 <div class="service-mesh-container">
   <!-- Header with summary and controls -->
-  <div class="header">
-    <div class="title-bar">
-      <h2>Service Mesh</h2>
-      <div class="controls">
-        <button mat-button (click)="refreshData()" [disabled]="isRefreshing()" class="refresh-btn">
-          <mat-icon [class.spinning]="isRefreshing()">refresh</mat-icon>
-          Refresh
-        </button>
-        <button
-          mat-button
-          [class.active]="viewMode() === 'console'"
-          (click)="switchToConsoleView()"
-          class="view-toggle-btn"
-        >
-          <mat-icon>dashboard</mat-icon>
-          Console
-        </button>
-        <button
-          mat-button
-          [class.active]="viewMode() === 'graph'"
-          (click)="switchToGraphView()"
-          class="view-toggle-btn"
-        >
-          <mat-icon>account_tree</mat-icon>
-          Graph View
-        </button>
-      </div>
-    </div>
 
-    <!-- Summary cards (shown in console mode) -->
-    @if (viewMode() === 'console') {
+  <!--<div class="title-bar">
+      <h2>Atomic Service Mesh</h2>
+    </div>-->
+
+  <!-- Summary cards (shown in console mode) -->
+  @if (viewMode() === 'console') {
+  <div class="header">
     <div class="summary-cards">
       <div class="summary-card">
         <div class="card-value">{{ summary().totalServices }}</div>
@@ -53,9 +30,8 @@
         <div class="card-label">Total Servers</div>
       </div>
     </div>
-    }
   </div>
-
+  }
   <!-- Main content area -->
   <div class="content-area">
     <!-- Console View - Service details and management -->
@@ -79,7 +55,7 @@
     }
 
     <!-- Graph View -->
-    @if (viewMode() === 'graph') {
+    @if (viewMode() === 'graph') { @if (graphSubView() === 'canvas') {
     <div class="service-graph-container">
       <app-service-graph
         [services]="services()"
@@ -89,6 +65,10 @@
         (selectedNode)="onServiceSelected($event)"
       ></app-service-graph>
     </div>
-    }
+    } @else {
+    <div class="component-creator-container h-full">
+      <app-component-creator></app-component-creator>
+    </div>
+    } }
   </div>
 </div>

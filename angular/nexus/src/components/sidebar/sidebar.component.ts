@@ -5,6 +5,7 @@ import { FileSystemNode } from '../../models/file-system.model.js';
 import { TreeViewComponent } from '../tree-view/tree-view.component.js';
 import { ServiceTreeComponent } from '../service-tree/service-tree.component.js';
 import { ComponentPaletteComponent } from '../component-palette/component-palette.component.js';
+import { ComponentLibraryComponent } from '../component-library/component-library.component.js';
 import { ImageService } from '../../services/image.service.js';
 import { DragDropPayload } from '../../services/drag-drop.service.js';
 import { NewBookmark } from '../../models/bookmark.model.js';
@@ -21,7 +22,7 @@ import { NodeType } from '../../models/component-config.js';
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.component.html',
-  imports: [CommonModule, ChatComponent, TreeViewComponent, ServiceTreeComponent, ComponentPaletteComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
+  imports: [CommonModule, ChatComponent, TreeViewComponent, ServiceTreeComponent, ComponentPaletteComponent, ComponentLibraryComponent, InputDialogComponent, ConfirmDialogComponent, NotesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarComponent implements OnDestroy {
@@ -40,6 +41,7 @@ export class SidebarComponent implements OnDestroy {
   isNotesVisible = input(true);
   viewMode = input<'file-explorer' | 'service-mesh'>('file-explorer');
   meshViewMode = input<'console' | 'graph'>('console'); // Sub-mode when in service-mesh
+  graphSubView = input<'canvas' | 'creator'>('canvas'); // Sub-view when in graph mode
 
   pathChange = output<string[]>();
   refreshTree = output<void>();
@@ -47,6 +49,8 @@ export class SidebarComponent implements OnDestroy {
   itemsMoved = output<{ destPath: string[]; payload: DragDropPayload }>();
   bookmarkDropped = output<{ bookmark: NewBookmark, destPath: string[] }>();
   viewModeChange = output<'file-explorer' | 'service-mesh'>();
+  meshViewModeChange = output<'console' | 'graph'>(); // For toggling between console and graph
+  refreshServices = output<void>(); // For refreshing service mesh data
   serversMenuClick = output<void>();
   hostServersMenuClick = output<void>();
   localConfigMenuClick = output<void>();
@@ -283,6 +287,14 @@ export class SidebarComponent implements OnDestroy {
 
   onRefreshTree(): void {
     this.refreshTree.emit();
+  }
+
+  onMeshViewModeChange(mode: 'console' | 'graph'): void {
+    this.meshViewModeChange.emit(mode);
+  }
+
+  onRefreshServices(): void {
+    this.refreshServices.emit();
   }
 
   onExpandAll(): void {

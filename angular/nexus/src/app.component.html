@@ -14,12 +14,15 @@
       [isNotesVisible]="isNotesVisible()"
       [viewMode]="currentViewMode()"
       [meshViewMode]="meshViewMode()"
+      [graphSubView]="graphSubView()"
       (pathChange)="onSidebarNavigation($event)"
       (refreshTree)="loadFolderTree()"
       (loadChildren)="onLoadChildren($event)"
       (itemsMoved)="onSidebarItemsMoved($event)"
       (bookmarkDropped)="onBookmarkDroppedOnSidebar($event)"
       (viewModeChange)="currentViewMode.set($event)"
+      (meshViewModeChange)="onMeshViewModeChange($event)"
+      (refreshServices)="onRefreshServices()"
       (serversMenuClick)="openBrokerProfilesDialog()"
       (hostServersMenuClick)="openHostProfilesDialog()"
       (localConfigMenuClick)="openLocalConfigDialog()"
@@ -107,6 +110,12 @@
         </div>
 
         <app-toolbar
+          [viewMode]="currentViewMode()"
+          [meshViewMode]="meshViewMode()"
+          [graphInteractionMode]="vizService.modeSignal()"
+          [isSimulationActive]="vizService.isSimulationActive()"
+          [backgroundColor]="graphBackgroundColor()"
+          [graphSubView]="graphSubView()"
           [canCreate]="isActionableContext()"
           [canCut]="canCutCopyShareDelete()"
           [canCopy]="canCutCopyShareDelete()"
@@ -157,6 +166,18 @@
           (toggleSavedItems)="toggleSavedItems()"
           (toggleRssFeed)="toggleRssFeed()"
           (toggleStream)="toggleStream()"
+          (graphModeChange)="onGraphModeChange($event)"
+          (toggleSimulation)="onToggleSimulation()"
+          (saveGraph)="onSaveGraph()"
+          (loadGraph)="onLoadGraph()"
+          (backgroundColorChange)="onBackgroundColorChange($event)"
+          (zoomIn)="onZoomIn()"
+          (zoomOut)="onZoomOut()"
+          (rotateLeft)="onRotateLeft()"
+          (rotateRight)="onRotateRight()"
+          (resetCamera)="onResetCamera()"
+          (clearGraph)="onClearGraph()"
+          (graphSubViewChange)="onGraphSubViewChange($event)"
         >
         </app-toolbar>
 
@@ -212,7 +233,10 @@
                   </app-file-explorer>
                   } } @else if (currentViewMode() === 'service-mesh') {
                   <app-service-mesh
+                    [meshViewMode]="meshViewMode()"
+                    [graphSubView]="graphSubView()"
                     (viewModeChange)="onMeshViewModeChange($event)"
+                    (graphSubViewChange)="onGraphSubViewChange($event)"
                   ></app-service-mesh>
                   }
                 </div>
@@ -948,6 +972,7 @@
         [isSavedItemsVisible]="isSavedItemsVisible()"
         [isRssFeedVisible]="isRssFeedVisible()"
         [meshViewMode]="meshViewMode()"
+        [graphSubView]="graphSubView()"
         (close)="toggleDetailPane()"
         (manageRssFeeds)="openRssFeedsDialog()"
         class="flex-shrink-0 bg-[rgb(var(--color-surface-dialog))] border-l border-[rgb(var(--color-border-base))]"

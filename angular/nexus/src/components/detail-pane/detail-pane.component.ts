@@ -7,11 +7,12 @@ import { WebviewService } from '../../services/webview.service.js';
 import { UiPreferencesService } from '../../services/ui-preferences.service.js';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { ObjectInspectorComponent } from '../object-inspector/object-inspector.component.js';
+import { ComponentPreviewComponent } from '../component-preview/component-preview.component.js';
 
 @Component({
   selector: 'app-detail-pane',
   templateUrl: './detail-pane.component.html',
-  imports: [CommonModule, RssFeedComponent, ObjectInspectorComponent],
+  imports: [CommonModule, RssFeedComponent, ObjectInspectorComponent, ComponentPreviewComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DetailPaneComponent implements OnDestroy {
@@ -19,6 +20,7 @@ export class DetailPaneComponent implements OnDestroy {
   isSavedItemsVisible = input(true);
   isRssFeedVisible = input(true);
   meshViewMode = input<'console' | 'graph'>('console'); // To know when to show object inspector
+  graphSubView = input<'canvas' | 'creator'>('canvas'); // To know when to show component preview
   close = output<void>();
   manageRssFeeds = output<void>();
 
