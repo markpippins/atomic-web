@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ServiceInstance, Framework, Deployment } from '../models/service-mesh.model.js';
+import { ServiceInstance, Framework, Deployment, Library, ServiceLibrary } from '../models/service-mesh.model.js';
 
 export interface Host {
     id: number;
@@ -52,6 +52,30 @@ export interface DeploymentPayload {
     port?: number;
     contextPath?: string;
     healthCheckUrl?: string;
+}
+
+export interface LibraryPayload {
+    name: string;
+    description?: string;
+    categoryId?: number;
+    languageId?: number;
+    currentVersion?: string;
+    packageName?: string;
+    packageManager?: string;
+    url?: string;
+    repositoryUrl?: string;
+    license?: string;
+}
+
+export interface ServiceLibraryPayload {
+    serviceId: number;
+    libraryId: number;
+    version: string;
+    versionConstraint?: string;
+    scope?: string;
+    isDirect?: boolean;
+    isDevDependency?: boolean;
+    notes?: string;
 }
 
 @Injectable({
@@ -362,7 +386,128 @@ export class PlatformManagementService {
             case 'server-types': return 'server-types';
             case 'framework-categories': return 'framework-categories';
             case 'framework-languages': return 'framework-languages';
+            case 'library-categories': return 'library-categories';
             default: return type;
+        }
+    }
+
+    // Libraries CRUD
+    async getLibraries(baseUrl: string): Promise<Library[]> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/libraries`;
+            return await firstValueFrom(this.http.get<Library[]>(url));
+        } catch (e) {
+            this.error.set('Failed to fetch libraries');
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async getLibraryById(baseUrl: string, id: number): Promise<Library> {
+        try {
+            const url = `${baseUrl}/api/libraries/${id}`;
+            return await firstValueFrom(this.http.get<Library>(url));
+        } catch (e) {
+            this.error.set('Failed to fetch library');
+            throw e;
+        }
+    }
+
+    async createLibrary(baseUrl: string, library: LibraryPayload): Promise<Library> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/libraries`;
+            return await firstValueFrom(this.http.post<Library>(url, library));
+        } catch (e) {
+            this.error.set('Failed to create library');
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async updateLibrary(baseUrl: string, id: number, library: LibraryPayload): Promise<Library> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/libraries/${id}`;
+            return await firstValueFrom(this.http.put<Library>(url, library));
+        } catch (e) {
+            this.error.set('Failed to update library');
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async deleteLibrary(baseUrl: string, id: number): Promise<void> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/libraries/${id}`;
+            await firstValueFrom(this.http.delete<void>(url));
+        } catch (e) {
+            this.error.set('Failed to delete library');
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    // Service Libraries (Dependencies) CRUD
+    async getServiceLibraries(baseUrl: string, serviceId: number): Promise<ServiceLibrary[]> {
+        try {
+            const url = `${baseUrl}/api/service-libraries/service/${serviceId}`;
+            return await firstValueFrom(this.http.get<ServiceLibrary[]>(url));
+        } catch (e) {
+            this.error.set('Failed to fetch service libraries');
+            throw e;
+        }
+    }
+
+    async addServiceLibrary(baseUrl: string, payload: ServiceLibraryPayload): Promise<ServiceLibrary> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/service-libraries`;
+            return await firstValueFrom(this.http.post<ServiceLibrary>(url, payload));
+        } catch (e) {
+            this.error.set('Failed to add library to service');
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async updateServiceLibrary(baseUrl: string, id: number, payload: ServiceLibraryPayload): Promise<ServiceLibrary> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/service-libraries/${id}`;
+            return await firstValueFrom(this.http.put<ServiceLibrary>(url, payload));
+        } catch (e) {
+            this.error.set('Failed to update service library');
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async removeServiceLibrary(baseUrl: string, id: number): Promise<void> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/service-libraries/${id}`;
+            await firstValueFrom(this.http.delete<void>(url));
+        } catch (e) {
+            this.error.set('Failed to remove library from service');
+            throw e;
+        } finally {
+            this.loading.set(false);
         }
     }
 }

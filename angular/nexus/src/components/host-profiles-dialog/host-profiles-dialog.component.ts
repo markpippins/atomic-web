@@ -59,8 +59,8 @@ export class HostProfilesDialogComponent {
 
     formState = signal<FormState>({ ...INITIAL_FORM_STATE });
 
-    environments: ('DEV' | 'QA' | 'PROD' | 'STAGING')[] = ['DEV', 'QA', 'PROD', 'STAGING'];
-    cloudProviders: ('AWS' | 'GCP' | 'AZURE' | 'ON_PREM')[] = ['AWS', 'GCP', 'AZURE', 'ON_PREM'];
+    environments: ('DEV' | 'QA' | 'PROD' | 'STAGING')[] = ['DEV', 'PROD', 'QA', 'STAGING'];
+    cloudProviders: ('AWS' | 'GCP' | 'AZURE' | 'ON_PREM')[] = ['AWS', 'AZURE', 'GCP', 'ON_PREM'];
     statuses: ('ACTIVE' | 'INACTIVE' | 'MAINTENANCE')[] = ['ACTIVE', 'INACTIVE', 'MAINTENANCE'];
 
     selectedProfile = computed(() =>

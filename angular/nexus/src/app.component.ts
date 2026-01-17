@@ -589,8 +589,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.homeProvider = {
       getContents: async (path: string[]) => {
+        console.log('[homeProvider.getContents] path:', path);
         // Get Host Server children (for platform categories like Services, Users, etc.)
         const hostChildren = await this.hostServerProvider.getChildren('root');
+        console.log('[homeProvider.getContents] hostChildren:', hostChildren.map(c => c.name));
         const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
           name: node.name,
           type: 'folder',
@@ -703,6 +705,7 @@ export class AppComponent implements OnInit, OnDestroy {
           ...(allHostProfiles.length > 0 ? [hostServersNode] : []),
         ];
 
+        console.log('[homeProvider.getContents] returning rootChildren:', rootChildren.map(c => c.name));
         return rootChildren;
       },
       getFolderTree: () => this.buildCombinedFolderTree(),

@@ -51,7 +51,7 @@ export class ObjectInspectorComponent {
             if (current.connectedTo.includes(n.id)) return false;
             if (config.allowedConnections !== 'all' && !config.allowedConnections.includes(n.type)) return false;
             return true;
-        });
+        }).sort((a, b) => a.label.localeCompare(b.label));
     });
 
     // Derived list of current connections

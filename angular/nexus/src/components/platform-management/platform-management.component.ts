@@ -1,18 +1,19 @@
 import { Component, ChangeDetectionStrategy, inject, input, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PlatformManagementService, Host } from '../../services/platform-management.service.js';
-import { ServiceInstance, Framework, Deployment } from '../../models/service-mesh.model.js';
+import { ServiceInstance, Framework, Deployment, Library } from '../../models/service-mesh.model.js';
 import { UpsertServiceDialogComponent } from './upsert-service-dialog/upsert-service-dialog.component.js';
 import { UpsertFrameworkDialogComponent } from './upsert-framework-dialog/upsert-framework-dialog.component.js';
 import { UpsertDeploymentDialogComponent } from './upsert-deployment-dialog/upsert-deployment-dialog.component.js';
 import { UpsertServerDialogComponent } from './upsert-server-dialog/upsert-server-dialog.component.js';
 import { LookupListComponent } from './lookup-list/lookup-list.component.js';
 import { UpsertLookupDialogComponent } from './upsert-lookup-dialog/upsert-lookup-dialog.component.js';
+import { UpsertLibraryDialogComponent } from './upsert-library-dialog/upsert-library-dialog.component.js';
+import { ServiceLibrariesDialogComponent } from './service-libraries-dialog/service-libraries-dialog.component.js';
 import { LookupItem } from '../../services/platform-management.service.js';
 
 @Component({
     selector: 'app-platform-management',
-    standalone: true,
     imports: [
         CommonModule,
         UpsertServiceDialogComponent,
@@ -20,7 +21,9 @@ import { LookupItem } from '../../services/platform-management.service.js';
         UpsertDeploymentDialogComponent,
         UpsertServerDialogComponent,
         LookupListComponent,
-        UpsertLookupDialogComponent
+        UpsertLookupDialogComponent,
+        UpsertLibraryDialogComponent,
+        ServiceLibrariesDialogComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -62,6 +65,15 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                     Services
                                 </button>
                                 <button
+                                    (click)="activeTab.set('frameworks')"
+                                    [class.border-b-2]="activeTab() === 'frameworks'"
+                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'frameworks'"
+                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'frameworks'"
+                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
+                                >
+                                    Frameworks
+                                </button>
+                                <button
                                     (click)="activeTab.set('service-types')"
                                     [class.border-b-2]="activeTab() === 'service-types'"
                                     [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'service-types'"
@@ -97,6 +109,24 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                 >
                                     Categories
                                 </button>
+                                <button
+                                    (click)="activeTab.set('libraries')"
+                                    [class.border-b-2]="activeTab() === 'libraries'"
+                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'libraries'"
+                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'libraries'"
+                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
+                                >
+                                    Libraries
+                                </button>
+                                <button
+                                    (click)="activeTab.set('library-categories')"
+                                    [class.border-b-2]="activeTab() === 'library-categories'"
+                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'library-categories'"
+                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'library-categories'"
+                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
+                                >
+                                    Lib Categories
+                                </button>
                             </div>
 
                             @if (activeTab() === 'services') {
@@ -123,6 +153,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                                         </span>
                                                     </td>
                                                     <td class="p-3 text-right">
+                                                        <button (click)="onManageServiceLibraries(service)" class="text-purple-500 hover:underline mr-3">Libraries</button>
                                                         <button (click)="onEdit(service)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
                                                         <button (click)="onDelete(service)" class="text-red-500 hover:underline">Delete</button>
                                                     </td>
@@ -130,6 +161,72 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                             } @empty {
                                                 <tr>
                                                     <td colspan="5" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No services found.</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            } @else if (activeTab() === 'frameworks') {
+                                <div class="overflow-x-auto flex-1">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
+                                                <th class="p-3 font-medium">Name</th>
+                                                <th class="p-3 font-medium">Category</th>
+                                                <th class="p-3 font-medium">Language</th>
+                                                <th class="p-3 font-medium">Version</th>
+                                                <th class="p-3 font-medium text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (fw of frameworks(); track fw.id) {
+                                                <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
+                                                    <td class="p-3 text-[rgb(var(--color-text-base))]">{{ fw.name }}</td>
+                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.category?.name }}</td>
+                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.language?.name }}</td>
+                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.currentVersion || fw.latestVersion || '-' }}</td>
+                                                    <td class="p-3 text-right">
+                                                        <button (click)="onEdit(fw)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
+                                                        <button (click)="onDelete(fw)" class="text-red-500 hover:underline">Delete</button>
+                                                    </td>
+                                                </tr>
+                                            } @empty {
+                                                <tr>
+                                                    <td colspan="5" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No frameworks found.</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            } @else if (activeTab() === 'libraries') {
+                                <div class="overflow-x-auto flex-1">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
+                                                <th class="p-3 font-medium">Name</th>
+                                                <th class="p-3 font-medium">Category</th>
+                                                <th class="p-3 font-medium">Language</th>
+                                                <th class="p-3 font-medium">Package</th>
+                                                <th class="p-3 font-medium">Version</th>
+                                                <th class="p-3 font-medium text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @for (lib of libraries(); track lib.id) {
+                                                <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
+                                                    <td class="p-3 text-[rgb(var(--color-text-base))]">{{ lib.name }}</td>
+                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.category?.name || '-' }}</td>
+                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.language?.name || '-' }}</td>
+                                                    <td class="p-3 text-[rgb(var(--color-text-muted))] font-mono text-sm">{{ lib.packageName || '-' }}</td>
+                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.currentVersion || '-' }}</td>
+                                                    <td class="p-3 text-right">
+                                                        <button (click)="onEdit(lib)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
+                                                        <button (click)="onDelete(lib)" class="text-red-500 hover:underline">Delete</button>
+                                                    </td>
+                                                </tr>
+                                            } @empty {
+                                                <tr>
+                                                    <td colspan="6" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No libraries found.</td>
                                                 </tr>
                                             }
                                         </tbody>
@@ -339,6 +436,22 @@ import { LookupItem } from '../../services/platform-management.service.js';
             (saved)="onLookupSaved()"
         ></app-upsert-lookup-dialog>
 
+        @if (isLibraryDialogOpen()) {
+            <app-upsert-library-dialog
+                [baseUrl]="baseUrl()"
+                [library]="selectedLibraryForEdit()"
+                (saved)="onLibrarySaved()"
+                (cancelled)="onLibraryDialogClose()"
+            ></app-upsert-library-dialog>
+        }
+
+        @if (isServiceLibrariesDialogOpen() && selectedServiceForLibraries()) {
+            <app-service-libraries-dialog
+                [baseUrl]="baseUrl()"
+                [service]="selectedServiceForLibraries()!"
+                (closed)="onServiceLibrariesDialogClose()"
+            ></app-service-libraries-dialog>
+        }
 
 
     </div>
@@ -355,6 +468,7 @@ export class PlatformManagementComponent {
     frameworks = signal<Framework[]>([]);
     deployments = signal<Deployment[]>([]);
     servers = signal<Host[]>([]);
+    libraries = signal<Library[]>([]);
 
     loading = signal(false);
     error = signal<string | null>(null);
@@ -376,6 +490,14 @@ export class PlatformManagementComponent {
     lookupData = signal<LookupItem[]>([]);
     isLookupDialogOpen = signal(false);
     selectedLookupForEdit = signal<LookupItem | null>(null);
+
+    // Library Dialog State
+    isLibraryDialogOpen = signal(false);
+    selectedLibraryForEdit = signal<Library | null>(null);
+
+    // Service Libraries Dialog State
+    isServiceLibrariesDialogOpen = signal(false);
+    selectedServiceForLibraries = signal<ServiceInstance | null>(null);
 
     // Tab State for Generic Service View
     activeTab = signal<string>('services');
@@ -430,8 +552,13 @@ export class PlatformManagementComponent {
                 case 'server-types':
                 case 'framework-languages':
                 case 'framework-categories':
+                case 'library-categories':
                     const l = await this.platformService.getLookup(url, actualType);
                     this.lookupData.set(l);
+                    break;
+                case 'libraries':
+                    const libs = await this.platformService.getLibraries(url);
+                    this.libraries.set(libs);
                     break;
             }
         } catch (e) {
@@ -468,8 +595,13 @@ export class PlatformManagementComponent {
             case 'server-types':
             case 'framework-languages':
             case 'framework-categories':
+            case 'library-categories':
                 this.selectedLookupForEdit.set(null);
                 this.isLookupDialogOpen.set(true);
+                break;
+            case 'libraries':
+                this.selectedLibraryForEdit.set(null);
+                this.isLibraryDialogOpen.set(true);
                 break;
         }
     }
@@ -500,8 +632,13 @@ export class PlatformManagementComponent {
             case 'server-types':
             case 'framework-languages':
             case 'framework-categories':
+            case 'library-categories':
                 this.selectedLookupForEdit.set(item);
                 this.isLookupDialogOpen.set(true);
+                break;
+            case 'libraries':
+                this.selectedLibraryForEdit.set(item);
+                this.isLibraryDialogOpen.set(true);
                 break;
         }
     }
@@ -532,7 +669,11 @@ export class PlatformManagementComponent {
                 case 'server-types':
                 case 'framework-languages':
                 case 'framework-categories':
+                case 'library-categories':
                     await this.platformService.deleteLookup(url, actualType, Number(item.id));
+                    break;
+                case 'libraries':
+                    await this.platformService.deleteLibrary(url, Number(item.id));
                     break;
             }
             this.loadData(); // Refresh
@@ -601,5 +742,28 @@ export class PlatformManagementComponent {
 
     onLookupSaved() {
         this.loadData();
+    }
+
+    // Library Dialog Handlers
+    onLibraryDialogClose() {
+        this.isLibraryDialogOpen.set(false);
+        this.selectedLibraryForEdit.set(null);
+    }
+
+    onLibrarySaved() {
+        this.isLibraryDialogOpen.set(false);
+        this.selectedLibraryForEdit.set(null);
+        this.loadData();
+    }
+
+    // Service Libraries Dialog Handlers
+    onManageServiceLibraries(service: ServiceInstance) {
+        this.selectedServiceForLibraries.set(service);
+        this.isServiceLibrariesDialogOpen.set(true);
+    }
+
+    onServiceLibrariesDialogClose() {
+        this.isServiceLibrariesDialogOpen.set(false);
+        this.selectedServiceForLibraries.set(null);
     }
 }

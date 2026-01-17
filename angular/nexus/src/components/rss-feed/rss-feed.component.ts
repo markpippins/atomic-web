@@ -27,7 +27,9 @@ export class RssFeedComponent implements OnInit {
   private rssFeedService = inject(RssFeedService);
 
   // --- State Signals ---
-  feeds = this.rssFeedService.feeds;
+  feeds = computed(() =>
+    [...this.rssFeedService.feeds()].sort((a, b) => a.name.localeCompare(b.name))
+  );
   selectedFeed = signal<RssFeed | null>(null);
   articles = signal<RssItem[]>([]);
   isLoading = signal(false);
@@ -41,12 +43,12 @@ export class RssFeedComponent implements OnInit {
     if (!query) {
       return feedArticles;
     }
-    return feedArticles.filter(item => 
+    return feedArticles.filter(item =>
       item.title.toLowerCase().includes(query) ||
       item.snippet.toLowerCase().includes(query)
     );
   });
-  
+
   ngOnInit(): void {
     const firstFeed = this.feeds()[0];
     if (firstFeed) {

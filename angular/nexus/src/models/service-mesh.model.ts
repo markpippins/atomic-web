@@ -194,6 +194,49 @@ export interface ServiceDependency {
 }
 
 // ============================================================================
+// Library Models (Compile-Time Dependencies)
+// ============================================================================
+
+export interface LibraryCategory {
+  id: number;
+  name: string;
+  description?: string;
+  activeFlag?: boolean;
+}
+
+export interface Library {
+  id: number;
+  name: string;
+  description?: string;
+  category?: LibraryCategory;
+  language?: FrameworkLanguage;
+  currentVersion?: string;
+  packageName?: string;
+  packageManager?: string;
+  url?: string;
+  repositoryUrl?: string;
+  license?: string;
+  activeFlag?: boolean;
+}
+
+export type DependencyScope = 'COMPILE' | 'RUNTIME' | 'TEST' | 'PROVIDED' | 'OPTIONAL';
+
+export interface ServiceLibrary {
+  id: number;
+  serviceId: number;
+  libraryId: number;
+  service?: ServiceInstance;
+  library?: Library;
+  version: string;
+  versionConstraint?: string;
+  scope?: DependencyScope;
+  isDirect?: boolean;
+  isDevDependency?: boolean;
+  notes?: string;
+  activeFlag?: boolean;
+}
+
+// ============================================================================
 // Metrics & Monitoring Models
 // ============================================================================
 

@@ -93,7 +93,7 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
       if (config.allowedConnections !== 'all' && !config.allowedConnections.includes(n.type)) return false;
 
       return true;
-    });
+    }).sort((a, b) => a.label.localeCompare(b.label));
   });
 
   // Derived list of actual connection objects for display

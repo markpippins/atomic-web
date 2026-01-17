@@ -214,20 +214,24 @@ export class FileExplorerComponent implements OnDestroy {
     const { key, direction } = this.sortCriteria();
     const directionMultiplier = direction === 'asc' ? 1 : -1;
 
-    // Special sorting for the root "Home" view to keep local session first.
+    // Special sorting for the root "Home" view to keep local session/host nodes first.
     if (this.path().length === 0) {
-      const localNode = items.find(item => !item.isServerRoot);
-      const serverNodes = items.filter(item => item.isServerRoot);
+      // Host nodes (Services, Users, etc.) have isServerRoot: false
+      // Virtual folders (Gateways, Host Servers) have isVirtualFolder: true
+      // Server root nodes (broker profiles) have isServerRoot: true
+      const hostNodes = items.filter(item => !item.isServerRoot && !item.isVirtualFolder);
+      const virtualFolders = items.filter(item => item.isVirtualFolder);
+      const serverNodes = items.filter(item => item.isServerRoot && !item.isVirtualFolder);
 
-      // Always sort server nodes alphabetically ascending by name.
+      // Sort host nodes alphabetically
+      hostNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      // Sort virtual folders alphabetically
+      virtualFolders.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      // Sort server nodes alphabetically
       serverNodes.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-      const result: FileSystemNode[] = [];
-      if (localNode) {
-        result.push(localNode);
-      }
-      result.push(...serverNodes);
-      return result;
+      // Return: host nodes first, then virtual folders, then server nodes
+      return [...hostNodes, ...virtualFolders, ...serverNodes];
     }
 
     items.sort((a, b) => {
