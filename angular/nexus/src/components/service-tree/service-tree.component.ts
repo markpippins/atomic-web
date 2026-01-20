@@ -41,6 +41,7 @@ export class ServiceTreeComponent {
   dependencies = input<ServiceDependency[]>([]);
   deployments = input<Deployment[]>([]);
   selectedService = input<ServiceInstance | null>(null);
+  showRunningOnly = input<boolean>(false); // Filter to show only running services
   serviceSelected = output<ServiceInstance>();
   restartService = output<ServiceInstance>();
   viewLogs = output<ServiceInstance>();
@@ -49,14 +50,25 @@ export class ServiceTreeComponent {
     const services = this.services();
     const deployments = this.getAllDeployments();
     const serviceStatuses = this.serviceMeshService['_serviceStatuses'](); // Access the private signal
+    const showRunningOnly = this.showRunningOnly();
+
+    // Filter services based on showRunningOnly toggle
+    let filteredServices = services;
+    if (showRunningOnly) {
+      filteredServices = services.filter(service => {
+        // Check if service has a healthy status in serviceStatuses
+        const status = serviceStatuses.get(service.name);
+        return status && status.healthStatus === 'HEALTHY';
+      });
+    }
 
     // Group services by framework
     const frameworkMap = new Map<string, Framework>();
     const serviceMap = new Map<string, ServiceInstance[]>();
     const deploymentMap = new Map<string, Deployment[]>();
 
-    // Populate maps
-    services.forEach(service => {
+    // Populate maps with filtered services
+    filteredServices.forEach(service => {
       if (!serviceMap.has(service.framework.id)) {
         serviceMap.set(service.framework.id, []);
         frameworkMap.set(service.framework.id, service.framework);
