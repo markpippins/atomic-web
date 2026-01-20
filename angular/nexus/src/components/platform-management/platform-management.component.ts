@@ -143,12 +143,18 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                         </thead>
                                         <tbody>
                                             @for (service of services(); track service.id) {
-                                                <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                                                    <td class="p-3 text-[rgb(var(--color-text-base))]">{{ service.name }}</td>
+                                                <tr 
+                                                    class="border-b hover:bg-[rgb(var(--color-surface-hover))]"
+                                                    [class.border-[rgb(var(--color-border-muted))]]="service.status !== 'PLANNED'"
+                                                    [class.border-dashed]="service.status === 'PLANNED'"
+                                                    [class.border-blue-400]="service.status === 'PLANNED'"
+                                                    [class.opacity-50]="service.status === 'DEPRECATED' || service.status === 'ARCHIVED'"
+                                                >
+                                                    <td class="p-3" [class.text-[rgb(var(--color-text-base))]]="service.status === 'ACTIVE'" [class.text-[rgb(var(--color-text-muted))]]="service.status !== 'ACTIVE'" [class.line-through]="service.status === 'DEPRECATED'">{{ service.name }}</td>
                                                     <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.type?.name }}</td>
                                                     <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.framework?.name }}</td>
                                                     <td class="p-3">
-                                                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-500">
+                                                        <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + getServiceStatusClass(service.status)">
                                                             {{ service.status }}
                                                         </span>
                                                     </td>
@@ -730,6 +736,17 @@ export class PlatformManagementComponent {
             case 'STOPPED': return 'bg-gray-500/10 text-gray-500';
             case 'STARTING': return 'bg-yellow-500/10 text-yellow-500';
             case 'FAILED': return 'bg-red-500/10 text-red-500';
+            default: return 'bg-gray-500/10 text-gray-500';
+        }
+    }
+
+    getServiceStatusClass(status: string | undefined): string {
+        if (!status) return 'bg-gray-500/10 text-gray-500';
+        switch (status) {
+            case 'ACTIVE': return 'bg-green-500/10 text-green-500';
+            case 'DEPRECATED': return 'bg-yellow-500/10 text-yellow-500';
+            case 'ARCHIVED': return 'bg-gray-500/10 text-gray-500';
+            case 'PLANNED': return 'bg-blue-500/10 text-blue-500';
             default: return 'bg-gray-500/10 text-gray-500';
         }
     }

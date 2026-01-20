@@ -64,7 +64,9 @@ export class ImageService {
       folderName = folderName.replace(/\./g, '');
     }
 
-    const folderNameWithDashes = folderName.replace(/ /g, '-');
+    // Collapse " & " into "-" for cleaner URLs (e.g., "Search & Discovery" -> "search-discovery")
+    const normalized = folderName.replace(/ & /g, '-');
+    const folderNameWithDashes = normalized.replace(/ /g, '-');
     const lowerCaseFolderName = folderNameWithDashes.toLowerCase();
 
     return `${baseUrl}/${encodeURIComponent(lowerCaseFolderName)}`;

@@ -143,7 +143,7 @@ export class ServiceMeshService {
         deployments: frameworkDeployments,
         healthySummary: { healthy, unhealthy, unknown }
       };
-    }).filter(g => g.services.length > 0);
+    }); // Removed filter to show ALL frameworks, not just those with services
   });
 
   // Service updates subject for real-time notifications
