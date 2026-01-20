@@ -50,6 +50,9 @@ export class ServiceMeshService {
   private _isPolling = signal(false);
   private _lastUpdated = signal<Date | null>(null);
 
+  // NEW: Track service statuses from /api/status independently
+  private _serviceStatuses = signal<Map<string, { healthStatus: HealthStatus; lastHealthCheck?: string }>>(new Map());
+
   // Selection State
   private _selectedService = signal<ServiceInstance | null>(null);
   private _selectedPlatformNode = signal<{ type: string, baseUrl: string } | null>(null);
@@ -90,11 +93,55 @@ export class ServiceMeshService {
     const deployments = this._deployments();
     const servers = this._servers();
     const frameworks = this._frameworks();
+    const serviceStatuses = this._serviceStatuses();
+
+    console.log('[ServiceMeshService] Computing summary. Deployments:', deployments.length);
+    console.log('[ServiceMeshService] Computing summary. Service Statuses:', serviceStatuses.size);
 
     const activeServices = services.filter(s => s.status === 'ACTIVE').length;
-    const healthyDeployments = deployments.filter(d => d.healthStatus === 'HEALTHY').length;
-    const unhealthyDeployments = deployments.filter(d => d.healthStatus === 'UNHEALTHY').length;
+    let healthyDeployments = 0;
+    let unhealthyDeployments = 0;
+
+    // If we have deployments, use them
+    if (deployments.length > 0) {
+      console.log('[ServiceMeshService] Deployment health statuses:',
+        deployments.map(d => ({ name: d.service?.name, health: d.healthStatus })));
+
+      healthyDeployments = deployments.filter(d => d.healthStatus === 'HEALTHY').length;
+      unhealthyDeployments = deployments.filter(d => d.healthStatus === 'UNHEALTHY').length;
+    }
+    // Otherwise, use service statuses from /api/status
+    else if (serviceStatuses.size > 0) {
+      console.log('[ServiceMeshService] Using service statuses instead of deployments');
+      const statusArray = Array.from(serviceStatuses.values());
+      console.log('[ServiceMeshService] Status array:', statusArray);
+      console.log('[ServiceMeshService] First status object:', statusArray[0]);
+      console.log('[ServiceMeshService] First status keys:', Object.keys(statusArray[0] || {}));
+
+      console.log('[ServiceMeshService] Testing filter on first item:');
+      if (statusArray[0]) {
+        console.log('  - healthStatus value:', statusArray[0].healthStatus);
+        console.log('  - Comparison result:', statusArray[0].healthStatus === 'HEALTHY');
+        console.log('  - Type:', typeof statusArray[0].healthStatus);
+      }
+
+      healthyDeployments = statusArray.filter(s => {
+        const result = s.healthStatus === 'HEALTHY';
+        if (!result) {
+          console.log('[ServiceMeshService] NOT HEALTHY:', s);
+        }
+        return result;
+      }).length;
+
+      unhealthyDeployments = statusArray.filter(s => s.healthStatus === 'UNHEALTHY').length;
+
+      console.log('[ServiceMeshService] healthyDeployments count:', healthyDeployments);
+      console.log('[ServiceMeshService] unhealthyDeployments count:', unhealthyDeployments);
+    }
+
     const activeServers = servers.filter(s => s.status === 'ACTIVE').length;
+
+    console.log('[ServiceMeshService] Healthy count:', healthyDeployments, 'Unhealthy count:', unhealthyDeployments);
 
     const frameworkBreakdown = frameworks.map(f => ({
       framework: f.name,
@@ -106,6 +153,15 @@ export class ServiceMeshService {
       environment: env,
       count: deployments.filter(d => d.environment === env).length
     })).filter(eb => eb.count > 0);
+
+    console.log('[ServiceMeshService] FINAL SUMMARY VALUES:', {
+      totalServices: services.length,
+      activeServices,
+      healthyDeployments,
+      unhealthyDeployments,
+      totalServers: servers.length,
+      activeServers
+    });
 
     return {
       totalServices: services.length,
@@ -269,15 +325,17 @@ export class ServiceMeshService {
     const allServers: Server[] = [];
     const allDeployments: Deployment[] = [];
     const allDependencies: ServiceDependency[] = [];
+    const allServiceStatuses = new Map<string, { healthStatus: HealthStatus; lastHealthCheck?: string }>();
 
     for (const connection of connections) {
       try {
-        const [frameworks, services, servers, deployments, dependencies] = await Promise.all([
+        const [frameworks, services, servers, deployments, dependencies, serviceStatuses] = await Promise.all([
           this.fetchFrameworks(connection.baseUrl),
           this.fetchServices(connection.baseUrl),
           this.fetchServers(connection.baseUrl),
           this.fetchDeployments(connection.baseUrl),
-          this.fetchDependencies(connection.baseUrl)
+          this.fetchDependencies(connection.baseUrl),
+          this.fetchServiceStatuses(connection.baseUrl) // Fetch statuses separately
         ]);
 
         allFrameworks.push(...frameworks);
@@ -285,6 +343,11 @@ export class ServiceMeshService {
         allServers.push(...servers);
         allDeployments.push(...deployments);
         allDependencies.push(...dependencies);
+
+        // Merge service statuses into the map
+        serviceStatuses.forEach((value, key) => {
+          allServiceStatuses.set(key, value);
+        });
       } catch (error) {
         console.error(`Failed to fetch data from ${connection.profile.name}:`, error);
       }
@@ -316,6 +379,7 @@ export class ServiceMeshService {
     this._servers.set(dedupById(allServers));
     this._deployments.set(dedupById(allDeployments));
     this._dependencies.set(dedupDependencies(allDependencies));
+    this._serviceStatuses.set(allServiceStatuses); // Store service statuses
     this._lastUpdated.set(new Date());
   }
 
@@ -331,10 +395,14 @@ export class ServiceMeshService {
 
   private async fetchServices(baseUrl: string): Promise<ServiceInstance[]> {
     try {
-      return await firstValueFrom(
+      const services = await firstValueFrom(
         this.http.get<ServiceInstance[]>(`${baseUrl}/api/services`)
       );
-    } catch {
+      console.log('[ServiceMeshService] Fetched services from /api/services:', services.length);
+      console.log('[ServiceMeshService] Service names from /api/services:', services.map(s => s.name));
+      return services;
+    } catch (error) {
+      console.error('[ServiceMeshService] Error fetching services:', error);
       return [];
     }
   }
@@ -351,11 +419,99 @@ export class ServiceMeshService {
 
   private async fetchDeployments(baseUrl: string): Promise<Deployment[]> {
     try {
-      return await firstValueFrom(
+      const deployments = await firstValueFrom(
         this.http.get<Deployment[]>(`${baseUrl}/api/deployments`)
       );
-    } catch {
+
+      console.log('[ServiceMeshService] Fetched deployments:', deployments.length);
+      console.log('[ServiceMeshService] Sample deployment:', deployments[0]);
+
+      // Fetch live status and merge with deployments
+      const liveStatuses = await this.fetchServiceStatuses(baseUrl);
+      console.log('[ServiceMeshService] Fetched live statuses:', liveStatuses.size);
+
+      // Merge live health status into deployments
+      const mergedDeployments = deployments.map(deployment => {
+        const serviceName = deployment.service?.name;
+        if (serviceName && liveStatuses.has(serviceName)) {
+          const liveStatus = liveStatuses.get(serviceName)!;
+          console.log(`[ServiceMeshService] Merging live status for ${serviceName}:`, liveStatus.healthStatus);
+          return {
+            ...deployment,
+            healthStatus: liveStatus.healthStatus,
+            lastHealthCheck: liveStatus.lastHealthCheck
+          };
+        }
+        console.log(`[ServiceMeshService] No live status for ${serviceName}, using original:`, deployment.healthStatus);
+        return deployment;
+      });
+
+      console.log('[ServiceMeshService] Final deployments with health:',
+        mergedDeployments.map(d => ({ name: d.service?.name, healthStatus: d.healthStatus })));
+
+      return mergedDeployments;
+    } catch (error) {
+      console.error('[ServiceMeshService] Error fetching deployments:', error);
       return [];
+    }
+  }
+
+  /**
+   * Fetch real-time service statuses from the /api/status endpoint.
+   * Returns a map of service name to status info.
+   */
+  private async fetchServiceStatuses(baseUrl: string): Promise<Map<string, { healthStatus: HealthStatus; lastHealthCheck?: string }>> {
+    try {
+      interface ServiceStatusResponse {
+        serviceId: number;
+        serviceName: string;
+        healthState: 'HEALTHY' | 'UNHEALTHY' | 'DEGRADED' | 'UNKNOWN' | 'OFFLINE' | 'STARTING' | 'STOPPING';
+        lastHealthCheck?: string;
+        lastHeartbeat?: string;
+      }
+
+      const statuses = await firstValueFrom(
+        this.http.get<ServiceStatusResponse[]>(`${baseUrl}/api/status`)
+      );
+
+      console.log('[ServiceMeshService] Raw /api/status response:', statuses);
+      console.log('[ServiceMeshService] Service names from /api/status:', statuses.map(s => s.serviceName));
+
+      const statusMap = new Map<string, { healthStatus: HealthStatus; lastHealthCheck?: string }>();
+
+      for (const status of statuses) {
+        // Map backend HealthState to frontend HealthStatus
+        let healthStatus: HealthStatus;
+        switch (status.healthState) {
+          case 'HEALTHY':
+            healthStatus = 'HEALTHY';
+            break;
+          case 'UNHEALTHY':
+          case 'OFFLINE':
+          case 'STOPPING':
+            healthStatus = 'UNHEALTHY';
+            break;
+          case 'DEGRADED':
+            healthStatus = 'DEGRADED';
+            break;
+          default:
+            healthStatus = 'UNKNOWN';
+        }
+
+        console.log(`[ServiceMeshService] Adding status for service: "${status.serviceName}" -> ${healthStatus}`);
+
+        statusMap.set(status.serviceName, {
+          healthStatus,
+          lastHealthCheck: status.lastHealthCheck || status.lastHeartbeat
+        });
+      }
+
+      console.log('[ServiceMeshService] Final status map keys:', Array.from(statusMap.keys()));
+      return statusMap;
+    } catch (error) {
+      console.error('[ServiceMeshService] Error fetching service statuses:', error);
+      // If status endpoint fails, return empty map (deployments keep their original status)
+      return new Map();
     }
   }
 

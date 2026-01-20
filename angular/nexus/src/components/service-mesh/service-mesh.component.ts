@@ -76,6 +76,13 @@ export class ServiceMeshComponent implements OnInit {
       this.viewMode.set(mode);
     });
 
+    // Debug: Log summary values
+    effect(() => {
+      const summaryValue = this.summary();
+      console.log('[ServiceMeshComponent] Summary in component:', summaryValue);
+      console.log('[ServiceMeshComponent] Healthy deployments:', summaryValue.healthyDeployments);
+    });
+
     // Start polling when the component is created
     this.serviceMeshService.startPolling();
   }

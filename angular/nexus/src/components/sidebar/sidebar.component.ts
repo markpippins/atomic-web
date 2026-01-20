@@ -76,6 +76,7 @@ export class SidebarComponent implements OnDestroy {
   isResizing = signal(false);
   treeExpansionCommand = signal<{ command: 'expand' | 'collapse', id: number } | null>(null);
   isHamburgerMenuOpen = signal(false);
+  showRunningOnly = signal(false); // Filter to show only running services
 
   private unlistenMouseMove: (() => void) | null = null;
   private unlistenMouseUp: (() => void) | null = null;
@@ -295,6 +296,10 @@ export class SidebarComponent implements OnDestroy {
 
   onRefreshServices(): void {
     this.refreshServices.emit();
+  }
+
+  onToggleShowRunningOnly(): void {
+    this.showRunningOnly.update(v => !v);
   }
 
   onExpandAll(): void {

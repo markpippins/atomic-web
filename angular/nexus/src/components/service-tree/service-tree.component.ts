@@ -48,6 +48,7 @@ export class ServiceTreeComponent {
   groupedServices = computed<GroupedService[]>(() => {
     const services = this.services();
     const deployments = this.getAllDeployments();
+    const serviceStatuses = this.serviceMeshService['_serviceStatuses'](); // Access the private signal
 
     // Group services by framework
     const frameworkMap = new Map<string, Framework>();
@@ -79,11 +80,35 @@ export class ServiceTreeComponent {
         deploymentMap.get(service.id) || []
       );
 
-      const healthy = frameworkDeployments.filter(d => d.healthStatus === 'HEALTHY').length;
-      const unhealthy = frameworkDeployments.filter(d => d.healthStatus === 'UNHEALTHY').length;
-      const unknown = frameworkDeployments.filter(d =>
-        d.healthStatus === 'UNKNOWN' || d.healthStatus === 'DEGRADED'
-      ).length;
+      let healthy = 0;
+      let unhealthy = 0;
+      let unknown = 0;
+
+      // If we have deployments, use them
+      if (frameworkDeployments.length > 0) {
+        healthy = frameworkDeployments.filter(d => d.healthStatus === 'HEALTHY').length;
+        unhealthy = frameworkDeployments.filter(d => d.healthStatus === 'UNHEALTHY').length;
+        unknown = frameworkDeployments.filter(d =>
+          d.healthStatus === 'UNKNOWN' || d.healthStatus === 'DEGRADED'
+        ).length;
+      }
+      // Otherwise, use service statuses from /api/status
+      else if (serviceStatuses.size > 0) {
+        frameworkServices.forEach(service => {
+          const status = serviceStatuses.get(service.name);
+          if (status) {
+            if (status.healthStatus === 'HEALTHY') healthy++;
+            else if (status.healthStatus === 'UNHEALTHY') unhealthy++;
+            else unknown++;
+          } else {
+            unknown++; // No status = unknown
+          }
+        });
+      }
+      // No deployments and no statuses
+      else {
+        unknown = frameworkServices.length;
+      }
 
       result.push({
         framework,
