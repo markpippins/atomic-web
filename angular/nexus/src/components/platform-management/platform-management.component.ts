@@ -28,16 +28,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
     <div class="h-full flex flex-col bg-[rgb(var(--color-surface))]">
-        <!-- Header -->
-        <div class="p-4 border-b border-[rgb(var(--color-border-base))] flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-[rgb(var(--color-text-base))] capitalize">
-                {{ managementType() }} Management
-            </h2>
-            <button (click)="onAdd()" class="px-4 py-2 bg-[rgb(var(--color-accent-ring))] text-white rounded hover:bg-opacity-90 flex items-center gap-2">
-                <span class="material-icons text-sm">add</span>
-                Add {{ managementType() | slice:0:-1 }} 
-            </button>
-        </div>
+        <!-- Content -->
 
         <!-- Content -->
         <div class="flex-1 overflow-auto p-4">
@@ -466,6 +457,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
 export class PlatformManagementComponent {
     managementType = input.required<string>();
     baseUrl = input.required<string>();
+    toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
 
     platformService = inject(PlatformManagementService);
 
@@ -519,6 +511,14 @@ export class PlatformManagementComponent {
         effect(() => {
             // Load data whenever management type OR active tab changes
             this.loadData();
+        });
+
+        effect(() => {
+            // Listen for toolbar actions
+            const action = this.toolbarAction();
+            if (action?.name === 'newFolder') {
+                this.onAdd();
+            }
         });
     }
 

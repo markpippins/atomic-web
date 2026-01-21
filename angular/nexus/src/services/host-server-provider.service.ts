@@ -88,7 +88,7 @@ export class HostServerProvider implements TreeProvider {
                 },
                 {
                     id: 'platform',
-                    name: 'Platform Management',
+                    name: 'Infrastructure',
                     type: NodeType.FOLDER,
                     icon: 'settings',
                     hasChildren: true,

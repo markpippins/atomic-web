@@ -298,7 +298,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private getPlatformNodeForPath(path: string[]) {
     // Valid management types
-    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'service definitions'];
+    const validTypes = ['services', 'infrastructure', 'frameworks', 'deployments', 'servers', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'service definitions'];
     const profiles = this.hostProfileService.profiles();
 
     if (!path || path.length === 0) {
@@ -324,7 +324,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     // Handle multi-element path
-    const pmIndex = path.findIndex(p => p.toLowerCase() === 'platform management');
+    const pmIndex = path.findIndex(p => p.toLowerCase() === 'platform management' || p.toLowerCase() === 'infrastructure');
 
     if (pmIndex !== -1) {
       // Path contains "Platform Management"
@@ -346,19 +346,19 @@ export class AppComponent implements OnInit, OnDestroy {
       if (type) {
         const profile = targetProfileName
           ? profiles.find(p => p.name === targetProfileName)
-          : (path[0] !== 'Platform Management' ? profiles.find(p => p.name === path[0]) : profiles[0]);
+          : (path[0].toLowerCase() !== 'platform management' && path[0].toLowerCase() !== 'infrastructure' ? profiles.find(p => p.name === path[0]) : profiles[0]);
 
         const finalProfile = profile || profiles[0];
         if (finalProfile) {
           const baseUrl = finalProfile.hostServerUrl.startsWith('http') ? finalProfile.hostServerUrl.replace(/\/$/, '') : `http://${finalProfile.hostServerUrl.replace(/\/$/, '')}`;
-          console.log('[AppComponent] Matched Platform Management path', { type, baseUrl, targetProfileName });
+          console.log('[AppComponent] Matched Infrastructure path', { type, baseUrl, targetProfileName });
           let normalizedType = type.replace(/\s+/g, '-');
           if (normalizedType === 'service-definitions') normalizedType = 'services';
           return { type: normalizedType, baseUrl };
         }
       }
     } else {
-      // Path does NOT contain "Platform Management" but might still be a valid management path
+      // Path does NOT contain "Infrastructure" but might still be a valid management path
       // e.g., ['Local Host', 'Services'] or ['Profile Name', 'Frameworks']
       const lastElement = path[path.length - 1].toLowerCase();
       if (validTypes.includes(lastElement)) {
@@ -408,6 +408,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     // It's not a server profile path, so it must be the local session, which is always actionable.
+    // Also include management nodes (e.g., Infrastructure, Services) which are handled by getPlatformNodeForPath
+    if (this.activePaneId() === 1 && this.pane1PlatformNode()) return true;
+    if (this.activePaneId() === 2 && this.pane2PlatformNode()) return true;
+
     return true;
   });
 

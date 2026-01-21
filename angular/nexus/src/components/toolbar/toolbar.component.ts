@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, output, signal, ElementRef, inject, viewChild, input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { DestinationNodeComponent } from '../destination-node/destination-node.component.js';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { Theme } from '../../services/ui-preferences.service.js';
@@ -14,7 +15,7 @@ export interface SortCriteria {
   selector: 'app-toolbar',
   templateUrl: './toolbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DestinationNodeComponent],
+  imports: [CommonModule, DestinationNodeComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
   }
@@ -58,6 +59,9 @@ export class ToolbarComponent {
   isSavedItemsVisible = input(true);
   isRssFeedVisible = input(true);
   isStreamVisible = input(true);
+
+  // Management context
+  managementType = input<string | undefined>(undefined);
 
   // Service Mesh / Graph inputs
   graphInteractionMode = input<'camera' | 'edit'>('camera');
