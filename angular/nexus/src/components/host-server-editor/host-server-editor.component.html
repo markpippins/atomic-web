@@ -1,0 +1,400 @@
+<div class="h-full overflow-y-auto bg-[rgb(var(--color-surface))] p-6">
+  @if (profile()) {
+    <div class="space-y-6 max-w-3xl mx-auto">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-[rgb(var(--color-text-prominent))]">
+            {{ profile()!.name }}
+          </h2>
+          <p class="mt-1 text-sm text-[rgb(var(--color-text-muted))]">
+            Edit connection and infrastructure details for this host server.
+          </p>
+        </div>
+        <div class="flex items-center space-x-3">
+          @if (saveSuccess()) {
+            <span class="text-sm text-green-600 dark:text-green-400 flex items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 mr-1"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Saved
+            </span>
+          }
+          @if (isDirty()) {
+            <button
+              type="button"
+              (click)="resetForm()"
+              class="px-3 py-1.5 text-sm border border-[rgb(var(--color-border-base))] rounded-md text-[rgb(var(--color-text-base))] hover:bg-[rgb(var(--color-surface-hover))] transition-colors"
+            >
+              Reset
+            </button>
+          }
+          <button
+            type="button"
+            (click)="saveProfile()"
+            [disabled]="!isDirty() || isSaving()"
+            class="px-4 py-1.5 text-sm border border-transparent rounded-md shadow-sm font-medium text-white bg-[rgb(var(--color-primary-600))] hover:bg-[rgb(var(--color-primary-700))] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--color-primary-500))] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            @if (isSaving()) {
+              <span class="flex items-center">
+                <svg
+                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Saving...
+              </span>
+            } @else {
+              Save Changes
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Connection Details Section -->
+      <div
+        class="bg-[rgb(var(--color-surface-muted))] rounded-lg p-5 border border-[rgb(var(--color-border-base))]"
+      >
+        <h3
+          class="text-sm font-semibold text-[rgb(var(--color-text-prominent))] uppercase tracking-wide mb-4"
+        >
+          Connection Details
+        </h3>
+        <div class="grid grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-6">
+          <div class="sm:col-span-3">
+            <label for="name" class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Name</label
+            >
+            <div class="mt-1">
+              <input
+                type="text"
+                name="name"
+                id="name"
+                required
+                [ngModel]="formState().name"
+                (ngModelChange)="updateField('name', $event)"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="status" class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Status</label
+            >
+            <div class="mt-1">
+              <select
+                id="status"
+                name="status"
+                [ngModel]="formState().status"
+                (ngModelChange)="updateField('status', $any($event))"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              >
+                @for (st of statuses; track st) {
+                  <option [value]="st">{{ st }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="sm:col-span-6">
+            <label
+              for="hostServerUrl"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Host Server URL</label
+            >
+            <div class="mt-1">
+              <input
+                type="url"
+                name="hostServerUrl"
+                id="hostServerUrl"
+                required
+                [ngModel]="formState().hostServerUrl"
+                (ngModelChange)="updateField('hostServerUrl', $event)"
+                placeholder="http://hostname:8085"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+              <p class="mt-1 text-xs text-[rgb(var(--color-text-muted))]">
+                The base URL where the host server API is accessible.
+              </p>
+            </div>
+          </div>
+
+          <div class="sm:col-span-6">
+            <label
+              for="imageUrl"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Image/Icon URL</label
+            >
+            <div class="mt-1">
+              <input
+                type="url"
+                name="imageUrl"
+                id="imageUrl"
+                [ngModel]="formState().imageUrl"
+                (ngModelChange)="updateField('imageUrl', $event)"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Infrastructure Details Section -->
+      <div
+        class="bg-[rgb(var(--color-surface-muted))] rounded-lg p-5 border border-[rgb(var(--color-border-base))]"
+      >
+        <h3
+          class="text-sm font-semibold text-[rgb(var(--color-text-prominent))] uppercase tracking-wide mb-4"
+        >
+          Infrastructure
+        </h3>
+        <div class="grid grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-6">
+          <div class="sm:col-span-3">
+            <label
+              for="hostname"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Hostname</label
+            >
+            <div class="mt-1">
+              <input
+                type="text"
+                name="hostname"
+                id="hostname"
+                [ngModel]="formState().hostname"
+                (ngModelChange)="updateField('hostname', $event)"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label
+              for="ipAddress"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >IP Address</label
+            >
+            <div class="mt-1">
+              <input
+                type="text"
+                name="ipAddress"
+                id="ipAddress"
+                [ngModel]="formState().ipAddress"
+                (ngModelChange)="updateField('ipAddress', $event)"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label
+              for="environment"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Environment</label
+            >
+            <div class="mt-1">
+              <select
+                id="environment"
+                name="environment"
+                [ngModel]="formState().environment"
+                (ngModelChange)="updateField('environment', $any($event))"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              >
+                @for (env of environments; track env) {
+                  <option [value]="env">{{ env }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label
+              for="cloudProvider"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Cloud Provider</label
+            >
+            <div class="mt-1">
+              <select
+                id="cloudProvider"
+                name="cloudProvider"
+                [ngModel]="formState().cloudProvider"
+                (ngModelChange)="updateField('cloudProvider', $any($event))"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              >
+                @for (cp of cloudProviders; track cp) {
+                  <option [value]="cp">{{ cp }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label
+              for="operatingSystem"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Operating System</label
+            >
+            <div class="mt-1">
+              <input
+                type="text"
+                name="operatingSystem"
+                id="operatingSystem"
+                [ngModel]="formState().operatingSystem"
+                (ngModelChange)="updateField('operatingSystem', $event)"
+                placeholder="e.g., Ubuntu 22.04, Windows Server 2022"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="region" class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Region</label
+            >
+            <div class="mt-1">
+              <input
+                type="text"
+                name="region"
+                id="region"
+                [ngModel]="formState().region"
+                (ngModelChange)="updateField('region', $event)"
+                placeholder="e.g., us-east-1, eu-west-2"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources Section -->
+      <div
+        class="bg-[rgb(var(--color-surface-muted))] rounded-lg p-5 border border-[rgb(var(--color-border-base))]"
+      >
+        <h3
+          class="text-sm font-semibold text-[rgb(var(--color-text-prominent))] uppercase tracking-wide mb-4"
+        >
+          Resources
+        </h3>
+        <div class="grid grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-3">
+          <div>
+            <label
+              for="cpuCores"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >CPU Cores</label
+            >
+            <div class="mt-1">
+              <input
+                type="number"
+                name="cpuCores"
+                id="cpuCores"
+                [ngModel]="formState().cpuCores"
+                (ngModelChange)="updateField('cpuCores', $event)"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              for="memoryMb"
+              class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Memory (MB)</label
+            >
+            <div class="mt-1">
+              <input
+                type="number"
+                name="memoryMb"
+                id="memoryMb"
+                [ngModel]="formState().memoryMb"
+                (ngModelChange)="updateField('memoryMb', $event)"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="diskGb" class="block text-sm font-medium text-[rgb(var(--color-text-base))]"
+              >Disk (GB)</label
+            >
+            <div class="mt-1">
+              <input
+                type="number"
+                name="diskGb"
+                id="diskGb"
+                [ngModel]="formState().diskGb"
+                (ngModelChange)="updateField('diskGb', $event)"
+                class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description Section -->
+      <div
+        class="bg-[rgb(var(--color-surface-muted))] rounded-lg p-5 border border-[rgb(var(--color-border-base))]"
+      >
+        <h3
+          class="text-sm font-semibold text-[rgb(var(--color-text-prominent))] uppercase tracking-wide mb-4"
+        >
+          Description
+        </h3>
+        <div>
+          <textarea
+            id="description"
+            name="description"
+            rows="4"
+            [ngModel]="formState().description"
+            (ngModelChange)="updateField('description', $event)"
+            placeholder="Add notes or description for this host server..."
+            class="shadow-sm focus:ring-[rgb(var(--color-primary-500))] focus:border-[rgb(var(--color-primary-500))] block w-full sm:text-sm border-[rgb(var(--color-border-base))] rounded-md bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] px-3 py-2"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div
+      class="h-full flex flex-col items-center justify-center text-[rgb(var(--color-text-muted))]"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-16 w-16 mb-4 opacity-50"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1"
+          d="M5 12h14M12 5l7 7-7 7"
+        />
+      </svg>
+      <p class="text-lg font-medium">Host server not found</p>
+    </div>
+  }
+</div>

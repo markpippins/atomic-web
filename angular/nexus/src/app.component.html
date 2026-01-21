@@ -23,8 +23,6 @@
         (viewModeChange)="currentViewMode.set($event)"
         (meshViewModeChange)="onMeshViewModeChange($event)"
         (refreshServices)="onRefreshServices()"
-        (serversMenuClick)="openBrokerProfilesDialog()"
-        (hostServersMenuClick)="openHostProfilesDialog()"
         (localConfigMenuClick)="openLocalConfigDialog()"
         (importClick)="isImportDialogOpen.set(true)"
         (exportClick)="isExportDialogOpen.set(true)"
@@ -200,7 +198,16 @@
                   [style.width.%]="isSplitView() ? pane1Width() : undefined"
                 >
                   @if (currentViewMode() === 'file-explorer') {
-                    @if (pane1PlatformNode()) {
+                    @if (pane1HostServerProfileId()) {
+                      <app-host-server-editor
+                        [profileId]="pane1HostServerProfileId()!"
+                      ></app-host-server-editor>
+                    } @else if (pane1GatewayProfileId()) {
+                      <app-gateway-editor
+                        [profileId]="pane1GatewayProfileId()!"
+                        [mountedProfileIds]="mountedProfileIds()"
+                      ></app-gateway-editor>
+                    } @else if (pane1PlatformNode()) {
                       <app-platform-management
                         [managementType]="pane1PlatformNode()!.type"
                         [baseUrl]="pane1PlatformNode()!.baseUrl"
@@ -234,8 +241,9 @@
                         (connectToServer)="onConnectToServer($event)"
                         (disconnectFromServer)="onDisconnectFromServer($event)"
                         (editServerProfile)="onEditServerProfile($event)"
-                        (addServerProfile)="openBrokerProfilesDialog()"
+                        (addGateway)="onAddGateway()"
                         (editLocalConfig)="openLocalConfigDialog()"
+                        (addHostServer)="onAddHostServer()"
                       >
                       </app-file-explorer>
                     }
@@ -259,7 +267,16 @@
                     ></div>
                   </div>
                   <div class="flex-1 h-full">
-                    @if (pane2PlatformNode()) {
+                    @if (pane2HostServerProfileId()) {
+                      <app-host-server-editor
+                        [profileId]="pane2HostServerProfileId()!"
+                      ></app-host-server-editor>
+                    } @else if (pane2GatewayProfileId()) {
+                      <app-gateway-editor
+                        [profileId]="pane2GatewayProfileId()!"
+                        [mountedProfileIds]="mountedProfileIds()"
+                      ></app-gateway-editor>
+                    } @else if (pane2PlatformNode()) {
                       <app-platform-management
                         [managementType]="pane2PlatformNode()!.type"
                         [baseUrl]="pane2PlatformNode()!.baseUrl"
@@ -293,8 +310,9 @@
                         (connectToServer)="onConnectToServer($event)"
                         (disconnectFromServer)="onDisconnectFromServer($event)"
                         (editServerProfile)="onEditServerProfile($event)"
-                        (addServerProfile)="openBrokerProfilesDialog()"
+                        (addGateway)="onAddGateway()"
                         (editLocalConfig)="openLocalConfigDialog()"
+                        (addHostServer)="onAddHostServer()"
                       >
                       </app-file-explorer>
                     }
@@ -1046,25 +1064,6 @@
     <span class="truncate">{{ statusBarSelectionInfo() }}</span>
   </div>
 
-  @if (isBrokerProfilesDialogOpen()) {
-    <app-broker-profiles-dialog
-      [mountedProfileIds]="mountedProfileIds()"
-      [mountedProfileUsers]="mountedProfileUsers()"
-      [initialProfileForEdit]="profileForEdit()"
-      (close)="closeBrokerProfilesDialog()"
-      (loginAndMount)="onLoginAndMount($event)"
-      (profileRenamed)="onServerProfileRenamed($event)"
-      (unmountProfile)="onUnmountProfile($event)"
-    >
-    </app-broker-profiles-dialog>
-  }
-  @if (isHostProfilesDialogOpen()) {
-    <app-host-profiles-dialog
-      [isOpen]="isHostProfilesDialogOpen()"
-      (close)="closeHostProfilesDialog()"
-    >
-    </app-host-profiles-dialog>
-  }
   @if (isLocalConfigDialogOpen()) {
     <app-local-config-dialog (close)="closeLocalConfigDialog()" (save)="onLocalConfigSaved($event)">
     </app-local-config-dialog>

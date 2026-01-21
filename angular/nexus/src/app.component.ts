@@ -7,8 +7,6 @@ import { FileExplorerComponent } from './components/file-explorer/file-explorer.
 import { SidebarComponent } from './components/sidebar/sidebar.component.js';
 import { FileSystemNode } from './models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './services/file-system-provider.js';
-import { BrokerProfilesDialogComponent } from './components/broker-profiles-dialog/broker-profiles-dialog.component.js';
-import { HostProfilesDialogComponent } from './components/host-profiles-dialog/host-profiles-dialog.component.js';
 import { BrokerProfileService } from './services/broker-profile.service.js';
 import { HostProfileService } from './services/host-profile.service.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
@@ -76,6 +74,8 @@ import { CreateUserDialogComponent } from './components/create-user/create-user-
 import { PlatformManagementComponent } from './components/platform-management/platform-management.component.js';
 import { ServiceMeshService } from './services/service-mesh.service.js';
 import { ArchitectureVizService } from './services/architecture-viz.service.js';
+import { HostServerEditorComponent } from './components/host-server-editor/host-server-editor.component.js';
+import { GatewayEditorComponent } from './components/gateway-editor/gateway-editor.component.js';
 
 interface PanePath {
   id: number;
@@ -132,7 +132,7 @@ const disconnectedProvider: FileSystemProvider = {
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, BrokerProfilesDialogComponent, HostProfilesDialogComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ServiceMeshComponent, CreateUserDialogComponent, PlatformManagementComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ServiceMeshComponent, CreateUserDialogComponent, PlatformManagementComponent, HostServerEditorComponent, GatewayEditorComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -178,8 +178,6 @@ export class AppComponent implements OnInit, OnDestroy {
   isSplitView = signal(false);
   activePaneId = signal(1);
   folderTree = signal<FileSystemNode | null>(null);
-  isBrokerProfilesDialogOpen = signal(false);
-  isHostProfilesDialogOpen = signal(false);
   isLocalConfigDialogOpen = signal(false);
   isRssFeedsDialogOpen = signal(false);
   isImportDialogOpen = signal(false);
@@ -215,7 +213,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Dialog Control State ---
   profileForLogin = signal<BrokerProfile | null>(null);
-  profileForEdit = signal<BrokerProfile | null>(null);
 
   // --- Mounted Profile State ---
   mountedProfiles = signal<BrokerProfile[]>([]);
@@ -295,6 +292,35 @@ export class AppComponent implements OnInit, OnDestroy {
 
   pane1PlatformNode = computed(() => this.getPlatformNodeForPath(this.pane1Path()));
   pane2PlatformNode = computed(() => this.getPlatformNodeForPath(this.pane2Path()));
+
+  // Host Server Profile Editor Detection
+  // When path is ['Host Servers', 'Profile Name'], we show the editor
+  pane1HostServerProfileId = computed(() => this.getHostServerProfileIdForPath(this.pane1Path()));
+  pane2HostServerProfileId = computed(() => this.getHostServerProfileIdForPath(this.pane2Path()));
+
+  // Gateway Profile Editor Detection
+  pane1GatewayProfileId = computed(() => this.getGatewayProfileIdForPath(this.pane1Path()));
+  pane2GatewayProfileId = computed(() => this.getGatewayProfileIdForPath(this.pane2Path()));
+
+  private getHostServerProfileIdForPath(path: string[]): string | null {
+    // Path must be exactly ['Host Servers', 'Profile Name'] to show editor
+    if (path.length !== 2 || path[0] !== 'Host Servers') {
+      return null;
+    }
+    const profileName = path[1];
+    const profile = this.hostProfileService.profiles().find(p => p.name === profileName);
+    return profile?.id ?? null;
+  }
+
+  private getGatewayProfileIdForPath(path: string[]): string | null {
+    // Path must be exactly ['Gateways', 'Profile Name'] to show editor
+    if (path.length !== 2 || path[0] !== 'Gateways') {
+      return null;
+    }
+    const profileName = path[1];
+    const profile = this.profileService.profiles().find(p => p.name === profileName);
+    return profile?.id ?? null;
+  }
 
   private getPlatformNodeForPath(path: string[]) {
     // Valid management types
@@ -1200,6 +1226,78 @@ export class AppComponent implements OnInit, OnDestroy {
     this.pane2Status.set(status);
   }
 
+  async onAddHostServer(): Promise<void> {
+    // Generate a unique ID and name for the new host server
+    const newId = this.generateUUID();
+    const existingProfiles = this.hostProfileService.profiles();
+    let counter = 1;
+    let newName = 'New Host Server';
+    while (existingProfiles.some(p => p.name === newName)) {
+      newName = `New Host Server (${counter++})`;
+    }
+
+    // Create a new profile with default values
+    const newProfile = {
+      id: newId,
+      name: newName,
+      hostServerUrl: 'http://localhost:8085',
+      imageUrl: '',
+      environment: 'DEV' as const,
+      cloudProvider: 'ON_PREM' as const,
+      status: 'ACTIVE' as const,
+    };
+
+    // Save the profile
+    await this.hostProfileService.saveProfile(newProfile);
+
+    // Reload the folder tree to include the new host server
+    await this.loadFolderTree();
+
+    // Navigate to the new host server's editor
+    const activeId = this.activePaneId();
+    this.panePaths.update(paths => {
+      const otherPanes = paths.filter(p => p.id !== activeId);
+      return [...otherPanes, { id: activeId, path: ['Host Servers', newName] }];
+    });
+  }
+
+  async onAddGateway(): Promise<void> {
+    const existingProfiles = this.profileService.profiles();
+    let counter = 1;
+    let newName = 'New Gateway';
+    while (existingProfiles.some(p => p.name === newName)) {
+      newName = `New Gateway (${counter++})`;
+    }
+
+    const newProfile = {
+      name: newName,
+      brokerUrl: 'localhost:8080',
+      imageUrl: '',
+      autoConnect: false,
+    };
+
+    // Save the profile using BrokerProfileService (addProfile generates ID)
+    await this.profileService.addProfile(newProfile);
+
+    // Reload the folder tree
+    await this.loadFolderTree();
+
+    // Navigate to the new gateway's editor
+    const activeId = this.activePaneId();
+    this.panePaths.update(paths => {
+      const otherPanes = paths.filter(p => p.id !== activeId);
+      return [...otherPanes, { id: activeId, path: ['Gateways', newName] }];
+    });
+  }
+
+  private generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0,
+        v = c == 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
   // --- UI Toggles ---
   toggleDetailPane(): void {
     this.uiPreferencesService.toggleDetailPane();
@@ -1393,24 +1491,6 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- Server Profile Dialog ---
-  openBrokerProfilesDialog(): void {
-    this.profileForEdit.set(null);
-    this.isBrokerProfilesDialogOpen.set(true);
-  }
-
-  closeBrokerProfilesDialog(): void {
-    this.isBrokerProfilesDialogOpen.set(false);
-  }
-
-  // --- Host Profile Dialog ---
-  openHostProfilesDialog(): void {
-    this.isHostProfilesDialogOpen.set(true);
-  }
-
-  closeHostProfilesDialog(): void {
-    this.isHostProfilesDialogOpen.set(false);
-  }
 
   // --- Local Config Dialog ---
   openLocalConfigDialog(): void {
@@ -1548,10 +1628,25 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onEditServerProfile(profileId: string): void {
-    const profile = this.profileService.profiles().find(p => p.id === profileId);
-    if (profile) {
-      this.profileForEdit.set(profile);
-      this.isBrokerProfilesDialogOpen.set(true);
+    // Try broker profiles first
+    const brokerProfile = this.profileService.profiles().find(p => p.id === profileId);
+    if (brokerProfile) {
+      const activeId = this.activePaneId();
+      this.panePaths.update(paths => {
+        const otherPanes = paths.filter(p => p.id !== activeId);
+        return [...otherPanes, { id: activeId, path: ['Gateways', brokerProfile.name] }];
+      });
+      return;
+    }
+
+    // Try host profiles second
+    const hostProfile = this.hostProfileService.profiles().find(p => p.id === profileId);
+    if (hostProfile) {
+      const activeId = this.activePaneId();
+      this.panePaths.update(paths => {
+        const otherPanes = paths.filter(p => p.id !== activeId);
+        return [...otherPanes, { id: activeId, path: ['Host Servers', hostProfile.name] }];
+      });
     }
   }
 

@@ -84,6 +84,8 @@ export class FileExplorerComponent implements OnDestroy {
   disconnectFromServer = output<string>();
   editServerProfile = output<string>();
   addServerProfile = output<void>();
+  addHostServer = output<void>();
+  addGateway = output<void>();
   editLocalConfig = output<void>();
 
   state = signal<FileSystemState>({ status: 'loading', items: [] });
@@ -207,6 +209,18 @@ export class FileExplorerComponent implements OnDestroy {
 
     // For other nodes, slice off just the root name
     return p.slice(1);
+  });
+
+  // Check if we're currently viewing the Host Servers folder (for context menu)
+  isInHostServersFolder = computed(() => {
+    const p = this.path();
+    return p.length === 1 && p[0] === 'Host Servers';
+  });
+
+  // Check if we're currently viewing the Gateways folder (for context menu)
+  isInGatewaysFolder = computed(() => {
+    const p = this.path();
+    return p.length === 1 && p[0] === 'Gateways';
   });
 
   sortedItems = computed(() => {
@@ -1297,6 +1311,16 @@ export class FileExplorerComponent implements OnDestroy {
 
   onAddServerProfile(): void {
     this.addServerProfile.emit();
+    this.closeContextMenu();
+  }
+
+  onAddHostServer(): void {
+    this.addHostServer.emit();
+    this.closeContextMenu();
+  }
+
+  onAddGateway(): void {
+    this.addGateway.emit();
     this.closeContextMenu();
   }
 

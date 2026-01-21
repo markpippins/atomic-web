@@ -459,6 +459,8 @@ export class PlatformManagementComponent {
     baseUrl = input.required<string>();
     toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
 
+    private lastProcessedActionId = 0;
+
     platformService = inject(PlatformManagementService);
 
     // Data Signals
@@ -514,10 +516,13 @@ export class PlatformManagementComponent {
         });
 
         effect(() => {
-            // Listen for toolbar actions
+            // Listen for toolbar actions - only process new actions
             const action = this.toolbarAction();
-            if (action?.name === 'newFolder') {
-                this.onAdd();
+            if (action && action.id !== this.lastProcessedActionId) {
+                this.lastProcessedActionId = action.id;
+                if (action.name === 'newFolder') {
+                    this.onAdd();
+                }
             }
         });
     }
