@@ -71,6 +71,7 @@ export class ServiceMeshService {
 
   readonly selectedService = this._selectedService.asReadonly();
   readonly selectedServiceConfigurations = this._selectedServiceConfigurations.asReadonly();
+  readonly serviceStatuses = this._serviceStatuses.asReadonly();
 
   constructor() {
     // Auto-connect to all host profiles on startup/change

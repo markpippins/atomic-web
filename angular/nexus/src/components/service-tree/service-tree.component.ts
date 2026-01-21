@@ -49,7 +49,7 @@ export class ServiceTreeComponent {
   groupedServices = computed<GroupedService[]>(() => {
     const services = this.services();
     const deployments = this.getAllDeployments();
-    const serviceStatuses = this.serviceMeshService['_serviceStatuses'](); // Access the private signal
+    const serviceStatuses = this.serviceMeshService.serviceStatuses(); // Use public readonly signal
     const showRunningOnly = this.showRunningOnly();
 
     // Filter services based on showRunningOnly toggle
