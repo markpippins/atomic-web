@@ -40,10 +40,17 @@ export class GatewayEditorComponent {
     // Input: mounted profile IDs for connection status
     mountedProfileIds = input<string[]>([]);
 
+    // Triggers for external actions
+    saveTrigger = input<{ id: number; paneId: number } | null>(null);
+    resetTrigger = input<{ id: number; paneId: number } | null>(null);
+
     formState = signal<FormState>({ ...INITIAL_FORM_STATE });
     isDirty = signal(false);
     isSaving = signal(false);
     saveSuccess = signal(false);
+
+    // Output for dirty state tracking
+    dirtyStateChange = output<boolean>();
 
     profile = computed(() =>
         this.profileService.profiles().find(p => p.id === this.profileId())
@@ -57,6 +64,27 @@ export class GatewayEditorComponent {
             const profile = this.profile();
             if (profile) {
                 this.loadProfileIntoForm(profile);
+            }
+        });
+
+        // Emit dirty state
+        effect(() => {
+            this.dirtyStateChange.emit(this.isDirty());
+        });
+
+        // Listen for save trigger
+        effect(() => {
+            const trigger = this.saveTrigger();
+            if (trigger) {
+                this.saveProfile();
+            }
+        });
+
+        // Listen for reset trigger
+        effect(() => {
+            const trigger = this.resetTrigger();
+            if (trigger) {
+                this.resetForm();
             }
         });
     }

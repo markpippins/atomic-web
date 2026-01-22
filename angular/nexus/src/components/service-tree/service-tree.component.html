@@ -1,4 +1,68 @@
 <div class="service-tree">
+  <!-- Gateway Services Section (Services with hosted services) -->
+  @if (gateways().length > 0) {
+    <div class="gateways-section">
+      <div class="section-header">
+        <span class="section-icon">🌐</span>
+        <span class="section-title">Service Gateways</span>
+        <span class="section-count">{{ gateways().length }}</span>
+      </div>
+
+      @for (gateway of gateways(); track gateway.name) {
+        <div class="gateway-group">
+          <div class="gateway-header" (click)="toggleGateway(gateway.name)">
+            <div
+              class="gateway-status"
+              [style.backgroundColor]="getHostedServiceStatusColor(gateway.status)"
+              [title]="gateway.status || 'UNKNOWN'"
+            ></div>
+            <div class="gateway-info">
+              <div class="gateway-name">{{ gateway.name }}</div>
+              <div class="gateway-stats">
+                {{ gateway.hostedServices?.length || 0 }} hosted services
+                @if (gateway.framework) {
+                  <span class="gateway-framework">| {{ gateway.framework }}</span>
+                }
+              </div>
+            </div>
+            <mat-icon class="expand-icon">
+              {{ isGatewayExpanded(gateway.name) ? 'expand_more' : 'chevron_right' }}
+            </mat-icon>
+          </div>
+
+          @if (isGatewayExpanded(gateway.name)) {
+            <div class="hosted-services-list">
+              @for (hosted of gateway.hostedServices; track hosted.serviceName) {
+                <div class="hosted-service-item">
+                  <div
+                    class="hosted-service-status"
+                    [style.backgroundColor]="getHostedServiceStatusColor(hosted.status)"
+                    [title]="hosted.status || 'HEALTHY'"
+                  ></div>
+                  <div class="hosted-service-info">
+                    <div class="hosted-service-name">
+                      <span class="hosted-icon">📦</span>
+                      {{ hosted.serviceName }}
+                    </div>
+                    <div class="hosted-service-details">
+                      {{ hosted.operations?.length || 0 }} operations
+                      @if (hosted.type) {
+                        <span class="hosted-type">| {{ hosted.type }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="section-divider"></div>
+  }
+
+  <!-- Framework Groups Section -->
   @for (group of groupedServices(); track group.framework.id) {
     <div class="framework-group">
       <div class="framework-header" (click)="toggleFramework(group.framework.id)">
@@ -82,7 +146,7 @@
       }
     </div>
   }
-  @if (groupedServices().length === 0) {
+  @if (groupedServices().length === 0 && gateways().length === 0) {
     <div class="no-services">
       <p>No services found. Connect to a Host Server to view registered services.</p>
     </div>

@@ -1,4 +1,4 @@
-import { Component, input, output, computed, signal, effect, inject } from '@angular/core';
+import { Component, input, output, computed, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,8 @@ import {
   Deployment,
   HealthStatus,
   DeploymentStatus,
+  ServiceWithHosted,
+  HostedService,
   getHealthStatusColor,
   getFrameworkIcon
 } from '../../models/service-mesh.model.js';
@@ -24,14 +26,14 @@ interface GroupedService {
 
 @Component({
   selector: 'app-service-tree',
-  standalone: true,
   imports: [
     CommonModule,
     MatButtonModule,
     MatIconModule
   ],
   templateUrl: './service-tree.component.html',
-  styleUrls: ['./service-tree.component.css']
+  styleUrls: ['./service-tree.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ServiceTreeComponent {
   private serviceMeshService = inject(ServiceMeshService);
@@ -41,33 +43,41 @@ export class ServiceTreeComponent {
   dependencies = input<ServiceDependency[]>([]);
   deployments = input<Deployment[]>([]);
   selectedService = input<ServiceInstance | null>(null);
-  showRunningOnly = input<boolean>(false); // Filter to show only running services
+  showRunningOnly = input<boolean>(false);
   serviceSelected = output<ServiceInstance>();
   restartService = output<ServiceInstance>();
   viewLogs = output<ServiceInstance>();
 
+  // Services with hosted services (gateways/facades)
+  servicesWithHosted = computed(() => this.serviceMeshService.servicesWithHosted());
+
+  // Track which gateway services are expanded
+  expandedGateways = signal<Set<string>>(new Set());
+
+  // Filter gateways (services with hostedServices)
+  gateways = computed(() => {
+    const all = this.servicesWithHosted();
+    return all.filter(s => s.hostedServices && s.hostedServices.length > 0);
+  });
+
   groupedServices = computed<GroupedService[]>(() => {
     const services = this.services();
     const deployments = this.getAllDeployments();
-    const serviceStatuses = this.serviceMeshService.serviceStatuses(); // Use public readonly signal
+    const serviceStatuses = this.serviceMeshService.serviceStatuses();
     const showRunningOnly = this.showRunningOnly();
 
-    // Filter services based on showRunningOnly toggle
     let filteredServices = services;
     if (showRunningOnly) {
       filteredServices = services.filter(service => {
-        // Check if service has a healthy status in serviceStatuses
         const status = serviceStatuses.get(service.name);
         return status && status.healthStatus === 'HEALTHY';
       });
     }
 
-    // Group services by framework
     const frameworkMap = new Map<string, Framework>();
     const serviceMap = new Map<string, ServiceInstance[]>();
     const deploymentMap = new Map<string, Deployment[]>();
 
-    // Populate maps with filtered services
     filteredServices.forEach(service => {
       if (!serviceMap.has(service.framework.id)) {
         serviceMap.set(service.framework.id, []);
@@ -84,7 +94,6 @@ export class ServiceTreeComponent {
       deploymentMap.get(serviceId)?.push(deployment);
     });
 
-    // Create grouped services with health summaries
     const result: GroupedService[] = [];
     for (const [frameworkId, framework] of frameworkMap) {
       const frameworkServices = serviceMap.get(frameworkId) || [];
@@ -96,16 +105,13 @@ export class ServiceTreeComponent {
       let unhealthy = 0;
       let unknown = 0;
 
-      // If we have deployments, use them
       if (frameworkDeployments.length > 0) {
         healthy = frameworkDeployments.filter(d => d.healthStatus === 'HEALTHY').length;
         unhealthy = frameworkDeployments.filter(d => d.healthStatus === 'UNHEALTHY').length;
         unknown = frameworkDeployments.filter(d =>
           d.healthStatus === 'UNKNOWN' || d.healthStatus === 'DEGRADED'
         ).length;
-      }
-      // Otherwise, use service statuses from /api/status
-      else if (serviceStatuses.size > 0) {
+      } else if (serviceStatuses.size > 0) {
         frameworkServices.forEach(service => {
           const status = serviceStatuses.get(service.name);
           if (status) {
@@ -113,12 +119,10 @@ export class ServiceTreeComponent {
             else if (status.healthStatus === 'UNHEALTHY') unhealthy++;
             else unknown++;
           } else {
-            unknown++; // No status = unknown
+            unknown++;
           }
         });
-      }
-      // No deployments and no statuses
-      else {
+      } else {
         unknown = frameworkServices.length;
       }
 
@@ -130,7 +134,6 @@ export class ServiceTreeComponent {
       });
     }
 
-    // Sort by framework name
     return result.sort((a, b) => a.framework.name.localeCompare(b.framework.name));
   });
 
@@ -152,22 +155,36 @@ export class ServiceTreeComponent {
     return this.expandedFrameworks().has(frameworkId);
   }
 
+  toggleGateway(gatewayName: string): void {
+    this.expandedGateways.update(set => {
+      const newSet = new Set(set);
+      if (newSet.has(gatewayName)) {
+        newSet.delete(gatewayName);
+      } else {
+        newSet.add(gatewayName);
+      }
+      return newSet;
+    });
+  }
+
+  isGatewayExpanded(gatewayName: string): boolean {
+    return this.expandedGateways().has(gatewayName);
+  }
+
   selectService(service: ServiceInstance): void {
     this.serviceSelected.emit(service);
   }
 
   canRestart(service: ServiceInstance): boolean {
-    // Check if the service has any running deployments that can be restarted
     return this.getDeploymentsForService(service.id).some(d =>
       d.status === 'RUNNING' || d.status === 'STOPPED'
     );
   }
 
   async restart(service: ServiceInstance): Promise<void> {
-    // Find the first host profile to use for the operation
     const profiles = this.hostProfileService.profiles();
     if (profiles.length > 0) {
-      const profile = profiles[0]; // In a more sophisticated version, we could select based on service metadata
+      const profile = profiles[0];
       const result = await this.serviceMeshService.executeServiceOperation(service.id, 'restart', profile);
       console.log('Restart operation result:', result);
 
@@ -178,16 +195,14 @@ export class ServiceTreeComponent {
   }
 
   async viewServiceLogs(service: ServiceInstance): Promise<void> {
-    // Find the first host profile to use for the operation
     const profiles = this.hostProfileService.profiles();
     if (profiles.length > 0) {
       const profile = profiles[0];
       const result = await this.serviceMeshService.executeServiceOperation(service.id, 'view-logs', profile);
       console.log('View logs operation result:', result);
 
-      // In a real implementation, we would open logs in a new window/tab
       if (result.success && result.data && typeof result.data === 'object' && 'logsUrl' in result.data) {
-        const logsUrl = (result.data as any).logsUrl;
+        const logsUrl = (result.data as { logsUrl: string }).logsUrl;
         window.open(logsUrl, '_blank');
       }
     }
@@ -202,11 +217,21 @@ export class ServiceTreeComponent {
   }
 
   getFrameworkIcon(category: string): string {
-    return getFrameworkIcon(category as any); // Type assertion to FrameworkCategory
+    return getFrameworkIcon(category as Parameters<typeof getFrameworkIcon>[0]);
   }
 
   getHealthStatusColor(status: HealthStatus): string {
     return getHealthStatusColor(status);
+  }
+
+  getHostedServiceStatusColor(status: string | undefined): string {
+    if (!status) return 'var(--color-muted, #6b7280)';
+    switch (status.toUpperCase()) {
+      case 'HEALTHY': return 'var(--color-success, #22c55e)';
+      case 'UNHEALTHY': return 'var(--color-error, #ef4444)';
+      case 'DEGRADED': return 'var(--color-warning, #f59e0b)';
+      default: return 'var(--color-muted, #6b7280)';
+    }
   }
 
   getDeploymentHealthStatus(service: ServiceInstance): HealthStatus {
@@ -215,9 +240,6 @@ export class ServiceTreeComponent {
       return 'UNKNOWN';
     }
 
-    // If any deployment is unhealthy, return unhealthy
-    // Otherwise, if any is degraded, return degraded
-    // Otherwise, if all are healthy, return healthy
     const healthStatuses = deployments.map(d => d.healthStatus);
 
     if (healthStatuses.some(s => s === 'UNHEALTHY')) {
@@ -237,10 +259,6 @@ export class ServiceTreeComponent {
       return 'UNKNOWN';
     }
 
-    // If any deployment is running, return running
-    // Otherwise, if any is starting/stopping, return that
-    // Otherwise, if any is failed, return failed
-    // Otherwise, if all are stopped, return stopped
     const statuses = deployments.map(d => d.status);
 
     if (statuses.some(s => s === 'RUNNING')) {

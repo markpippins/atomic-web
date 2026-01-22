@@ -76,6 +76,9 @@ import { ServiceMeshService } from './services/service-mesh.service.js';
 import { ArchitectureVizService } from './services/architecture-viz.service.js';
 import { HostServerEditorComponent } from './components/host-server-editor/host-server-editor.component.js';
 import { GatewayEditorComponent } from './components/gateway-editor/gateway-editor.component.js';
+import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component.js';
+import { GatewayManagementComponent } from './components/gateway-management/gateway-management.component.js';
+import { HostServerManagementComponent } from './components/host-server-management/host-server-management.component.js';
 
 interface PanePath {
   id: number;
@@ -132,7 +135,7 @@ const disconnectedProvider: FileSystemProvider = {
   standalone: true,
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FileExplorerComponent, SidebarComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ServiceMeshComponent, CreateUserDialogComponent, PlatformManagementComponent, HostServerEditorComponent, GatewayEditorComponent],
+  imports: [CommonModule, FileExplorerComponent, SidebarComponent, DetailPaneComponent, ToolbarComponent, ToastsComponent, WebviewDialogComponent, LocalConfigDialogComponent, LoginDialogComponent, RssFeedsDialogComponent, ImportDialogComponent, ExportDialogComponent, TextEditorDialogComponent, WebResultCardComponent, ImageResultCardComponent, GeminiResultCardComponent, YoutubeResultCardComponent, AcademicResultCardComponent, WebResultListItemComponent, ImageResultListItemComponent, GeminiResultListItemComponent, YoutubeResultListItemComponent, AcademicResultListItemComponent, PreferencesDialogComponent, TerminalComponent, ComplexSearchDialogComponent, GeminiSearchDialogComponent, ServiceMeshComponent, CreateUserDialogComponent, PlatformManagementComponent, HostServerEditorComponent, GatewayEditorComponent, GatewayManagementComponent, HostServerManagementComponent, ConfirmDialogComponent],
   host: {
     '(document:keydown)': 'onKeyDown($event)',
     '(document:click)': 'onDocumentClick($event)',
@@ -324,8 +327,16 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private getPlatformNodeForPath(path: string[]) {
     // Valid management types
-    const validTypes = ['services', 'infrastructure', 'frameworks', 'deployments', 'servers', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'service definitions'];
+    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'hosts', 'service hosts', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'service definitions'];
     const profiles = this.hostProfileService.profiles();
+
+    // Helper to normalize type for component
+    const normalizeType = (t: string) => {
+      let n = t.replace(/\s+/g, '-');
+      if (n === 'service-definitions') return 'services';
+      if (n === 'service-hosts' || n === 'hosts') return 'servers';
+      return n;
+    };
 
     if (!path || path.length === 0) {
       return null;
@@ -341,9 +352,7 @@ export class AppComponent implements OnInit, OnDestroy {
         if (profile) {
           const baseUrl = profile.hostServerUrl.startsWith('http') ? profile.hostServerUrl.replace(/\/$/, '') : `http://${profile.hostServerUrl.replace(/\/$/, '')}`;
           console.log('[AppComponent] Matched single-element path', { type, baseUrl });
-          let normalizedType = type.replace(/\s+/g, '-');
-          if (normalizedType === 'service-definitions') normalizedType = 'services';
-          return { type: normalizedType, baseUrl };
+          return { type: normalizeType(type), baseUrl };
         }
       }
       return null;
@@ -377,31 +386,177 @@ export class AppComponent implements OnInit, OnDestroy {
         const finalProfile = profile || profiles[0];
         if (finalProfile) {
           const baseUrl = finalProfile.hostServerUrl.startsWith('http') ? finalProfile.hostServerUrl.replace(/\/$/, '') : `http://${finalProfile.hostServerUrl.replace(/\/$/, '')}`;
-          console.log('[AppComponent] Matched Infrastructure path', { type, baseUrl, targetProfileName });
-          let normalizedType = type.replace(/\s+/g, '-');
-          if (normalizedType === 'service-definitions') normalizedType = 'services';
-          return { type: normalizedType, baseUrl };
+          console.log('[AppComponent] Matched Platform Management path', { type, baseUrl, targetProfileName });
+          return { type: normalizeType(type), baseUrl };
         }
       }
     } else {
-      // Path does NOT contain "Infrastructure" but might still be a valid management path
+      // Path does NOT contain "Platform Management" but might still be a valid management path
       // e.g., ['Local Host', 'Services'] or ['Profile Name', 'Frameworks']
       const lastElement = path[path.length - 1].toLowerCase();
       if (validTypes.includes(lastElement)) {
         // Try to find profile by first element of path, or use default
-        const profile = profiles.find(p => p.name === path[0]) || profiles[0];
+        // Improved profile resolution: check path[1] for profile name (e.g. Services/Profile/Node)
+        let profile = path.length > 1 ? profiles.find(p => p.name === path[1]) : null;
+
+        if (!profile) {
+          profile = profiles.find(p => p.name === path[0]);
+        }
+
+        // Fallback
+        if (!profile) {
+          profile = profiles[0];
+        }
+
         if (profile) {
           const baseUrl = profile.hostServerUrl.startsWith('http') ? profile.hostServerUrl.replace(/\/$/, '') : `http://${profile.hostServerUrl.replace(/\/$/, '')}`;
           console.log('[AppComponent] Matched direct management path', { type: lastElement, baseUrl, profileName: path[0] });
-          let normalizedType = lastElement.replace(/\s+/g, '-');
-          if (normalizedType === 'service-definitions') normalizedType = 'services';
-          return { type: normalizedType, baseUrl };
+          return { type: normalizeType(lastElement), baseUrl };
         }
       }
     }
 
     console.log('[AppComponent] No match found, returning null');
     return null;
+  }
+
+  // --- Gateway Context Signals ---
+  isGatewayContext = computed(() => this.activePanePath()[0] === 'Gateways');
+  isGatewaysNodeSelected = computed(() => this.activePanePath().length === 1 && this.activePanePath()[0] === 'Gateways');
+  isGatewaySelected = computed(() => this.activePanePath().length === 2 && this.activePanePath()[0] === 'Gateways');
+
+  isHostServerContext = computed(() => this.activePanePath()[0] === 'Host Servers');
+  isHostServersNodeSelected = computed(() => this.activePanePath().length === 1 && this.activePanePath()[0] === 'Host Servers');
+  isHostServerSelected = computed(() => this.activePanePath().length === 2 && this.activePanePath()[0] === 'Host Servers');
+
+  // Trigger for child editor save/reset
+  editorSaveTrigger = signal<{ id: number; paneId: number } | null>(null);
+  editorResetTrigger = signal<{ id: number; paneId: number } | null>(null);
+  editorIsDirty = signal(false);
+
+  onSaveGateway(): void {
+    this.editorSaveTrigger.set({ id: Date.now(), paneId: this.activePaneId() });
+  }
+
+  onResetGateway(): void {
+    this.editorResetTrigger.set({ id: Date.now(), paneId: this.activePaneId() });
+  }
+
+  isDeleteGatewayConfirmOpen = signal(false);
+  gatewayToDelete = signal<string | null>(null);
+
+  async onDeleteGateway(): Promise<void> {
+    const profileId = this.gatewayToDelete() || this.pane1GatewayProfileId() || this.pane2GatewayProfileId();
+    if (profileId) {
+      await this.profileService.deleteProfile(profileId);
+      this.isDeleteGatewayConfirmOpen.set(false);
+      this.gatewayToDelete.set(null);
+      await this.loadFolderTree();
+      // Navigate back to Gateways root if we were editing
+      const activeId = this.activePaneId();
+      this.panePaths.update(paths => {
+        const pathObj = paths.find(p => p.id === activeId);
+        if (pathObj && pathObj.path.length > 1 && pathObj.path[0] === 'Gateways') {
+          const otherPanes = paths.filter(p => p.id !== activeId);
+          return [...otherPanes, { id: activeId, path: ['Gateways'] }];
+        }
+        return paths;
+      });
+    }
+  }
+
+  onDeleteGatewayById(id: string): void {
+    this.gatewayToDelete.set(id);
+    this.isDeleteGatewayConfirmOpen.set(true);
+  }
+
+  isDeleteHostServerConfirmOpen = signal(false);
+  hostServerToDelete = signal<string | null>(null);
+
+  async onDeleteHostServer(): Promise<void> {
+    const profileId = this.hostServerToDelete() || this.pane1HostServerProfileId() || this.pane2HostServerProfileId();
+    if (profileId) {
+      await this.hostProfileService.deleteProfile(profileId);
+      this.isDeleteHostServerConfirmOpen.set(false);
+      this.hostServerToDelete.set(null);
+      await this.loadFolderTree();
+      // Navigate back to Host Servers root
+      const activeId = this.activePaneId();
+      this.panePaths.update(paths => {
+        const pathObj = paths.find(p => p.id === activeId);
+        if (pathObj && pathObj.path.length > 1 && pathObj.path[0] === 'Host Servers') {
+          const otherPanes = paths.filter(p => p.id !== activeId);
+          return [...otherPanes, { id: activeId, path: ['Host Servers'] }];
+        }
+        return paths;
+      });
+    }
+  }
+
+  onDeleteHostServerById(id: string): void {
+    this.hostServerToDelete.set(id);
+    this.isDeleteHostServerConfirmOpen.set(true);
+  }
+
+  onAddHostServer(): void {
+    const name = prompt('Enter name for the new Host Server:', `New Host Server ${Date.now()}`);
+    if (!name) return; // User cancelled
+
+    const activeId = this.activePaneId();
+    this.hostProfileService.saveProfile({
+      id: Date.now().toString(),
+      name,
+      hostServerUrl: 'http://localhost:8000',
+      imageUrl: '',
+      status: 'ACTIVE'
+    }).then(() => {
+      this.loadFolderTree();
+      this.panePaths.update(paths => {
+        const otherPanes = paths.filter(p => p.id !== activeId);
+        return [...otherPanes, { id: activeId, path: ['Host Servers', name] }];
+      });
+    });
+  }
+
+  onAddGateway = async (): Promise<void> => {
+    const existingProfiles = this.profileService.profiles();
+    let counter = 1;
+    let newName = 'New Gateway';
+    while (existingProfiles.some(p => p.name === newName)) {
+      newName = `New Gateway (${counter++})`;
+    }
+
+    const newProfile = {
+      name: newName,
+      brokerUrl: 'localhost:8080',
+      imageUrl: '',
+      autoConnect: false,
+    };
+
+    await this.profileService.addProfile(newProfile);
+    await this.loadFolderTree();
+
+    const activeId = this.activePaneId();
+    this.panePaths.update(paths => {
+      const otherPanes = paths.filter(p => p.id !== activeId);
+      return [...otherPanes, { id: activeId, path: ['Gateways', newName] }];
+    });
+  };
+
+  onEditHostServerByName(name: string): void {
+    const activeId = this.activePaneId();
+    this.panePaths.update(paths => {
+      const otherPanes = paths.filter(p => p.id !== activeId);
+      return [...otherPanes, { id: activeId, path: ['Host Servers', name] }];
+    });
+  }
+
+  onEditGatewayByName(name: string): void {
+    const activeId = this.activePaneId();
+    this.panePaths.update(paths => {
+      const otherPanes = paths.filter(p => p.id !== activeId);
+      return [...otherPanes, { id: activeId, path: ['Gateways', name] }];
+    });
   }
 
   // --- Toolbar State Management ---
@@ -615,7 +770,7 @@ export class AppComponent implements OnInit, OnDestroy {
     // this.treeAdapters.set('Users', new TreeProviderAdapter(this.hostServerProvider, 'users'));
     // this.treeAdapters.set('Search & Discovery', new TreeProviderAdapter(this.hostServerProvider, 'search'));
     // this.treeAdapters.set('File Systems', new TreeProviderAdapter(this.hostServerProvider, 'filesystems'));
-    // this.treeAdapters.set('Platform Management', new TreeProviderAdapter(this.hostServerProvider, 'platform'));
+    this.treeAdapters.set('Platform Management', new TreeProviderAdapter(this.hostServerProvider, 'platform'));
 
     this.homeProvider = {
       getContents: async (path: string[]) => {
@@ -679,13 +834,43 @@ export class AppComponent implements OnInit, OnDestroy {
             return brokerProfileNodes;
           }
 
-          // Host Servers folder - contains host server profile nodes
-          if (rootName === 'Host Servers') {
+          // Service Registries folder (formerly Host Servers)
+          if (rootName === 'Service Registries') {
             return hostProfileNodes;
           }
 
-          // Services, Users, Search & Discovery, Platform Management - show empty (managed by HostServerProvider)
-          const hostNodeNames = hostNodes.map(n => n.name);
+          // Platform Management folder - flat structure defaulting to primary registry
+          if (rootName === 'Platform Management') {
+            let currentNodeId = 'platform';
+
+            if (path.length > 1) {
+              // Traverse children starting from platform root
+              for (let i = 1; i < path.length; i++) {
+                const segment = path[i];
+                const children = await this.hostServerProvider.getChildren(currentNodeId);
+                const match = children.find(c => c.name === segment);
+                if (match) {
+                  currentNodeId = match.id;
+                } else {
+                  return [];
+                }
+              }
+            }
+
+            const nodes = await this.hostServerProvider.getChildren(currentNodeId);
+            return nodes.map(node => ({
+              name: node.name,
+              type: 'folder',
+              id: node.id,
+              metadata: node.metadata,
+              children: [],
+              childrenLoaded: !node.hasChildren,
+              isServerRoot: false
+            }));
+          }
+
+          // Services, Users, Search & Discovery - show empty (managed by HostServerProvider)
+          const hostNodeNames = hostNodes.map(n => n.name).filter(n => n !== 'Platform Management');
           if (hostNodeNames.includes(rootName)) {
             return []; // These nodes are placeholders, no children to show in main area
           }
@@ -704,9 +889,9 @@ export class AppComponent implements OnInit, OnDestroy {
           isVirtualFolder: true,
         };
 
-        // Create "Host Servers" virtual folder containing host server profiles
-        const hostServersNode: FileSystemNode = {
-          name: 'Host Servers',
+        // Create "Service Registries" virtual folder containing host server profiles
+        const serviceRegistriesNode: FileSystemNode = {
+          name: 'Service Registries',
           type: 'folder',
           children: hostProfileNodes,
           childrenLoaded: true,
@@ -727,12 +912,12 @@ export class AppComponent implements OnInit, OnDestroy {
         // - Other host nodes (Services, Users, Search & Discovery, Platform Management)
         // - File Systems (containing Local Session)
         // - Gateways (containing broker gateways) - only if there are profiles
-        // - Host Servers (containing host server profiles)
+        // - Service Registries (containing host server profiles)
         const rootChildren = [
           ...otherHostNodes,
           ...(fileSystemsNode ? [fileSystemsNode] : [sessionNode]),
           ...(allBrokerProfiles.length > 0 ? [gatewaysNode] : []),
-          ...(allHostProfiles.length > 0 ? [hostServersNode] : []),
+          ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []),
         ];
 
         console.log('[homeProvider.getContents] returning rootChildren:', rootChildren.map(c => c.name));
@@ -1078,6 +1263,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.folderTree.set(await this.buildCombinedFolderTree());
   }
 
+
+
   onLoadChildren = async (path: string[]) => {
     const provider = this.getProvider(path);
     if (provider === this.homeProvider) {
@@ -1226,77 +1413,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.pane2Status.set(status);
   }
 
-  async onAddHostServer(): Promise<void> {
-    // Generate a unique ID and name for the new host server
-    const newId = this.generateUUID();
-    const existingProfiles = this.hostProfileService.profiles();
-    let counter = 1;
-    let newName = 'New Host Server';
-    while (existingProfiles.some(p => p.name === newName)) {
-      newName = `New Host Server (${counter++})`;
-    }
-
-    // Create a new profile with default values
-    const newProfile = {
-      id: newId,
-      name: newName,
-      hostServerUrl: 'http://localhost:8085',
-      imageUrl: '',
-      environment: 'DEV' as const,
-      cloudProvider: 'ON_PREM' as const,
-      status: 'ACTIVE' as const,
-    };
-
-    // Save the profile
-    await this.hostProfileService.saveProfile(newProfile);
-
-    // Reload the folder tree to include the new host server
-    await this.loadFolderTree();
-
-    // Navigate to the new host server's editor
-    const activeId = this.activePaneId();
-    this.panePaths.update(paths => {
-      const otherPanes = paths.filter(p => p.id !== activeId);
-      return [...otherPanes, { id: activeId, path: ['Host Servers', newName] }];
-    });
-  }
-
-  async onAddGateway(): Promise<void> {
-    const existingProfiles = this.profileService.profiles();
-    let counter = 1;
-    let newName = 'New Gateway';
-    while (existingProfiles.some(p => p.name === newName)) {
-      newName = `New Gateway (${counter++})`;
-    }
-
-    const newProfile = {
-      name: newName,
-      brokerUrl: 'localhost:8080',
-      imageUrl: '',
-      autoConnect: false,
-    };
-
-    // Save the profile using BrokerProfileService (addProfile generates ID)
-    await this.profileService.addProfile(newProfile);
-
-    // Reload the folder tree
-    await this.loadFolderTree();
-
-    // Navigate to the new gateway's editor
-    const activeId = this.activePaneId();
-    this.panePaths.update(paths => {
-      const otherPanes = paths.filter(p => p.id !== activeId);
-      return [...otherPanes, { id: activeId, path: ['Gateways', newName] }];
-    });
-  }
-
-  private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      var r = (Math.random() * 16) | 0,
-        v = c == 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  }
 
   // --- UI Toggles ---
   toggleDetailPane(): void {
@@ -1441,7 +1557,27 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // --- Toolbar Action Handling ---
+  // --- Toolbar Action Handling ---
   onToolbarAction(name: string, payload?: any): void {
+    if (name === 'delete') {
+      if (this.isGatewaySelected()) {
+        this.isDeleteGatewayConfirmOpen.set(true);
+        return;
+      }
+      if (this.isHostServerSelected()) {
+        this.isDeleteHostServerConfirmOpen.set(true);
+        return;
+      }
+    }
+
+    if (name === 'rename') {
+      if ((this.isGatewayContext() && this.isGatewaysNodeSelected()) ||
+        (this.isHostServerContext() && this.isHostServersNodeSelected())) {
+        // Handled by management component
+        return;
+      }
+    }
+
     this.toolbarAction.set({ name, payload, id: Date.now() });
   }
 
@@ -2205,3 +2341,4 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 }
+

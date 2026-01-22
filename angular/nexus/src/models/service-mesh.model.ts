@@ -94,6 +94,38 @@ export interface ServiceInstance {
   updatedAt?: string;
 }
 
+/**
+ * Represents a service hosted/embedded within a parent gateway service.
+ * These are services that run inside the same JVM as the gateway.
+ */
+export interface HostedService {
+  serviceName: string;
+  operations: string[];
+  framework?: string;
+  status?: string;
+  type?: 'embedded' | 'standalone';
+  endpoint?: string;
+  healthCheck?: string;
+}
+
+/**
+ * Extended service interface that includes hosted/embedded services.
+ * Used for displaying the service mesh hierarchy.
+ */
+export interface ServiceWithHosted {
+  id: number;
+  name: string;
+  description?: string;
+  status: string;
+  endpoint?: string;
+  defaultPort?: number;
+  version?: string;
+  framework?: string;
+  operations?: string;
+  lastHeartbeat?: string;
+  hostedServices?: HostedService[];
+}
+
 // ============================================================================
 // Server Models
 // ============================================================================

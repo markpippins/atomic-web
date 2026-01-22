@@ -364,9 +364,13 @@
                     />
                   </svg>
                   <span>{{
-                    managementType()
-                      ? 'Add ' + (managementType() | slice: 0 : -1 | titlecase)
-                      : 'New folder'
+                    isGatewayContext()
+                      ? 'Add New Gateway'
+                      : isHostServerContext()
+                        ? 'Add New Host Server'
+                        : managementType()
+                          ? 'Add ' + (managementType() | slice: 0 : -1 | titlecase)
+                          : 'New folder'
                   }}</span>
                 </div>
                 <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+Shift+N</span>
@@ -400,77 +404,129 @@
         }
       </div>
 
-      <!-- Divider -->
-      <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
+      @if (isGatewaySelected() || isHostServerSelected()) {
+        <!-- Gateway/Host Editor Save/Reset Buttons -->
+        <button
+          (click)="saveClick.emit()"
+          [disabled]="!canSave()"
+          title="Save Changes"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[rgb(var(--color-success-bg))] text-[rgb(var(--color-success-text))] hover:bg-[rgb(var(--color-success-bg-hover))] transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Save
+        </button>
+        <button
+          (click)="resetClick.emit()"
+          title="Reset Changes"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover-subtle))] transition-colors text-xs font-medium border border-[rgb(var(--color-border-muted))]"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm10.899 12.101A7.002 7.002 0 012.399 8.567a1 1 0 011.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Reset
+        </button>
+      }
 
-      <!-- Action Buttons -->
-      <button
-        (click)="cutClick.emit()"
-        [disabled]="!canCut()"
-        title="Cut (Ctrl+X)"
-        class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
+      @if (!isGatewayContext() && !isHostServerContext()) {
+        <!-- Divider -->
+        <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
+
+        <!-- Action Buttons -->
+        <button
+          (click)="cutClick.emit()"
+          [disabled]="!canCut()"
+          title="Cut (Ctrl+X)"
+          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8 7v8a2 2 0 002 2h4M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M8 7h8m-5 5h2m-5 3h6"
-          />
-        </svg>
-      </button>
-      <button
-        (click)="copyClick.emit()"
-        [disabled]="!canCopy()"
-        title="Copy (Ctrl+C)"
-        class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8 7v8a2 2 0 002 2h4M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M8 7h8m-5 5h2m-5 3h6"
+            />
+          </svg>
+        </button>
+        <button
+          (click)="copyClick.emit()"
+          [disabled]="!canCopy()"
+          title="Copy (Ctrl+C)"
+          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-          />
-        </svg>
-      </button>
-      <button
-        (click)="pasteClick.emit()"
-        [disabled]="!canPaste()"
-        title="Paste (Ctrl+V)"
-        class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+        <button
+          (click)="pasteClick.emit()"
+          [disabled]="!canPaste()"
+          title="Paste (Ctrl+V)"
+          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-          />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
+          </svg>
+        </button>
+      }
+
       <button
         (click)="renameClick.emit()"
-        [disabled]="!canRename()"
-        title="Rename (F2)"
+        [disabled]="
+          isGatewayContext()
+            ? !isGatewaySelected()
+            : isHostServerContext()
+              ? !isHostServerSelected()
+              : !canRename()
+        "
+        [title]="isGatewayContext() || isHostServerContext() ? 'Edit' : 'Rename (F2)'"
         class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg
@@ -488,31 +544,47 @@
           />
         </svg>
       </button>
-      <button
-        (click)="shareClick.emit()"
-        [disabled]="!canShare()"
-        title="Share"
-        class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
+
+      @if (!isGatewayContext() && !isHostServerContext()) {
+        <button
+          (click)="shareClick.emit()"
+          [disabled]="!canShare()"
+          title="Share"
+          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-          />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+            />
+          </svg>
+        </button>
+      }
+
       <button
         (click)="deleteClick.emit()"
-        [disabled]="!canDelete()"
-        title="Delete (Del)"
+        [disabled]="
+          isGatewayContext()
+            ? !isGatewaySelected()
+            : isHostServerContext()
+              ? !isHostServerSelected()
+              : !canDelete()
+        "
+        [title]="
+          isGatewayContext()
+            ? 'Delete Gateway'
+            : isHostServerContext()
+              ? 'Delete Host Server'
+              : 'Delete (Del)'
+        "
         class="p-2 rounded-md hover:bg-[rgb(var(--color-danger-bg-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg
@@ -530,112 +602,117 @@
           />
         </svg>
       </button>
-      <button
-        (click)="magnetizeClick.emit()"
-        [disabled]="!canMagnetize()"
-        title="Magnetize"
-        class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
-          viewBox="0 0 20 20"
-          fill="currentColor"
+
+      @if (!isGatewayContext() && !isHostServerContext()) {
+        <button
+          (click)="magnetizeClick.emit()"
+          [disabled]="!canMagnetize()"
+          title="Magnetize"
+          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <path d="M4 3h3v4a3 3 0 1 0 6 0V3h3v4a6 6 0 1 1-12 0V3z" />
-        </svg>
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M4 3h3v4a3 3 0 1 0 6 0V3h3v4a6 6 0 1 1-12 0V3z" />
+          </svg>
+        </button>
+      }
       <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
 
-      <!-- Copy to / Move to -->
-      <div class="relative inline-block text-left">
-        <button
-          (click)="toggleCopyToDropdown($event)"
-          [disabled]="!canCopyToMoveTo()"
-          type="button"
-          title="Copy to..."
-          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
+      @if (!isGatewayContext()) {
+        <!-- Copy to / Move to -->
+        <div class="relative inline-block text-left">
+          <button
+            (click)="toggleCopyToDropdown($event)"
+            [disabled]="!canCopyToMoveTo()"
+            type="button"
+            title="Copy to..."
+            class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M8 7v4m0 0l-3-3m3 3l3-3m-6 3h6l-3-3m6 10v4m0 0l-3-3m3 3l3-3m-6 3h6l-3-3M9 7h6a2 2 0 012 2v10a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z"
-            />
-          </svg>
-        </button>
-        @if (isCopyToOpen()) {
-          <div
-            class="absolute left-0 z-10 mt-2 w-48 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-          >
-            <div class="py-1">
-              @if (folderTree(); as tree) {
-                @for (child of tree.children; track child.name) {
-                  @if (child.type === 'folder') {
-                    <app-destination-node
-                      [node]="child"
-                      [path]="[child.name]"
-                      [currentSourcePath]="currentPath()"
-                      (destinationSelected)="onDestinationSelectedForCopy($event)"
-                    ></app-destination-node>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 7v4m0 0l-3-3m3 3l3-3m-6 3h6l-3-3m6 10v4m0 0l-3-3m3 3l3-3m-6 3h6l-3-3M9 7h6a2 2 0 012 2v10a2 2 0 01-2 2H9a2 2 0 01-2-2V9a2 2 0 012-2z"
+              />
+            </svg>
+          </button>
+          @if (isCopyToOpen()) {
+            <div
+              class="absolute left-0 z-10 mt-2 w-48 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+            >
+              <div class="py-1">
+                @if (folderTree(); as tree) {
+                  @for (child of tree.children; track child.name) {
+                    @if (child.type === 'folder') {
+                      <app-destination-node
+                        [node]="child"
+                        [path]="[child.name]"
+                        [currentSourcePath]="currentPath()"
+                        (destinationSelected)="onDestinationSelectedForCopy($event)"
+                      ></app-destination-node>
+                    }
                   }
                 }
-              }
+              </div>
             </div>
-          </div>
-        }
-      </div>
-      <div class="relative inline-block text-left">
-        <button
-          (click)="toggleMoveToDropdown($event)"
-          [disabled]="!canCopyToMoveTo()"
-          type="button"
-          title="Move to..."
-          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
+          }
+        </div>
+        <div class="relative inline-block text-left">
+          <button
+            (click)="toggleMoveToDropdown($event)"
+            [disabled]="!canCopyToMoveTo()"
+            type="button"
+            title="Move to..."
+            class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-            />
-          </svg>
-        </button>
-        @if (isMoveToOpen()) {
-          <div
-            class="absolute left-0 z-10 mt-2 w-48 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-          >
-            <div class="py-1">
-              @if (folderTree(); as tree) {
-                @for (child of tree.children; track child.name) {
-                  @if (child.type === 'folder') {
-                    <app-destination-node
-                      [node]="child"
-                      [path]="[child.name]"
-                      [currentSourcePath]="currentPath()"
-                      (destinationSelected)="onDestinationSelectedForMove($event)"
-                    ></app-destination-node>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+              />
+            </svg>
+          </button>
+          @if (isMoveToOpen()) {
+            <div
+              class="absolute left-0 z-10 mt-2 w-48 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+            >
+              <div class="py-1">
+                @if (folderTree(); as tree) {
+                  @for (child of tree.children; track child.name) {
+                    @if (child.type === 'folder') {
+                      <app-destination-node
+                        [node]="child"
+                        [path]="[child.name]"
+                        [currentSourcePath]="currentPath()"
+                        (destinationSelected)="onDestinationSelectedForMove($event)"
+                      ></app-destination-node>
+                    }
                   }
                 }
-              }
+              </div>
             </div>
-          </div>
-        }
-      </div>
+          }
+        </div>
+      }
     </div>
   }
 

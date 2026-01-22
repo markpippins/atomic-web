@@ -62,6 +62,13 @@ export class ToolbarComponent {
 
   // Management context
   managementType = input<string | undefined>(undefined);
+  isGatewayContext = input(false);
+  isGatewaysNodeSelected = input(false);
+  isGatewaySelected = input(false);
+  isHostServerContext = input(false);
+  isHostServersNodeSelected = input(false);
+  isHostServerSelected = input(false);
+  canSave = input(false);
 
   // Service Mesh / Graph inputs
   graphInteractionMode = input<'camera' | 'edit'>('camera');
@@ -87,6 +94,8 @@ export class ToolbarComponent {
   filterChange = output<string>();
   splitViewClick = output<void>();
   detailPaneClick = output<void>();
+  saveClick = output<void>();
+  resetClick = output<void>();
   themeMenuClick = output<HTMLElement>();
   rssFeedsMenuClick = output<void>();
   preferencesMenuClick = output<void>();

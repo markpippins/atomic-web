@@ -55,6 +55,13 @@ export class HostServerEditorComponent {
     // Output: emit when save is complete
     saved = output<void>();
 
+    // Triggers from toolbar
+    saveTrigger = input<{ id: number; paneId: number } | null>(null);
+    resetTrigger = input<{ id: number; paneId: number } | null>(null);
+
+    // Output for dirty state tracking
+    dirtyStateChange = output<boolean>();
+
     formState = signal<FormState>({ ...INITIAL_FORM_STATE });
     isDirty = signal(false);
     isSaving = signal(false);
@@ -74,6 +81,27 @@ export class HostServerEditorComponent {
             const profile = this.profile();
             if (profile) {
                 this.loadProfileIntoForm(profile);
+            }
+        });
+
+        // Emit dirty state
+        effect(() => {
+            this.dirtyStateChange.emit(this.isDirty());
+        });
+
+        // Listen for save trigger
+        effect(() => {
+            const trigger = this.saveTrigger();
+            if (trigger) {
+                this.saveProfile();
+            }
+        });
+
+        // Listen for reset trigger
+        effect(() => {
+            const trigger = this.resetTrigger();
+            if (trigger) {
+                this.resetForm();
             }
         });
     }

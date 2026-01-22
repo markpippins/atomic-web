@@ -502,6 +502,8 @@ export class PlatformManagementComponent {
     // Tab State for Generic Service View
     activeTab = signal<string>('services');
 
+    private componentStartTime = Date.now();
+
     constructor() {
         effect(() => {
             // Reset active tab when management type changes
@@ -518,10 +520,18 @@ export class PlatformManagementComponent {
         effect(() => {
             // Listen for toolbar actions - only process new actions
             const action = this.toolbarAction();
-            if (action && action.id !== this.lastProcessedActionId) {
-                this.lastProcessedActionId = action.id;
-                if (action.name === 'newFolder') {
-                    this.onAdd();
+            if (action) {
+                // Ignore actions that happened before this component was created
+                const isNewAction = action.id > this.componentStartTime;
+
+                if (isNewAction && action.id !== this.lastProcessedActionId) {
+                    this.lastProcessedActionId = action.id;
+                    if (action.name === 'newFolder') {
+                        this.onAdd();
+                    }
+                } else {
+                    // Mark as processed so we don't accidentally process it if logic changes
+                    this.lastProcessedActionId = action.id;
                 }
             }
         });

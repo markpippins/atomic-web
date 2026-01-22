@@ -19,7 +19,9 @@ import {
   HealthStatus,
   DeploymentStatus,
   ServerEnvironment,
-  ServiceOperation
+  ServiceOperation,
+  ServiceWithHosted,
+  HostedService
 } from '../models/service-mesh.model.js';
 
 export interface ServiceMeshConnection {
@@ -53,6 +55,9 @@ export class ServiceMeshService {
   // NEW: Track service statuses from /api/status independently
   private _serviceStatuses = signal<Map<string, { healthStatus: HealthStatus; lastHealthCheck?: string }>>(new Map());
 
+  // NEW: Track services with their hosted/embedded services
+  private _servicesWithHosted = signal<ServiceWithHosted[]>([]);
+
   // Selection State
   private _selectedService = signal<ServiceInstance | null>(null);
   private _selectedPlatformNode = signal<{ type: string, baseUrl: string } | null>(null);
@@ -72,6 +77,7 @@ export class ServiceMeshService {
   readonly selectedService = this._selectedService.asReadonly();
   readonly selectedServiceConfigurations = this._selectedServiceConfigurations.asReadonly();
   readonly serviceStatuses = this._serviceStatuses.asReadonly();
+  readonly servicesWithHosted = this._servicesWithHosted.asReadonly();
 
   constructor() {
     // Auto-connect to all host profiles on startup/change
@@ -327,16 +333,18 @@ export class ServiceMeshService {
     const allDeployments: Deployment[] = [];
     const allDependencies: ServiceDependency[] = [];
     const allServiceStatuses = new Map<string, { healthStatus: HealthStatus; lastHealthCheck?: string }>();
+    const allServicesWithHosted: ServiceWithHosted[] = [];
 
     for (const connection of connections) {
       try {
-        const [frameworks, services, servers, deployments, dependencies, serviceStatuses] = await Promise.all([
+        const [frameworks, services, servers, deployments, dependencies, serviceStatuses, servicesWithHosted] = await Promise.all([
           this.fetchFrameworks(connection.baseUrl),
           this.fetchServices(connection.baseUrl),
           this.fetchServers(connection.baseUrl),
           this.fetchDeployments(connection.baseUrl),
           this.fetchDependencies(connection.baseUrl),
-          this.fetchServiceStatuses(connection.baseUrl) // Fetch statuses separately
+          this.fetchServiceStatuses(connection.baseUrl),
+          this.fetchServicesWithHosted(connection.baseUrl)
         ]);
 
         allFrameworks.push(...frameworks);
@@ -344,6 +352,7 @@ export class ServiceMeshService {
         allServers.push(...servers);
         allDeployments.push(...deployments);
         allDependencies.push(...dependencies);
+        allServicesWithHosted.push(...servicesWithHosted);
 
         // Merge service statuses into the map
         serviceStatuses.forEach((value, key) => {
@@ -364,6 +373,16 @@ export class ServiceMeshService {
       });
     };
 
+    // Deduplicate services with hosted by name
+    const dedupByName = (arr: ServiceWithHosted[]): ServiceWithHosted[] => {
+      const seen = new Set<string>();
+      return arr.filter(item => {
+        if (seen.has(item.name)) return false;
+        seen.add(item.name);
+        return true;
+      });
+    };
+
     // Deduplicate dependencies by composite key (sourceServiceId + targetServiceId)
     const dedupDependencies = (deps: ServiceDependency[]): ServiceDependency[] => {
       const seen = new Set<string>();
@@ -380,7 +399,8 @@ export class ServiceMeshService {
     this._servers.set(dedupById(allServers));
     this._deployments.set(dedupById(allDeployments));
     this._dependencies.set(dedupDependencies(allDependencies));
-    this._serviceStatuses.set(allServiceStatuses); // Store service statuses
+    this._serviceStatuses.set(allServiceStatuses);
+    this._servicesWithHosted.set(dedupByName(allServicesWithHosted));
     this._lastUpdated.set(new Date());
   }
 
@@ -404,6 +424,29 @@ export class ServiceMeshService {
       return services;
     } catch (error) {
       console.error('[ServiceMeshService] Error fetching services:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch services with their hosted/embedded services from the registry API.
+   * This endpoint returns services as gateways/facades with their internal services.
+   */
+  private async fetchServicesWithHosted(baseUrl: string): Promise<ServiceWithHosted[]> {
+    try {
+      const services = await firstValueFrom(
+        this.http.get<ServiceWithHosted[]>(`${baseUrl}/api/registry/services/with-hosted`)
+      );
+      console.log('[ServiceMeshService] Fetched services with hosted:', services.length);
+      services.forEach(s => {
+        if (s.hostedServices && s.hostedServices.length > 0) {
+          console.log(`[ServiceMeshService] Gateway ${s.name} hosts ${s.hostedServices.length} services:`,
+            s.hostedServices.map(h => h.serviceName));
+        }
+      });
+      return services;
+    } catch (error) {
+      console.error('[ServiceMeshService] Error fetching services with hosted:', error);
       return [];
     }
   }

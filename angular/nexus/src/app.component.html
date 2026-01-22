@@ -115,6 +115,9 @@
           [managementType]="
             activePaneId() === 1 ? pane1PlatformNode()?.type : pane2PlatformNode()?.type
           "
+          [isGatewayContext]="isGatewayContext()"
+          [isGatewaysNodeSelected]="isGatewaysNodeSelected()"
+          [isGatewaySelected]="isGatewaySelected()"
           [graphInteractionMode]="vizService.modeSignal()"
           [isSimulationActive]="vizService.isSimulationActive()"
           [backgroundColor]="graphBackgroundColor()"
@@ -142,8 +145,11 @@
           [isSavedItemsVisible]="isSavedItemsVisible()"
           [isRssFeedVisible]="isRssFeedVisible()"
           [isStreamVisible]="isStreamVisible()"
-          (newFolderClick)="onToolbarAction('newFolder')"
+          [canSave]="editorIsDirty()"
+          (newFolderClick)="isGatewayContext() ? onAddGateway() : onToolbarAction('newFolder')"
           (newFileClick)="onToolbarAction('newFile')"
+          (saveClick)="onSaveGateway()"
+          (resetClick)="onResetGateway()"
           (filesUploaded)="onToolbarAction('upload', $event)"
           (cutClick)="onToolbarAction('cut')"
           (copyClick)="onToolbarAction('copy')"
@@ -206,7 +212,26 @@
                       <app-gateway-editor
                         [profileId]="pane1GatewayProfileId()!"
                         [mountedProfileIds]="mountedProfileIds()"
+                        [saveTrigger]="activePaneId() === 1 ? editorSaveTrigger() : null"
+                        [resetTrigger]="activePaneId() === 1 ? editorResetTrigger() : null"
+                        (saved)="loadFolderTree()"
+                        (dirtyStateChange)="activePaneId() === 1 ? editorIsDirty.set($event) : null"
                       ></app-gateway-editor>
+                    } @else if (isHostServersNodeSelected() && activePaneId() === 1) {
+                      <app-host-server-management
+                        [toolbarAction]="activePaneId() === 1 ? toolbarAction() : null"
+                        (addHostServer)="onAddHostServer()"
+                        (editHostServer)="onEditHostServerByName($event)"
+                        (deleteHostServer)="onDeleteHostServerById($event)"
+                      ></app-host-server-management>
+                    } @else if (isGatewaysNodeSelected() && activePaneId() === 1) {
+                      <app-gateway-management
+                        [mountedProfileIds]="mountedProfileIds()"
+                        [toolbarAction]="activePaneId() === 1 ? toolbarAction() : null"
+                        (addGateway)="onAddGateway()"
+                        (editGateway)="onEditGatewayByName($event)"
+                        (deleteGateway)="onDeleteGatewayById($event)"
+                      ></app-gateway-management>
                     } @else if (pane1PlatformNode()) {
                       <app-platform-management
                         [managementType]="pane1PlatformNode()!.type"
@@ -275,7 +300,26 @@
                       <app-gateway-editor
                         [profileId]="pane2GatewayProfileId()!"
                         [mountedProfileIds]="mountedProfileIds()"
+                        [saveTrigger]="activePaneId() === 2 ? editorSaveTrigger() : null"
+                        [resetTrigger]="activePaneId() === 2 ? editorResetTrigger() : null"
+                        (saved)="loadFolderTree()"
+                        (dirtyStateChange)="activePaneId() === 2 ? editorIsDirty.set($event) : null"
                       ></app-gateway-editor>
+                    } @else if (isHostServersNodeSelected() && activePaneId() === 2) {
+                      <app-host-server-management
+                        [toolbarAction]="activePaneId() === 2 ? toolbarAction() : null"
+                        (addHostServer)="onAddHostServer()"
+                        (editHostServer)="onEditHostServerByName($event)"
+                        (deleteHostServer)="onDeleteHostServerById($event)"
+                      ></app-host-server-management>
+                    } @else if (isGatewaysNodeSelected() && activePaneId() === 2) {
+                      <app-gateway-management
+                        [mountedProfileIds]="mountedProfileIds()"
+                        [toolbarAction]="activePaneId() === 2 ? toolbarAction() : null"
+                        (addGateway)="onAddGateway()"
+                        (editGateway)="onEditGatewayByName($event)"
+                        (deleteGateway)="onDeleteGatewayById($event)"
+                      ></app-gateway-management>
                     } @else if (pane2PlatformNode()) {
                       <app-platform-management
                         [managementType]="pane2PlatformNode()!.type"
@@ -1178,4 +1222,14 @@
     [profile]="profileForCreateUser()"
     (close)="isCreateUserDialogOpen.set(false)"
   ></app-create-user-dialog>
+
+  @if (isDeleteGatewayConfirmOpen()) {
+    <app-confirm-dialog
+      title="Delete Gateway"
+      message="Are you sure you want to delete this gateway profile? This action cannot be undone."
+      confirmButtonText="Delete"
+      (confirm)="onDeleteGateway()"
+      (close)="isDeleteGatewayConfirmOpen.set(false)"
+    ></app-confirm-dialog>
+  }
 </div>
