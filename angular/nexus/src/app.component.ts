@@ -429,6 +429,11 @@ export class AppComponent implements OnInit, OnDestroy {
   isHostServersNodeSelected = computed(() => this.activePanePath().length === 1 && this.activePanePath()[0] === 'Host Servers');
   isHostServerSelected = computed(() => this.activePanePath().length === 2 && this.activePanePath()[0] === 'Host Servers');
 
+  isPlatformManagementContext = computed(() => {
+    // Check if current view is a platform management view
+    return !!(this.activePaneId() === 1 ? this.pane1PlatformNode() : this.pane2PlatformNode());
+  });
+
   // Trigger for child editor save/reset
   editorSaveTrigger = signal<{ id: number; paneId: number } | null>(null);
   editorResetTrigger = signal<{ id: number; paneId: number } | null>(null);
@@ -558,6 +563,7 @@ export class AppComponent implements OnInit, OnDestroy {
       return [...otherPanes, { id: activeId, path: ['Gateways', name] }];
     });
   }
+
 
   // --- Toolbar State Management ---
   toolbarAction = signal<{ name: string; payload?: any; id: number } | null>(null);
@@ -834,8 +840,8 @@ export class AppComponent implements OnInit, OnDestroy {
             return brokerProfileNodes;
           }
 
-          // Service Registries folder (formerly Host Servers)
-          if (rootName === 'Service Registries') {
+          // Host Servers folder
+          if (rootName === 'Host Servers') {
             return hostProfileNodes;
           }
 
@@ -863,8 +869,8 @@ export class AppComponent implements OnInit, OnDestroy {
               type: 'folder',
               id: node.id,
               metadata: node.metadata,
-              children: [],
-              childrenLoaded: !node.hasChildren,
+              children: [], // Children will be loaded on demand
+              childrenLoaded: false, // Children are not loaded until the node is expanded
               isServerRoot: false
             }));
           }
@@ -889,9 +895,9 @@ export class AppComponent implements OnInit, OnDestroy {
           isVirtualFolder: true,
         };
 
-        // Create "Service Registries" virtual folder containing host server profiles
-        const serviceRegistriesNode: FileSystemNode = {
-          name: 'Service Registries',
+        // Create "Host Servers" virtual folder containing host server profiles
+        const hostServersNode: FileSystemNode = {
+          name: 'Host Servers',
           type: 'folder',
           children: hostProfileNodes,
           childrenLoaded: true,
@@ -912,12 +918,12 @@ export class AppComponent implements OnInit, OnDestroy {
         // - Other host nodes (Services, Users, Search & Discovery, Platform Management)
         // - File Systems (containing Local Session)
         // - Gateways (containing broker gateways) - only if there are profiles
-        // - Service Registries (containing host server profiles)
+        // - Host Servers (containing host server profiles)
         const rootChildren = [
           ...otherHostNodes,
           ...(fileSystemsNode ? [fileSystemsNode] : [sessionNode]),
           ...(allBrokerProfiles.length > 0 ? [gatewaysNode] : []),
-          ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []),
+          ...(allHostProfiles.length > 0 ? [hostServersNode] : []),
         ];
 
         console.log('[homeProvider.getContents] returning rootChildren:', rootChildren.map(c => c.name));
@@ -1041,7 +1047,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Handle virtual organization folders (Platform Management, Search & Discovery, Users, Services)
     // These are top-level categories that don't have navigable children in the file explorer main area
-    const virtualOrgFolders = ['Platform Management', 'Search & Discovery', 'Users', 'Services'];
+    const virtualOrgFolders = ['Search & Discovery', 'Users', 'Services'];
     if (virtualOrgFolders.includes(rootName)) {
       // Return homeProvider which will return empty array for these
       return this.homeProvider;

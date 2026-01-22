@@ -9,23 +9,7 @@ import { HostProfile } from '../../models/host-profile.model.js';
   imports: [CommonModule],
   template: `
     <div class="h-full flex flex-col bg-[rgb(var(--color-surface))]">
-      <div class="p-6 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-xl font-bold text-[rgb(var(--color-text-prominent))]">Host Servers</h1>
-            <p class="text-sm text-[rgb(var(--color-text-muted))]">Manage your remote host server profiles</p>
-          </div>
-          <button
-            (click)="addHostServer.emit()"
-            class="flex items-center gap-2 px-4 py-2 rounded-md bg-[rgb(var(--color-primary-600))] text-white hover:bg-[rgb(var(--color-primary-700))] transition-colors text-sm font-medium shadow-sm"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Add New Host Server
-          </button>
-        </div>
-      </div>
+
 
       <div class="flex-1 overflow-auto p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

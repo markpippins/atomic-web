@@ -118,6 +118,10 @@
           [isGatewayContext]="isGatewayContext()"
           [isGatewaysNodeSelected]="isGatewaysNodeSelected()"
           [isGatewaySelected]="isGatewaySelected()"
+          [isHostServerContext]="isHostServerContext()"
+          [isHostServersNodeSelected]="isHostServersNodeSelected()"
+          [isHostServerSelected]="isHostServerSelected()"
+          [isPlatformManagementContext]="isPlatformManagementContext()"
           [graphInteractionMode]="vizService.modeSignal()"
           [isSimulationActive]="vizService.isSimulationActive()"
           [backgroundColor]="graphBackgroundColor()"
@@ -146,7 +150,13 @@
           [isRssFeedVisible]="isRssFeedVisible()"
           [isStreamVisible]="isStreamVisible()"
           [canSave]="editorIsDirty()"
-          (newFolderClick)="isGatewayContext() ? onAddGateway() : onToolbarAction('newFolder')"
+          (newFolderClick)="
+            isGatewayContext()
+              ? onAddGateway()
+              : isHostServerContext()
+                ? onAddHostServer()
+                : onToolbarAction('newFolder')
+          "
           (newFileClick)="onToolbarAction('newFile')"
           (saveClick)="onSaveGateway()"
           (resetClick)="onResetGateway()"
@@ -207,6 +217,10 @@
                     @if (pane1HostServerProfileId()) {
                       <app-host-server-editor
                         [profileId]="pane1HostServerProfileId()!"
+                        [saveTrigger]="activePaneId() === 1 ? editorSaveTrigger() : null"
+                        [resetTrigger]="activePaneId() === 1 ? editorResetTrigger() : null"
+                        (saved)="loadFolderTree()"
+                        (dirtyStateChange)="activePaneId() === 1 ? editorIsDirty.set($event) : null"
                       ></app-host-server-editor>
                     } @else if (pane1GatewayProfileId()) {
                       <app-gateway-editor
@@ -232,11 +246,10 @@
                         (editGateway)="onEditGatewayByName($event)"
                         (deleteGateway)="onDeleteGatewayById($event)"
                       ></app-gateway-management>
-                    } @else if (pane1PlatformNode()) {
                       <app-platform-management
                         [managementType]="pane1PlatformNode()!.type"
                         [baseUrl]="pane1PlatformNode()!.baseUrl"
-                        [toolbarAction]="toolbarAction()"
+                        [toolbarAction]="activePaneId() === 1 ? toolbarAction() : null"
                       ></app-platform-management>
                     } @else {
                       <app-file-explorer
@@ -295,6 +308,10 @@
                     @if (pane2HostServerProfileId()) {
                       <app-host-server-editor
                         [profileId]="pane2HostServerProfileId()!"
+                        [saveTrigger]="activePaneId() === 2 ? editorSaveTrigger() : null"
+                        [resetTrigger]="activePaneId() === 2 ? editorResetTrigger() : null"
+                        (saved)="loadFolderTree()"
+                        (dirtyStateChange)="activePaneId() === 2 ? editorIsDirty.set($event) : null"
                       ></app-host-server-editor>
                     } @else if (pane2GatewayProfileId()) {
                       <app-gateway-editor
@@ -324,7 +341,7 @@
                       <app-platform-management
                         [managementType]="pane2PlatformNode()!.type"
                         [baseUrl]="pane2PlatformNode()!.baseUrl"
-                        [toolbarAction]="toolbarAction()"
+                        [toolbarAction]="activePaneId() === 2 ? toolbarAction() : null"
                       ></app-platform-management>
                     } @else {
                       <app-file-explorer
@@ -1230,6 +1247,15 @@
       confirmButtonText="Delete"
       (confirm)="onDeleteGateway()"
       (close)="isDeleteGatewayConfirmOpen.set(false)"
+    ></app-confirm-dialog>
+  }
+  @if (isDeleteHostServerConfirmOpen()) {
+    <app-confirm-dialog
+      title="Delete Host Server"
+      message="Are you sure you want to delete this host server profile? This action cannot be undone."
+      confirmButtonText="Delete"
+      (confirm)="onDeleteHostServer()"
+      (close)="isDeleteHostServerConfirmOpen.set(false)"
     ></app-confirm-dialog>
   }
 </div>

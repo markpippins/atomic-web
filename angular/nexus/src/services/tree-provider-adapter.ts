@@ -15,8 +15,8 @@ export class TreeProviderAdapter implements FileSystemProvider {
             type: node.type === NodeType.FILE ? 'file' : 'folder',
             id: node.id,
             metadata: { ...node.metadata, ...(node.icon ? { icon: node.icon } : {}) },
-            children: node.children ? node.children.map(c => this.mapNode(c)) : [],
-            childrenLoaded: !!node.children || !node.hasChildren,
+            children: [], // Don't populate children initially - they will be loaded on demand
+            childrenLoaded: false, // Children are not loaded until the node is expanded
             isServerRoot: false // node.type === NodeType.ROOT ?
         };
     }
@@ -45,16 +45,34 @@ export class TreeProviderAdapter implements FileSystemProvider {
     }
 
     async getFolderTree(): Promise<FileSystemNode> {
-        // This usually returns the root node of this provider
-        // We can fetch the root node details if needed, but TreeProvider.getChildren gets children.
-        // We might need a way to get the root node itself.
-        // For now, returning a placeholder.
+        // For the getFolderTree method, we need to return the root node of this provider
+        // Since this is an adapter for a specific node, we'll create a representation of that node
+        // The actual children will be loaded via getContents when the node is expanded
+
         return {
-            name: 'Root',
+            name: this.getNodeNameFromId(this.rootNodeId), // Get appropriate name for the root node
             type: 'folder',
-            children: [],
-            childrenLoaded: false
+            id: this.rootNodeId,
+            children: [], // Children will be loaded on demand via getContents
+            childrenLoaded: false,
+            isServerRoot: false
         };
+    }
+
+    private getNodeNameFromId(nodeId: string): string {
+        // Simple mapping based on known node IDs
+        switch(nodeId) {
+            case 'platform': return 'Platform Management';
+            case 'users': return 'Users';
+            case 'search': return 'Search & Discovery';
+            case 'filesystems': return 'File Systems';
+            default:
+                if (nodeId.startsWith('host-')) {
+                    // Extract name from host-<profileId> format
+                    return `Host-${nodeId.substring(5)}`;
+                }
+                return nodeId.charAt(0).toUpperCase() + nodeId.slice(1);
+        }
     }
 
     // Read-only for now

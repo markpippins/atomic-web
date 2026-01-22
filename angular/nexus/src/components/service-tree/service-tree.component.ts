@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ServiceMeshService } from '../../services/service-mesh.service.js';
 import { HostProfileService } from '../../services/host-profile.service.js';
+import { LocalConfigService } from '../../services/local-config.service.js';
 import {
   ServiceInstance,
   Framework,
@@ -38,6 +39,7 @@ interface GroupedService {
 export class ServiceTreeComponent {
   private serviceMeshService = inject(ServiceMeshService);
   private hostProfileService = inject(HostProfileService);
+  private localConfigService = inject(LocalConfigService);
 
   services = input<ServiceInstance[]>([]);
   dependencies = input<ServiceDependency[]>([]);
@@ -218,6 +220,19 @@ export class ServiceTreeComponent {
 
   getFrameworkIcon(category: string): string {
     return getFrameworkIcon(category as Parameters<typeof getFrameworkIcon>[0]);
+  }
+
+  getFrameworkImageUrl(frameworkName: string): string {
+    const baseUrl = this.localConfigService.defaultImageUrl();
+    if (!baseUrl) return '';
+
+    // Substitution rules:
+    // 1. " & " -> "-"
+    // 2. Spaces -> "-"
+    // 3. Lowercase
+    const normalized = frameworkName.replace(/ & /g, '-').replace(/ /g, '-').toLowerCase();
+
+    return `${baseUrl}/${encodeURIComponent(normalized)}`;
   }
 
   getHealthStatusColor(status: HealthStatus): string {

@@ -68,6 +68,7 @@ export class ToolbarComponent {
   isHostServerContext = input(false);
   isHostServersNodeSelected = input(false);
   isHostServerSelected = input(false);
+  isPlatformManagementContext = input(false);
   canSave = input(false);
 
   // Service Mesh / Graph inputs

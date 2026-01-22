@@ -150,16 +150,6 @@ export class HostServerProvider implements TreeProvider {
 
             return [
                 {
-                    id: `platform-servers-${profile.id}`,
-                    name: 'Hosts', // Renamed from Service Hosts
-                    type: NodeType.FOLDER,
-                    icon: 'storage',
-                    hasChildren: false,
-                    operations: ['manage-servers'],
-                    metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/servers`, managementType: 'servers' },
-                    lastUpdated: new Date()
-                },
-                {
                     id: `platform-deployments-${profile.id}`,
                     name: 'Deployments',
                     type: NodeType.FOLDER,
@@ -167,6 +157,16 @@ export class HostServerProvider implements TreeProvider {
                     hasChildren: false,
                     operations: ['manage-deployments'],
                     metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/deployments`, managementType: 'deployments' },
+                    lastUpdated: new Date()
+                },
+                {
+                    id: `platform-servers-${profile.id}`,
+                    name: 'Hosts',
+                    type: NodeType.FOLDER,
+                    icon: 'storage',
+                    hasChildren: false,
+                    operations: ['manage-servers'],
+                    metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/servers`, managementType: 'servers' },
                     lastUpdated: new Date()
                 },
                 {
@@ -179,7 +179,6 @@ export class HostServerProvider implements TreeProvider {
                     metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/services`, managementType: 'services' },
                     lastUpdated: new Date()
                 },
-                // Add System Health as well
                 {
                     id: `platform-health-${profile.id}`,
                     name: 'System Health',
@@ -284,12 +283,22 @@ export class HostServerProvider implements TreeProvider {
             },
             {
                 id: `platform-servers-${profile.id}`,
-                name: 'Service Hosts',
+                name: 'Hosts',
                 type: NodeType.FOLDER,
                 icon: 'storage',
                 hasChildren: false,
                 operations: ['manage-servers'],
                 metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/servers`, managementType: 'servers' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-services-${profile.id}`,
+                name: 'Services',
+                type: NodeType.FOLDER,
+                icon: 'dns',
+                hasChildren: false,
+                operations: ['manage-services'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/services`, managementType: 'services' },
                 lastUpdated: new Date()
             },
             {

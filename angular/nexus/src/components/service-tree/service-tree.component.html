@@ -66,9 +66,24 @@
   @for (group of groupedServices(); track group.framework.id) {
     <div class="framework-group">
       <div class="framework-header" (click)="toggleFramework(group.framework.id)">
-        <mat-icon class="framework-icon">{{
-          getFrameworkIcon(group.framework.category.name)
-        }}</mat-icon>
+        @if (getFrameworkImageUrl(group.framework.name); as imageUrl) {
+          <img
+            [src]="imageUrl"
+            class="framework-icon h-6 w-6 object-contain"
+            alt="{{ group.framework.name }}"
+            onerror="
+              this.style.display = 'none';
+              this.nextElementSibling.style.display = 'block';
+            "
+          />
+          <mat-icon class="framework-icon" style="display: none">{{
+            getFrameworkIcon(group.framework.category.name)
+          }}</mat-icon>
+        } @else {
+          <mat-icon class="framework-icon">{{
+            getFrameworkIcon(group.framework.category.name)
+          }}</mat-icon>
+        }
         <div class="framework-info">
           <div class="framework-name">{{ group.framework.name }}</div>
           <div class="framework-stats">

@@ -3,7 +3,46 @@
 ## Overview
 Nexus is a unified service mesh management dashboard allowing users to visualize, monitor, and manage services, deployments, and infrastructure across multiple host servers.
 
-## Current Feature: Gateway Editing Experience Integration (In Progress)
+## Current Feature: Explorer Tree Refinements
+Refining the "Platform Management" explorer tree nodes to match user requirements for structure and naming consistency.
+
+### Implementation Status
+✅ **Completed:**
+- Modified `HostServerProvider.ts` to reorder children of `platform` node: Deployments, Hosts, Services, System Health.
+- Renamed "Service Hosts" to "Hosts" in `fetchPlatformInfo` for consistency.
+- Verified build success.
+
+### Next Steps
+1. Verify visual appearance in the sidebar.
+
+## Current Feature: UI Consistency
+### Align Toolbar Behavior for Host Servers
+Updated the toolbar context handling to apply the same rules for Host Servers as Gateways. This ensures that file operation buttons (cut, copy, paste, etc.) are hidden when in a Host Server context, and enabling relevant actions like "Save", "Reset", and "Add Host Server".
+- **Modified**: `src/app.component.html` - Bound `isHostServer` signals to toolbar and updated event handlers.
+- **Modified**: `src/app.component.html` - Bound save/reset triggers to `app-host-server-editor` to enable toolbar-driven saving.
+- **Modified**: `src/components/toolbar/toolbar.component.html` - Hidden "Copy To" and "Move To" dropdowns when in Host Server context.
+
+### Align Toolbar Behavior for Platform Management
+Extended the toolbar consistency to "Platform Management" contexts (e.g., Services, Deployments, Frameworks).
+- **Modified**: `src/app.component.ts` - Added `isPlatformManagementContext` computed signal.
+- **Modified**: `src/app.component.html` - Bound `isPlatformManagementContext` to toolbar and updated `toolbarAction` binding for `app-platform-management` to be pane-aware.
+- **Modified**: `src/components/toolbar/toolbar.component.ts` - Added `isPlatformManagementContext` input.
+- **Modified**: `src/components/toolbar/toolbar.component.html` - Hidden file operations (Cut, Copy, Paste, Share, Copy To, Move To, Magnetize) when in Platform Management context. "New" button dynamically shows "Add [Type]" (already implemented in template logic).
+
+## Current Feature: UI Cleanup
+### Remove Redundant Header Cards
+Removed redundant header cards containing the "Add New ..." buttons from the Gateway and Host Server management views, as this functionality is already provided by the Toolbar.
+- **Modified**: `src/components/gateway-management/gateway-management.component.ts`
+- **Modified**: `src/components/host-server-management/host-server-management.component.ts`
+
+## Current Feature: Bug Fixes
+### Fixed "Delete Host Server" Button
+Fixed an issue where clicking "Delete" for a Host Server profile would initiate the confirmation logic but fail to show the dialog.
+- **Implemented**: Added missing `<app-confirm-dialog>` for `isDeleteHostServerConfirmOpen` in `app.component.html`.
+- **Verified**: Confirmed `onDeleteHostServer` method exists and is correctly wired.
+- **Cleaned**: Removed duplicate/stub implementations of `onDeleteHostServer` mistakenly added during investigation.
+
+## Previous Feature: Gateway Editing Experience Integration
 Integrating the gateway editor directly into the Nexus Explorer view to allow inline editing of gateway profiles when a gateway node is selected.
 
 ### Implementation Status
@@ -28,23 +67,6 @@ Integrating the gateway editor directly into the Nexus Explorer view to allow in
 - Runtime testing of gateway selection and editing workflow
 - Testing "Add Gateway" functionality from context menu/toolbar
 
-### Next Steps
-1. Verify build completes successfully
-2. Test gateway node selection triggers editor display
-3. Test save/reset functionality in the editor
-4. Test "Add Gateway" creates new profile and navigates to editor
-5. Confirm delete gateway workflow
-6. Update context menu for "Gateways" folder (if needed)
-7. Verified "Platform Management" node visibility (renamed from "Infrastructure")
-8. Renamed "Servers" node to "Service Hosts" to match user terminology.
-9. Improved routing logic to correctly resolve profiles for "Service Hosts", "Deployments", and "Service Definitions".
-10. Enabled tree browsing for "Platform Management" folder by activating its `TreeProviderAdapter`.
-11. Fixed recursive folder navigation in "Platform Management" by implementing proper path traversal logic.
-12. Renamed "Host Servers" node to "Service Registries" to resolve terminology conflict with physical hosts.
-13. Flattened "Platform Management" tree to display "Hosts", "Deployments", and "Services" directly, using the primary registry as default context.
-14. Removed legacy "Services" node from the root (Home) view to eliminate duplication.
-15. Consolidated all Services configuration and management under the "Platform Management" node.
-16. Cleaned up `HostServerProvider` by removing unused legacy methods (`fetchServiceConfig`, `fetchLookupTypes`).
 
 ## Previous Feature: Service Mesh Sub-Service Visibility
 Enhanced the service mesh to display hosted/embedded services within gateway facades, enabling full visibility into the service hierarchy.
