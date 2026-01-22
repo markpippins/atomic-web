@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ServiceInstance, Framework, Deployment, Library, ServiceLibrary } from '../models/service-mesh.model.js';
+import { ComponentConfig } from '../models/component-config.js';
 
 export interface Host {
     id: number;
@@ -30,6 +31,7 @@ export interface ServicePayload {
     repositoryUrl?: string;
     version?: string;
     status?: string;
+    componentOverrideId?: number;
 }
 
 export interface FrameworkPayload {
@@ -510,6 +512,46 @@ export class PlatformManagementService {
             this.loading.set(false);
         }
     }
+    // Visual Components CRUD
+    async getVisualComponents(baseUrl: string): Promise<ComponentConfig[]> {
+        try {
+            const url = `${baseUrl}/api/visual-components`;
+            return await firstValueFrom(this.http.get<ComponentConfig[]>(url));
+        } catch (e) {
+            console.error('Failed to fetch visual components', e);
+            return [];
+        }
+    }
+
+    async createVisualComponent(baseUrl: string, component: Partial<ComponentConfig>): Promise<ComponentConfig> {
+        this.loading.set(true);
+        try {
+            const url = `${baseUrl}/api/visual-components`;
+            return await firstValueFrom(this.http.post<ComponentConfig>(url, component));
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async updateVisualComponent(baseUrl: string, id: string, component: Partial<ComponentConfig>): Promise<ComponentConfig> {
+        this.loading.set(true);
+        try {
+            const url = `${baseUrl}/api/visual-components/${id}`;
+            return await firstValueFrom(this.http.put<ComponentConfig>(url, component));
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async deleteVisualComponent(baseUrl: string, id: string): Promise<void> {
+        this.loading.set(true);
+        try {
+            const url = `${baseUrl}/api/visual-components/${id}`;
+            await firstValueFrom(this.http.delete<void>(url));
+        } finally {
+            this.loading.set(false);
+        }
+    }
 }
 
 export interface LookupItem {
@@ -517,4 +559,7 @@ export interface LookupItem {
     name: string;
     description?: string;
     activeFlag?: boolean;
+    defaultComponentId?: number;
+    defaultComponent?: ComponentConfig;
 }
+

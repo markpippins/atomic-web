@@ -49,7 +49,7 @@ export class ObjectInspectorComponent {
         return all.filter(n => {
             if (n.id === current.id) return false;
             if (current.connectedTo.includes(n.id)) return false;
-            if (config.allowedConnections !== 'all' && !config.allowedConnections.includes(n.type)) return false;
+            if (config.allowedConnections && config.allowedConnections !== 'all' && !config.allowedConnections.includes(n.type)) return false;
             return true;
         }).sort((a, b) => a.label.localeCompare(b.label));
     });

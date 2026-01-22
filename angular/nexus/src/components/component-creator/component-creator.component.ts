@@ -57,8 +57,8 @@ import { ComponentConfig } from '../../models/component-config.js';
               <div>
                 <label class="block text-xs text-[rgb(var(--color-text-muted))] mb-1">Label Name</label>
                 <input 
-                  [ngModel]="form.label" 
-                  (ngModelChange)="state.updateField('label', $event)" 
+                  [ngModel]="form.name" 
+                  (ngModelChange)="state.updateField('name', $event)" 
                   class="w-full bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-muted))] rounded px-2 py-1 text-sm outline-none focus:border-[rgb(var(--color-accent-ring))]"
                 >
               </div>
@@ -193,7 +193,7 @@ export class ComponentCreatorComponent {
     const form = this.state.activeConfig();
     if (!form) return false;
     if (form.allowedConnections === 'all') return true;
-    return form.allowedConnections.includes(type);
+    return !!form.allowedConnections && form.allowedConnections.includes(type);
   }
 
   toggleAllowed(type: string | 'all'): void {
@@ -207,9 +207,9 @@ export class ComponentCreatorComponent {
         this.state.updateField('allowedConnections', 'all');
       }
     } else {
-      let current: string[] = Array.isArray(form.allowedConnections)
+      let current: string[] = (Array.isArray(form.allowedConnections)
         ? [...form.allowedConnections]
-        : [];
+        : []);
 
       if (current.includes(type)) {
         current = current.filter(t => t !== type);

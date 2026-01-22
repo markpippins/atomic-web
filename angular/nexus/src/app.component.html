@@ -246,6 +246,7 @@
                         (editGateway)="onEditGatewayByName($event)"
                         (deleteGateway)="onDeleteGatewayById($event)"
                       ></app-gateway-management>
+                    } @else if (pane1PlatformNode()) {
                       <app-platform-management
                         [managementType]="pane1PlatformNode()!.type"
                         [baseUrl]="pane1PlatformNode()!.baseUrl"

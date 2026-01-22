@@ -30,7 +30,7 @@ export class ComponentCreatorStateService {
     selectComponent(comp: ComponentConfig): void {
         if (comp.isSystem) {
             // System components are read-only, suggest inheritance
-            if (confirm(`System components are read-only. Create a new component based on '${comp.label}'?`)) {
+            if (confirm(`System components are read-only. Create a new component based on '${comp.name}'?`)) {
                 this.createFrom(comp);
             }
         } else {
@@ -50,7 +50,7 @@ export class ComponentCreatorStateService {
     }
 
     createFrom(parent: ComponentConfig): void {
-        const newConfig = this.registry.createDerivedComponent(parent.id, `New ${parent.label}`);
+        const newConfig = this.registry.createDerivedComponent(parent.id, `New ${parent.name}`);
         this._activeConfig.set(newConfig);
         this._selectedId.set(null);
         this._isEditingExisting.set(false);
@@ -94,10 +94,10 @@ export class ComponentCreatorStateService {
     }
 
     getParentName(id: string): string {
-        return this.registry.getConfigById(id)?.label || 'Unknown';
+        return this.registry.getConfigById(id)?.name || 'Unknown';
     }
 
     getLabelForType(type: string): string {
-        return this.registry.getConfig(type).label;
+        return this.registry.getConfig(type).name;
     }
 }

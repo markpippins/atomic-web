@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { PlatformManagementService, LookupItem, ServicePayload } from '../../../services/platform-management.service.js';
 import { Framework, ServiceInstance } from '../../../models/service-mesh.model.js';
+import { ComponentRegistryService } from '../../../services/component-registry.service.js';
 
 @Component({
     selector: 'app-upsert-service-dialog',
@@ -56,6 +57,17 @@ import { Framework, ServiceInstance } from '../../../models/service-mesh.model.j
                      </div>
                  </div>
 
+                 <!-- Visual Override -->
+                 <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Visual Style Override</label>
+                    <select formControlName="componentOverrideId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
+                        <option [value]="null">-- Default (Use Service Type) --</option>
+                        <option *ngFor="let comp of registry.allComponents()" [value]="comp.id">
+                            {{ comp.name }} ({{ comp.geometry }})
+                        </option>
+                    </select>
+                 </div>
+
                  <div class="grid grid-cols-2 gap-4">
                      <!-- Default Port -->
                      <div class="flex flex-col gap-1">
@@ -103,6 +115,7 @@ import { Framework, ServiceInstance } from '../../../models/service-mesh.model.j
 export class UpsertServiceDialogComponent implements OnInit {
     private fb = inject(FormBuilder);
     private platformService = inject(PlatformManagementService);
+    public registry = inject(ComponentRegistryService);
 
     isOpen = input.required<boolean>();
     baseUrl = input.required<string>();
@@ -125,7 +138,8 @@ export class UpsertServiceDialogComponent implements OnInit {
             defaultPort: [null],
             status: ['ACTIVE'],
             apiBasePath: [''],
-            repositoryUrl: ['']
+            repositoryUrl: [''],
+            componentOverrideId: [null]
         });
 
         // Effect to patch values when service changes or dialog opens
@@ -142,11 +156,13 @@ export class UpsertServiceDialogComponent implements OnInit {
                         defaultPort: s.defaultPort,
                         status: s.status as any,
                         apiBasePath: s.apiBasePath,
-                        repositoryUrl: s.repositoryUrl
+                        repositoryUrl: s.repositoryUrl,
+                        componentOverrideId: s.componentOverrideId || null
                     });
                 } else {
                     this.form.reset({
-                        status: 'ACTIVE'
+                        status: 'ACTIVE',
+                        componentOverrideId: null
                     });
                 }
             }
@@ -191,6 +207,9 @@ export class UpsertServiceDialogComponent implements OnInit {
         payload.frameworkId = Number(payload.frameworkId);
         payload.serviceTypeId = Number(payload.serviceTypeId);
         if (payload.defaultPort) payload.defaultPort = Number(payload.defaultPort);
+        if (payload.componentOverrideId) payload.componentOverrideId = Number(payload.componentOverrideId) || undefined;
+        // if null/0, it might be effectively resetting to default.
+        // Backend should handle null.
 
         try {
             let result: ServiceInstance;

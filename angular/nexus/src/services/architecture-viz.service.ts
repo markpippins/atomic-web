@@ -188,7 +188,7 @@ export class ArchitectureVizService {
         this.renderer.domElement.addEventListener('dblclick', (e) => this.onDoubleClick(e));
 
         // 9. Start Loop
-        this.loadDefaultScene();
+        // this.loadDefaultScene(); // Disabled automatic demo loading. Driven by ServiceGraphComponent inputs.
         this.ngZone.runOutsideAngular(() => this.animate());
         setTimeout(() => this.onWindowResize(), 0);
     }
@@ -380,7 +380,8 @@ export class ArchitectureVizService {
         // Auto-generate label based on Registry Default Prefix if not provided
         if (!label) {
             const count = Array.from(this.nodes.values()).filter(n => n.data.type === type).length;
-            label = `${config.defaultNamePrefix} ${count + 1}`;
+            const prefix = config.defaultNamePrefix || config.name || 'Component';
+            label = `${prefix} ${count + 1}`;
         }
 
         let geometry: THREE.BufferGeometry;
@@ -489,7 +490,7 @@ export class ArchitectureVizService {
         const fromConfig = this.registry.getConfig(fromNode.data.type);
         const allowed = fromConfig.allowedConnections;
 
-        if (allowed !== 'all' && !allowed.includes(toNode.data.type)) {
+        if (allowed && allowed !== 'all' && !allowed.includes(toNode.data.type)) {
             console.warn(`Connection not allowed: ${fromNode.data.type} cannot connect to ${toNode.data.type}`);
             return;
         }

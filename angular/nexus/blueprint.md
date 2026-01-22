@@ -12,6 +12,27 @@ Refining the "Platform Management" explorer tree nodes to match user requirement
 - Renamed "Service Hosts" to "Hosts" in `fetchPlatformInfo` for consistency.
 - Verified build success.
 
+## Current Feature: Visual Editor & Graph Integration
+Integration of the 3D Service Architecture Graph and Visual Component Editor with real backend data from `PlatformManagementService`.
+
+### Implementation Status
+✅ **Completed:**
+- **Backend Integration**:
+  - Updated `PlatformManagementService` to handle `VisualComponent` CRUD operations.
+  - Updated `ComponentRegistryService` to fetch component definitions from the backend (`http://localhost:8080`).
+  - Added `defaultComponentId` to `ServiceType` and `componentOverrideId` to `ServiceInstance` models.
+- **Service Graph**:
+  - Refactored `ServiceGraphComponent` to visualize real `ServiceInstance` data fetched from the backend.
+  - Implemented visual style resolution: `Service Override` -> `Service Type Default` -> `Fallback`.
+  - Removed demo scene loading to ensure specific server data is visualized.
+- **Visual Editor UI**:
+  - Updated `UpsertLookupDialog` to allow associating a Default Visual Style with a `ServiceType`.
+  - Updated `UpsertServiceDialog` to allow setting a specific Visual Style Override for a `ServiceInstance`.
+  - Updated `ComponentCreator` to save new component definitions to the backend.
+  - Fixed build errors related to strict typing (`label` vs `name`, `allowedConnections`).
+- **Build Verification**:
+  - Validated that the application builds successfully with the new integration.
+
 ### Next Steps
 1. Verify visual appearance in the sidebar.
 
@@ -41,6 +62,12 @@ Fixed an issue where clicking "Delete" for a Host Server profile would initiate 
 - **Implemented**: Added missing `<app-confirm-dialog>` for `isDeleteHostServerConfirmOpen` in `app.component.html`.
 - **Verified**: Confirmed `onDeleteHostServer` method exists and is correctly wired.
 - **Cleaned**: Removed duplicate/stub implementations of `onDeleteHostServer` mistakenly added during investigation.
+
+### Fixed Missing Platform Management Screens
+Fixed an issue where "Services", "Hosts", and "Deployments" management screens were hidden.
+- **Diagnosis**: The `<app-platform-management>` component was incorrectly nested inside the `isGatewaysNodeSelected` condition block in `app.component.html`, making it unreachable for non-gateway nodes.
+- **Fix**: Moved `<app-platform-management>` to its own `@else if (pane1PlatformNode())` block, restoring visibility for all platform management nodes.
+- **Verified**: Build successful.
 
 ## Previous Feature: Gateway Editing Experience Integration
 Integrating the gateway editor directly into the Nexus Explorer view to allow inline editing of gateway profiles when a gateway node is selected.

@@ -1,7 +1,8 @@
-import { Component, ChangeDetectionStrategy, inject, signal, input, output, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, input, output, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { PlatformManagementService, LookupItem } from '../../../services/platform-management.service.js';
+import { ComponentRegistryService } from '../../../services/component-registry.service.js';
 
 @Component({
     selector: 'app-upsert-lookup-dialog',
@@ -13,7 +14,7 @@ import { PlatformManagementService, LookupItem } from '../../../services/platfor
        <div class="bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-base))] shadow-xl rounded-lg w-full max-w-md flex flex-col">
           <div class="p-4 border-b border-[rgb(var(--color-border-base))] flex justify-between items-center">
             <h2 class="text-lg font-semibold text-[rgb(var(--color-text-base))] capitalize">
-              {{ item() ? 'Edit' : 'Add' }} {{ type() | lowercase | replace:'-':' ' }}
+              {{ item() ? 'Edit' : 'Add' }} {{ displayType() }}
             </h2>
             <button (click)="onCancel()" class="text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))]">
               <span class="material-icons">close</span>
@@ -34,6 +35,17 @@ import { PlatformManagementService, LookupItem } from '../../../services/platfor
                     <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Description</label>
                     <textarea formControlName="description" rows="3" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]" placeholder="Description"></textarea>
                  </div>
+
+                 <!-- Default Visual Component (Service Types only) -->
+                 <div class="flex flex-col gap-1" *ngIf="isServiceType()">
+                    <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Default Visual Style</label>
+                    <select formControlName="defaultComponentId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
+                        <option [ngValue]="null">-- None --</option>
+                        <option *ngFor="let comp of registry.allComponents()" [ngValue]="comp.id">
+                            {{ comp.name }} ({{ comp.geometry }})
+                        </option>
+                    </select>
+                 </div>
              </form>
           </div>
 
@@ -51,6 +63,7 @@ import { PlatformManagementService, LookupItem } from '../../../services/platfor
 export class UpsertLookupDialogComponent {
     private fb = inject(FormBuilder);
     private platformService = inject(PlatformManagementService);
+    public registry = inject(ComponentRegistryService);
 
     isOpen = input.required<boolean>();
     baseUrl = input.required<string>();
@@ -63,10 +76,14 @@ export class UpsertLookupDialogComponent {
     form: FormGroup;
     isSaving = signal(false);
 
+    displayType = computed(() => this.type().toLowerCase().replace(/-/g, ' '));
+    isServiceType = computed(() => this.type() === 'service-types');
+
     constructor() {
         this.form = this.fb.group({
             name: ['', Validators.required],
-            description: ['']
+            description: [''],
+            defaultComponentId: [null]
         });
 
         effect(() => {
@@ -75,10 +92,11 @@ export class UpsertLookupDialogComponent {
                 if (i) {
                     this.form.patchValue({
                         name: i.name,
-                        description: i.description
+                        description: i.description,
+                        defaultComponentId: i.defaultComponentId || null
                     });
                 } else {
-                    this.form.reset();
+                    this.form.reset({ defaultComponentId: null });
                 }
             }
         });

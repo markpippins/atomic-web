@@ -43,6 +43,7 @@ export interface ServiceTypeEntity {
   id: string;
   name: string; // This corresponds to ServiceType (string union) values potentially
   description?: string;
+  defaultComponentId?: number;
 }
 
 export interface Framework {
@@ -92,6 +93,8 @@ export interface ServiceInstance {
   repositoryUrl?: string;
   createdAt?: string;
   updatedAt?: string;
+  componentOverrideId?: number;
+  // componentOverride?: VisualComponent; // If we want the full object
 }
 
 /**

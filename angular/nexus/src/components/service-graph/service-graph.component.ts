@@ -90,7 +90,7 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
       // Rule 2: Cannot connect if already connected
       if (current.connectedTo.includes(n.id)) return false;
       // Rule 3: Must be in allowed connections list
-      if (config.allowedConnections !== 'all' && !config.allowedConnections.includes(n.type)) return false;
+      if (config.allowedConnections && config.allowedConnections !== 'all' && !config.allowedConnections.includes(n.type)) return false;
 
       return true;
     }).sort((a, b) => a.label.localeCompare(b.label));
@@ -121,8 +121,64 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
   private sub = new Subscription();
 
   constructor() {
-    // Sync Selected Node to Form
+    // Sync Services Input to Graph
     effect(() => {
+      const services = this.services();
+      const allComponents = this.registry.allComponents(); // Dependency to ensure loaded
+
+      if (!services || services.length === 0) return;
+      if (allComponents.length === 0) return; // Wait for registry
+
+      // Clear existing scene first
+      this.vizService.clearScene();
+
+      // Calculate a simple layout (grid or circle)
+      const count = services.length;
+      const radius = Math.max(10, count * 2);
+
+      services.forEach((svc, i) => {
+        // Resolve Visual Component
+        let compConfig = this.registry.getConfigById(String(svc.componentOverrideId));
+
+        if (!compConfig && svc.type?.defaultComponentId) {
+          compConfig = this.registry.getConfigById(String(svc.type.defaultComponentId));
+        }
+
+        // Fallback or use resolved config
+        const typeSlug = compConfig ? compConfig.type : 'box';
+        // Note: 'box' isn't really a type slug but generic geometry. 
+        // We need a valid registered type slug for addNode to lookup config again?
+        // OR addNode should accept the config object directly.
+        // Current addNode implementation looks up config by type slug.
+        // So we should pass the type slug if found, or a fallback.
+
+        // Position
+        const angle = (i / count) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+
+        // Add Node
+        // We pass the svc.id as idOverride so we can map back later
+        this.vizService.addNode(
+          compConfig ? compConfig.type : 'sys-rest', // fallback type to existing system one
+          { x, y: 0, z },
+          svc.name,
+          svc.description || 'No description',
+          compConfig ? undefined : undefined, // Color override handled by config lookup in viz service usually
+          String(svc.id)
+        );
+      });
+
+      // Handle Dependencies
+      this.dependencies().forEach(dep => {
+        this.vizService.connectNodes(String(dep.sourceServiceId), String(dep.targetServiceId));
+      });
+
+    }, { allowSignalWrites: true });
+
+    // Sync Selected Node to Form (Inspector)
+    effect(() => {
+      // ... existing sync logic ...
       const node = this.selectedNodeData();
       if (node) {
         this.formLabel = node.label;
@@ -133,7 +189,13 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
         this.formZ = Number(node.position.z.toFixed(2));
 
         this.isInspectorOpen.set(true);
-        this.selectedTargetId = ''; // Reset dropdown
+        this.selectedTargetId = '';
+
+        // Find corresponding service if any
+        const match = this.services().find(s => String(s.id) === node.id);
+        if (match) {
+          this.selectedNode.emit(match);
+        }
       }
     });
 
