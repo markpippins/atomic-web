@@ -1123,7 +1123,25 @@
   <div
     class="h-7 p-1 px-3 border-t border-[rgb(var(--color-border-base))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0 bg-[rgb(var(--color-surface))] flex items-center"
   >
-    <span class="truncate">{{ statusBarSelectionInfo() }}</span>
+    <span class="truncate flex items-center gap-2">
+      <span class="font-semibold text-[rgb(var(--color-accent-text))]">
+        @if (currentViewMode() === 'service-mesh') {
+          Service Mesh
+          @if (meshViewMode() === 'graph') {
+            (Graph)
+          } @else {
+            (Console)
+          }
+        } @else {
+          File Explorer
+          @if (isSplitView()) {
+            (Split)
+          }
+        }
+      </span>
+      <span class="text-[rgb(var(--color-border-muted))]">|</span>
+      <span>{{ statusBarSelectionInfo() }}</span>
+    </span>
   </div>
 
   @if (isLocalConfigDialogOpen()) {
