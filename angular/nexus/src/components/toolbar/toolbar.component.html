@@ -318,91 +318,35 @@
   } @else {
     <!-- File Explorer Controls -->
     <div class="flex items-center space-x-2">
-      <!-- New Item Dropdown -->
-      <div class="relative inline-block text-left">
-        <button
-          [disabled]="!canCreate()"
-          (click)="toggleNewDropdown($event)"
-          type="button"
-          title="New"
-          class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
+      <!-- New Item Button (Direct Action) -->
+      <button
+        [disabled]="!canCreate()"
+        (click)="onNewFolderItemClick()"
+        type="button"
+        [title]="
+          isGatewayContext()
+            ? 'Add New Gateway'
+            : isHostServerContext()
+              ? 'Add New Host Server'
+              : managementType()
+                ? 'Add ' + (managementType() | slice: 0 : -1 | titlecase)
+                : 'New Item'
+        "
+        class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
+          viewBox="0 0 20 20"
+          fill="currentColor"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5 text-[rgb(var(--color-text-muted))]"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </button>
-
-        @if (isNewDropdownOpen()) {
-          <div
-            class="absolute left-0 z-10 mt-2 w-52 origin-top-left rounded-md bg-[rgb(var(--color-surface-dialog))] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-            role="menu"
-          >
-            <div class="py-1" role="none">
-              <div
-                (click)="onNewFolderItemClick()"
-                class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer"
-                role="menuitem"
-              >
-                <div class="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="mr-3 h-5 w-5 text-yellow-500"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
-                    />
-                  </svg>
-                  <span>{{
-                    isGatewayContext()
-                      ? 'Add New Gateway'
-                      : isHostServerContext()
-                        ? 'Add New Host Server'
-                        : managementType()
-                          ? 'Add ' + (managementType() | slice: 0 : -1 | titlecase)
-                          : 'New folder'
-                  }}</span>
-                </div>
-                <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+Shift+N</span>
-              </div>
-              @if (!managementType()) {
-                <div
-                  (click)="onNewFileItemClick()"
-                  class="text-[rgb(var(--color-text-muted))] hover:bg-[rgb(var(--color-surface-hover))] flex items-center justify-between px-4 py-2 text-sm cursor-pointer"
-                  role="menuitem"
-                >
-                  <div class="flex items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="mr-3 h-5 w-5 text-[rgb(var(--color-text-subtle))]"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 1h8a1 1 0 011 1v10a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <span>New file</span>
-                  </div>
-                  <span class="text-[rgb(var(--color-text-subtle))]">Ctrl+Alt+N</span>
-                </div>
-              }
-            </div>
-          </div>
-        }
-      </div>
+          <path
+            fill-rule="evenodd"
+            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
 
       @if (isGatewaySelected() || isHostServerSelected()) {
         <!-- Gateway/Host Editor Save/Reset Buttons -->
