@@ -327,7 +327,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private getPlatformNodeForPath(path: string[]) {
     // Valid management types
-    const validTypes = ['data dictionary', 'services', 'frameworks', 'deployments', 'servers', 'hosts', 'service hosts', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'library categories', 'service definitions', 'languages', 'categories'];
+    const validTypes = ['data dictionary', 'services', 'frameworks', 'libraries', 'deployments', 'servers', 'hosts', 'service hosts', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'library categories', 'service definitions', 'languages', 'categories'];
     const profiles = this.hostProfileService.profiles();
     const activeProfile = this.hostProfileService.activeProfile();
 

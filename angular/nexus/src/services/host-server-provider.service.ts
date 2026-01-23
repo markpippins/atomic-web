@@ -356,6 +356,16 @@ export class HostServerProvider implements TreeProvider {
                 lastUpdated: new Date()
             },
             {
+                id: `platform-dict-libraries-${profile.id}`,
+                name: 'Libraries',
+                type: NodeType.FOLDER,
+                icon: 'local_library',
+                hasChildren: false,
+                operations: ['manage-libraries'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/libraries`, managementType: 'libraries' },
+                lastUpdated: new Date()
+            },
+            {
                 id: `platform-dict-servicetypes-${profile.id}`,
                 name: 'Service Types',
                 type: NodeType.FOLDER,
