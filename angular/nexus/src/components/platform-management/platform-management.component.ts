@@ -44,200 +44,93 @@ import { LookupItem } from '../../services/platform-management.service.js';
                 @switch (managementType()) {
                     @case ('services') {
                         <div class="flex flex-col h-full">
-                             <!-- Tabs -->
-                            <div class="flex border-b border-[rgb(var(--color-border-base))] mb-4">
-                                <button
-                                    (click)="activeTab.set('services')"
-                                    [class.border-b-2]="activeTab() === 'services'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'services'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'services'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Services
-                                </button>
-                                <button
-                                    (click)="activeTab.set('frameworks')"
-                                    [class.border-b-2]="activeTab() === 'frameworks'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'frameworks'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'frameworks'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Frameworks
-                                </button>
-                                <button
-                                    (click)="activeTab.set('service-types')"
-                                    [class.border-b-2]="activeTab() === 'service-types'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'service-types'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'service-types'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Service Types
-                                </button>
-                                 <button
-                                    (click)="activeTab.set('server-types')"
-                                    [class.border-b-2]="activeTab() === 'server-types'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'server-types'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'server-types'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Server Types
-                                </button>
-                                 <button
-                                    (click)="activeTab.set('framework-languages')"
-                                    [class.border-b-2]="activeTab() === 'framework-languages'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'framework-languages'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'framework-languages'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Languages
-                                </button>
-                                 <button
-                                    (click)="activeTab.set('framework-categories')"
-                                    [class.border-b-2]="activeTab() === 'framework-categories'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'framework-categories'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'framework-categories'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Categories
-                                </button>
-                                <button
-                                    (click)="activeTab.set('libraries')"
-                                    [class.border-b-2]="activeTab() === 'libraries'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'libraries'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'libraries'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Libraries
-                                </button>
-                                <button
-                                    (click)="activeTab.set('library-categories')"
-                                    [class.border-b-2]="activeTab() === 'library-categories'"
-                                    [class.border-[rgb(var(--color-accent-ring))]]="activeTab() === 'library-categories'"
-                                    [class.text-[rgb(var(--color-accent-ring))]]="activeTab() === 'library-categories'"
-                                    class="px-4 py-2 text-sm font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-base))] transition-colors"
-                                >
-                                    Lib Categories
-                                </button>
+                            <!-- Services List -->
+                            <div class="overflow-x-auto flex-1">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
+                                            <th class="p-3 font-medium">Name</th>
+                                            <th class="p-3 font-medium">Type</th>
+                                            <th class="p-3 font-medium">Framework</th>
+                                            <th class="p-3 font-medium">Status</th>
+                                            <th class="p-3 font-medium text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (service of services(); track service.id) {
+                                            <tr 
+                                                class="border-b hover:bg-[rgb(var(--color-surface-hover))]"
+                                                [class.border-[rgb(var(--color-border-muted))]]="service.status !== 'PLANNED'"
+                                                [class.border-dashed]="service.status === 'PLANNED'"
+                                                [class.border-blue-400]="service.status === 'PLANNED'"
+                                                [class.opacity-50]="service.status === 'DEPRECATED' || service.status === 'ARCHIVED'"
+                                            >
+                                                <td class="p-3" [class.text-[rgb(var(--color-text-base))]]="service.status === 'ACTIVE'" [class.text-[rgb(var(--color-text-muted))]]="service.status !== 'ACTIVE'" [class.line-through]="service.status === 'DEPRECATED'">{{ service.name }}</td>
+                                                <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.type?.name }}</td>
+                                                <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.framework?.name }}</td>
+                                                <td class="p-3">
+                                                    <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + getServiceStatusClass(service.status)">
+                                                        {{ service.status }}
+                                                    </span>
+                                                </td>
+                                                <td class="p-3 text-right">
+                                                    <button (click)="onManageServiceLibraries(service)" class="text-purple-500 hover:underline mr-3">Libraries</button>
+                                                    <button (click)="onEdit(service)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
+                                                    <button (click)="onDelete(service)" class="text-red-500 hover:underline">Delete</button>
+                                                </td>
+                                            </tr>
+                                        } @empty {
+                                            <tr>
+                                                <td colspan="5" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No services found.</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
-
-                            @if (activeTab() === 'services') {
-                                <div class="overflow-x-auto flex-1">
-                                    <table class="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                                <th class="p-3 font-medium">Name</th>
-                                                <th class="p-3 font-medium">Type</th>
-                                                <th class="p-3 font-medium">Framework</th>
-                                                <th class="p-3 font-medium">Status</th>
-                                                <th class="p-3 font-medium text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @for (service of services(); track service.id) {
-                                                <tr 
-                                                    class="border-b hover:bg-[rgb(var(--color-surface-hover))]"
-                                                    [class.border-[rgb(var(--color-border-muted))]]="service.status !== 'PLANNED'"
-                                                    [class.border-dashed]="service.status === 'PLANNED'"
-                                                    [class.border-blue-400]="service.status === 'PLANNED'"
-                                                    [class.opacity-50]="service.status === 'DEPRECATED' || service.status === 'ARCHIVED'"
-                                                >
-                                                    <td class="p-3" [class.text-[rgb(var(--color-text-base))]]="service.status === 'ACTIVE'" [class.text-[rgb(var(--color-text-muted))]]="service.status !== 'ACTIVE'" [class.line-through]="service.status === 'DEPRECATED'">{{ service.name }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.type?.name }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.framework?.name }}</td>
-                                                    <td class="p-3">
-                                                        <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + getServiceStatusClass(service.status)">
-                                                            {{ service.status }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="p-3 text-right">
-                                                        <button (click)="onManageServiceLibraries(service)" class="text-purple-500 hover:underline mr-3">Libraries</button>
-                                                        <button (click)="onEdit(service)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                        <button (click)="onDelete(service)" class="text-red-500 hover:underline">Delete</button>
-                                                    </td>
-                                                </tr>
-                                            } @empty {
-                                                <tr>
-                                                    <td colspan="5" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No services found.</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            } @else if (activeTab() === 'frameworks') {
-                                <div class="overflow-x-auto flex-1">
-                                    <table class="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                                <th class="p-3 font-medium">Name</th>
-                                                <th class="p-3 font-medium">Category</th>
-                                                <th class="p-3 font-medium">Language</th>
-                                                <th class="p-3 font-medium">Version</th>
-                                                <th class="p-3 font-medium text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @for (fw of frameworks(); track fw.id) {
-                                                <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                                                    <td class="p-3 text-[rgb(var(--color-text-base))]">{{ fw.name }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.category?.name }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.language?.name }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.currentVersion || fw.latestVersion || '-' }}</td>
-                                                    <td class="p-3 text-right">
-                                                        <button (click)="onEdit(fw)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                        <button (click)="onDelete(fw)" class="text-red-500 hover:underline">Delete</button>
-                                                    </td>
-                                                </tr>
-                                            } @empty {
-                                                <tr>
-                                                    <td colspan="5" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No frameworks found.</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            } @else if (activeTab() === 'libraries') {
-                                <div class="overflow-x-auto flex-1">
-                                    <table class="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                                <th class="p-3 font-medium">Name</th>
-                                                <th class="p-3 font-medium">Category</th>
-                                                <th class="p-3 font-medium">Language</th>
-                                                <th class="p-3 font-medium">Package</th>
-                                                <th class="p-3 font-medium">Version</th>
-                                                <th class="p-3 font-medium text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @for (lib of libraries(); track lib.id) {
-                                                <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                                                    <td class="p-3 text-[rgb(var(--color-text-base))]">{{ lib.name }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.category?.name || '-' }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.language?.name || '-' }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))] font-mono text-sm">{{ lib.packageName || '-' }}</td>
-                                                    <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.currentVersion || '-' }}</td>
-                                                    <td class="p-3 text-right">
-                                                        <button (click)="onEdit(lib)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                        <button (click)="onDelete(lib)" class="text-red-500 hover:underline">Delete</button>
-                                                    </td>
-                                                </tr>
-                                            } @empty {
-                                                <tr>
-                                                    <td colspan="6" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No libraries found.</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            } @else {
-                                <app-lookup-list
-                                    [items]="lookupData()"
-                                    [type]="activeTab()"
-                                    (onEdit)="onEdit($event)"
-                                    (onDelete)="onDelete($event)"
-                                ></app-lookup-list>
-                            }
                         </div>
+                    }
+                    @case ('libraries') {
+                        <div class="overflow-x-auto flex-1">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
+                                        <th class="p-3 font-medium">Name</th>
+                                        <th class="p-3 font-medium">Category</th>
+                                        <th class="p-3 font-medium">Language</th>
+                                        <th class="p-3 font-medium">Package</th>
+                                        <th class="p-3 font-medium">Version</th>
+                                        <th class="p-3 font-medium text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (lib of libraries(); track lib.id) {
+                                        <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <td class="p-3 text-[rgb(var(--color-text-base))]">{{ lib.name }}</td>
+                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.category?.name || '-' }}</td>
+                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.language?.name || '-' }}</td>
+                                            <td class="p-3 text-[rgb(var(--color-text-muted))] font-mono text-sm">{{ lib.packageName || '-' }}</td>
+                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.currentVersion || '-' }}</td>
+                                            <td class="p-3 text-right">
+                                                <button (click)="onEdit(lib)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
+                                                <button (click)="onDelete(lib)" class="text-red-500 hover:underline">Delete</button>
+                                            </td>
+                                        </tr>
+                                    } @empty {
+                                        <tr>
+                                            <td colspan="6" class="p-8 text-center text-[rgb(var(--color-text-muted))]">No libraries found.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    @case ('library-categories') {
+                         <app-lookup-list
+                            [items]="lookupData()"
+                            [type]="managementType()"
+                            (onEdit)="onEdit($event)"
+                            (onDelete)="onDelete($event)"
+                        ></app-lookup-list>
                     }
                     @case ('frameworks') {
                          <div class="overflow-x-auto">

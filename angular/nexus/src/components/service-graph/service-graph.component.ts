@@ -64,6 +64,9 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
   // Scene Settings
   bgColor = '#000510';
 
+  // Initialization flag
+  private isInitialized = signal(false);
+
   // Context Menu State
   contextMenu = signal<{
     visible: boolean,
@@ -123,6 +126,7 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
   constructor() {
     // Sync Services Input to Graph
     effect(() => {
+      if (!this.isInitialized()) return;
       const services = this.services();
       const allComponents = this.registry.allComponents(); // Dependency to ensure loaded
 
@@ -210,6 +214,7 @@ export class ServiceGraphComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit() {
     if (this.canvasContainer) {
       this.vizService.initialize(this.canvasContainer.nativeElement);
+      this.isInitialized.set(true);
     }
   }
 

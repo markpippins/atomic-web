@@ -327,14 +327,19 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private getPlatformNodeForPath(path: string[]) {
     // Valid management types
-    const validTypes = ['services', 'frameworks', 'deployments', 'servers', 'hosts', 'service hosts', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'service definitions'];
+    const validTypes = ['data dictionary', 'services', 'frameworks', 'deployments', 'servers', 'hosts', 'service hosts', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'library categories', 'service definitions', 'languages', 'categories'];
     const profiles = this.hostProfileService.profiles();
+    const activeProfile = this.hostProfileService.activeProfile();
 
     // Helper to normalize type for component
     const normalizeType = (t: string) => {
       let n = t.replace(/\s+/g, '-');
+      // Normalize dictionary child types
+      if (n === 'data-dictionary') return null; // Data Dictionary is just a folder, don't load data
       if (n === 'service-definitions') return 'services';
       if (n === 'service-hosts' || n === 'hosts') return 'servers';
+      if (n === 'languages') return 'framework-languages';
+      if (n === 'categories') return 'framework-categories';
       return n;
     };
 
@@ -342,13 +347,13 @@ export class AppComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    console.log('[AppComponent] getPlatformNodeForPath', { path, profilesCount: profiles.length });
+    console.log('[AppComponent] getPlatformNodeForPath', { path, profilesCount: profiles.length, activeProfile: activeProfile?.name });
 
     // Handle single-element path (direct child of root - e.g., ["Services"])
     if (path.length === 1) {
       const type = path[0].toLowerCase();
       if (validTypes.includes(type)) {
-        const profile = profiles[0];
+        const profile = activeProfile;
         if (profile) {
           const baseUrl = profile.hostServerUrl.startsWith('http') ? profile.hostServerUrl.replace(/\/$/, '') : `http://${profile.hostServerUrl.replace(/\/$/, '')}`;
           console.log('[AppComponent] Matched single-element path', { type, baseUrl });
@@ -371,23 +376,43 @@ export class AppComponent implements OnInit, OnDestroy {
       if (remaining.length === 0) {
         // Parent "Platform Management" selected - do NOT default to services.
         type = null;
-      } else if (validTypes.includes(remaining[0].toLowerCase())) {
-        type = remaining[0].toLowerCase();
-      } else if (remaining.length >= 2 && validTypes.includes(remaining[1].toLowerCase())) {
-        targetProfileName = remaining[0];
-        type = remaining[1].toLowerCase();
+      } else {
+        // Find the first element in remaining that matches a valid type
+        const typeIndex = remaining.findIndex(p => validTypes.includes(p.toLowerCase()));
+
+        if (typeIndex !== -1) {
+          type = remaining[typeIndex].toLowerCase();
+
+          // Special case: if type is "data dictionary", check if there's a sub-type segment
+          if (type === 'data dictionary' && remaining.length > typeIndex + 1) {
+            const subType = remaining[remaining.length - 1].toLowerCase();
+            if (validTypes.includes(subType)) {
+              type = subType;
+            }
+          }
+
+          // Resolve profile name - if type matches at index 1 or later, index 0 is likely the profile
+          if (typeIndex > 0) {
+            targetProfileName = remaining[0];
+          }
+        }
       }
 
       if (type) {
         const profile = targetProfileName
           ? profiles.find(p => p.name === targetProfileName)
-          : (path[0].toLowerCase() !== 'platform management' && path[0].toLowerCase() !== 'infrastructure' ? profiles.find(p => p.name === path[0]) : profiles[0]);
+          : (path[0].toLowerCase() !== 'platform management' && path[0].toLowerCase() !== 'infrastructure' ? profiles.find(p => p.name === path[0]) : activeProfile);
 
-        const finalProfile = profile || profiles[0];
+        const finalProfile = profile || activeProfile;
         if (finalProfile) {
+          const normalizedType = normalizeType(type);
+          // If normalized type is null (e.g., Data Dictionary), return null to show children instead
+          if (!normalizedType) {
+            return null;
+          }
           const baseUrl = finalProfile.hostServerUrl.startsWith('http') ? finalProfile.hostServerUrl.replace(/\/$/, '') : `http://${finalProfile.hostServerUrl.replace(/\/$/, '')}`;
           console.log('[AppComponent] Matched Platform Management path', { type, baseUrl, targetProfileName });
-          return { type: normalizeType(type), baseUrl };
+          return { type: normalizedType, baseUrl };
         }
       }
     } else {
@@ -403,9 +428,9 @@ export class AppComponent implements OnInit, OnDestroy {
           profile = profiles.find(p => p.name === path[0]);
         }
 
-        // Fallback
+        // Fallback to active profile
         if (!profile) {
-          profile = profiles[0];
+          profile = activeProfile;
         }
 
         if (profile) {
@@ -868,7 +893,10 @@ export class AppComponent implements OnInit, OnDestroy {
               name: node.name,
               type: 'folder',
               id: node.id,
-              metadata: node.metadata,
+              metadata: {
+                ...node.metadata,
+                icon: node.icon
+              },
               children: [], // Children will be loaded on demand
               childrenLoaded: false, // Children are not loaded until the node is expanded
               isServerRoot: false
@@ -1140,7 +1168,10 @@ export class AppComponent implements OnInit, OnDestroy {
       name: node.name,
       type: 'folder',
       id: node.id,
-      metadata: node.metadata,
+      metadata: {
+        ...node.metadata,
+        icon: node.icon
+      },
       children: [],
       childrenLoaded: false,
       isServerRoot: false
@@ -1347,6 +1378,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Pane Management ---
   setActivePane(id: number): void {
+    this.toolbarAction.set(null);
     this.activePaneId.set(id);
   }
 
@@ -1369,6 +1401,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onPane1PathChanged(path: string[]): void {
+    this.toolbarAction.set(null);
     this.panePaths.update(paths => {
       const newPaths = paths.filter(p => p.id !== 1);
       return [...newPaths, { id: 1, path }];
@@ -1376,6 +1409,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onPane2PathChanged(path: string[]): void {
+    this.toolbarAction.set(null);
     this.panePaths.update(paths => {
       const newPaths = paths.filter(p => p.id !== 2);
       return [...newPaths, { id: 2, path }];
@@ -1613,6 +1647,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // --- Sidebar Navigation ---
   onSidebarNavigation(path: string[]): void {
+    this.toolbarAction.set(null);
     const activeId = this.activePaneId();
     this.panePaths.update(paths => {
       const otherPanes = paths.filter(p => p.id !== activeId);

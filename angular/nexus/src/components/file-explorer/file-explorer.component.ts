@@ -965,12 +965,6 @@ export class FileExplorerComponent implements OnDestroy {
   }
 
   getIconUrl(item: FileSystemNode): string | null {
-    // If the item has a specific icon defined in metadata (e.g. from HostServerProvider),
-    // use that (handled by template separately) and do NOT fetch an image.
-    if (item.metadata?.['icon']) {
-      return null;
-    }
-
     const getImageServiceFn = this.getImageService();
 
     // The full path to the item determines which image service to use.
@@ -987,8 +981,12 @@ export class FileExplorerComponent implements OnDestroy {
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
 
+    // Use metadata.icon as a preference if available (from HostServerProvider), 
+    // otherwise fall back to props.imageName or default (item name).
+    const customImageName = item.metadata?.['icon'] || props?.imageName;
+
     // For all other folders, request an icon based on its name or custom properties.
-    return serviceToUse.getIconUrl(item, props?.imageName);
+    return serviceToUse.getIconUrl(item, customImageName);
   }
 
   onImageError(name: string): void {

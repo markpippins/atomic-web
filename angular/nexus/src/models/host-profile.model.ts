@@ -4,6 +4,9 @@ export interface HostProfile {
     hostServerUrl: string;
     imageUrl: string; // For status image/icon
 
+    // Active profile flag - only one profile should be active at a time
+    isActive?: boolean;
+
     // Host.java specific fields
     hostname?: string;
     ipAddress?: string;

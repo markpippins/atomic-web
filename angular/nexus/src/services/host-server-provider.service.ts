@@ -39,7 +39,8 @@ export class HostServerProvider implements TreeProvider {
             nodeId.startsWith('users') ||
             nodeId.startsWith('search') ||
             nodeId.startsWith('filesystems') ||
-            nodeId.startsWith('platform');
+            nodeId.startsWith('platform') ||
+            nodeId.startsWith('platform-dictionary-');
     }
 
     async getChildren(nodeId: string): Promise<TreeNode[]> {
@@ -188,6 +189,16 @@ export class HostServerProvider implements TreeProvider {
                     operations: ['check-health'],
                     metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/platform/health` },
                     lastUpdated: new Date()
+                },
+                {
+                    id: `platform-dictionary-${profile.id}`,
+                    name: 'Data Dictionary',
+                    type: NodeType.FOLDER,
+                    icon: 'library_books',
+                    hasChildren: true,
+                    operations: [],
+                    metadata: { hostProfileId: profile.id },
+                    lastUpdated: new Date()
                 }
             ];
         }
@@ -196,6 +207,13 @@ export class HostServerProvider implements TreeProvider {
             const profileId = nodeId.replace('host-platform-', '');
             const profile = this.profileService.profiles().find(p => p.id === profileId);
             if (profile) return this.fetchPlatformInfo(profile);
+            return [];
+        }
+
+        if (nodeId.startsWith('platform-dictionary-')) {
+            const profileId = nodeId.replace('platform-dictionary-', '');
+            const profile = this.profileService.profiles().find(p => p.id === profileId);
+            if (profile) return this.getDataDictionaryNodes(profile);
             return [];
         }
 
@@ -309,6 +327,82 @@ export class HostServerProvider implements TreeProvider {
                 hasChildren: false,
                 operations: ['check-health'],
                 metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/platform/health` },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-dictionary-${profile.id}`,
+                name: 'Data Dictionary',
+                type: NodeType.FOLDER,
+                icon: 'library_books',
+                hasChildren: true,
+                operations: [],
+                metadata: { hostProfileId: profile.id },
+                lastUpdated: new Date()
+            }
+        ];
+    }
+
+    private getDataDictionaryNodes(profile: HostProfile): TreeNode[] {
+        const baseUrl = this.getBaseUrl(profile);
+        return [
+            {
+                id: `platform-dict-frameworks-${profile.id}`,
+                name: 'Frameworks',
+                type: NodeType.FOLDER,
+                icon: 'category',
+                hasChildren: false,
+                operations: ['manage-frameworks'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/frameworks`, managementType: 'frameworks' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-dict-servicetypes-${profile.id}`,
+                name: 'Service Types',
+                type: NodeType.FOLDER,
+                icon: 'dns',
+                hasChildren: false,
+                operations: ['manage-servicetypes'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/service-types`, managementType: 'service-types' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-dict-servertypes-${profile.id}`,
+                name: 'Server Types',
+                type: NodeType.FOLDER,
+                icon: 'storage',
+                hasChildren: false,
+                operations: ['manage-servertypes'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/server-types`, managementType: 'server-types' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-dict-languages-${profile.id}`,
+                name: 'Languages',
+                type: NodeType.FOLDER,
+                icon: 'code',
+                hasChildren: false,
+                operations: ['manage-languages'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/framework-languages`, managementType: 'framework-languages' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-dict-categories-${profile.id}`,
+                name: 'Categories',
+                type: NodeType.FOLDER,
+                icon: 'class',
+                hasChildren: false,
+                operations: ['manage-categories'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/framework-categories`, managementType: 'framework-categories' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-dict-libcategories-${profile.id}`,
+                name: 'Library Categories',
+                type: NodeType.FOLDER,
+                icon: 'style',
+                hasChildren: false,
+                operations: ['manage-libcategories'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/library-categories`, managementType: 'library-categories' },
                 lastUpdated: new Date()
             }
         ];

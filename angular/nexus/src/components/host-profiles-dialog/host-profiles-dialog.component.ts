@@ -42,7 +42,6 @@ const INITIAL_FORM_STATE: FormState = {
 
 @Component({
     selector: 'app-host-profiles-dialog',
-    standalone: true,
     imports: [CommonModule, FormsModule],
     templateUrl: './host-profiles-dialog.component.html',
     styleUrls: ['./host-profiles-dialog.component.css'],
@@ -147,6 +146,10 @@ export class HostProfilesDialogComponent {
 
     updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
         this.formState.update(s => ({ ...s, [field]: value }));
+    }
+
+    async setActive(profileId: string) {
+        await this.profileService.setActiveProfile(profileId);
     }
 
     onClose() {

@@ -80,15 +80,18 @@ export class ServiceMeshService {
   readonly servicesWithHosted = this._servicesWithHosted.asReadonly();
 
   constructor() {
-    // Auto-connect to all host profiles on startup/change
+    // Connect only to the active host profile on startup/change
     effect(() => {
-      const profiles = this.hostProfileService.profiles();
-      // Simple strategy: try to connect to all of them if not already connected
-      profiles.forEach(profile => {
-        if (!this._connections().has(profile.id)) {
-          this.connectToProfile(profile);
-        }
-      });
+      const activeProfile = this.hostProfileService.activeProfile();
+
+      if (activeProfile) {
+        // Clear all existing connections
+        this._connections.set(new Map());
+
+        // Connect only to the active profile
+        this.connectToProfile(activeProfile);
+        console.log('[ServiceMeshService] Connected to active profile:', activeProfile.name);
+      }
     }, { allowSignalWrites: true });
 
     this.startPolling();

@@ -2,12 +2,14 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { ComponentConfig, INITIAL_REGISTRY, NodeType } from '../models/component-config.js';
 import { PlatformManagementService } from './platform-management.service.js';
+import { HostProfileService } from './host-profile.service.js';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ComponentRegistryService {
     private platformService = inject(PlatformManagementService);
+    private hostProfileService = inject(HostProfileService);
 
     // Master list of all components
     private registry = signal<ComponentConfig[]>([]);
@@ -21,13 +23,19 @@ export class ComponentRegistryService {
         this.loadComponents();
     }
 
+    private getBaseUrl(): string {
+        const profiles = this.hostProfileService.profiles();
+        if (profiles.length === 0) {
+            return 'http://localhost:8085'; // Default fallback
+        }
+        let url = profiles[0].hostServerUrl;
+        if (!url.startsWith('http')) url = `http://${url}`;
+        if (url.endsWith('/')) url = url.slice(0, -1);
+        return url;
+    }
+
     async loadComponents() {
-        // We need a base URL. Assuming localhost:8080 for dev or configured somewhere.
-        // Ideally checking environment or using a relative path if proxied.
-        // For now hardcoding or borrowing from elsewhere if possible.
-        // But PlatformManagementService expects baseUrl passed in. 
-        // I will assume the standard host server URL.
-        const baseUrl = 'http://localhost:8080';
+        const baseUrl = this.getBaseUrl();
         try {
             const components = await this.platformService.getVisualComponents(baseUrl);
             if (components && components.length > 0) {
@@ -59,7 +67,7 @@ export class ComponentRegistryService {
     }
 
     async addComponent(config: ComponentConfig) {
-        const baseUrl = 'http://localhost:8080';
+        const baseUrl = this.getBaseUrl();
         // Exclude ID to let backend generate it
         const { id, ...rest } = config;
         const created = await this.platformService.createVisualComponent(baseUrl, rest);
@@ -68,7 +76,7 @@ export class ComponentRegistryService {
     }
 
     async updateComponent(id: string, updates: Partial<ComponentConfig>) {
-        const baseUrl = 'http://localhost:8080';
+        const baseUrl = this.getBaseUrl();
         const updated = await this.platformService.updateVisualComponent(baseUrl, id, updates);
         this.registry.update(current =>
             current.map(c => String(c.id) === String(id) ? updated : c)
@@ -80,7 +88,7 @@ export class ComponentRegistryService {
         const config = this.getConfigById(id);
         if (config?.isSystem) return;
 
-        const baseUrl = 'http://localhost:8080';
+        const baseUrl = this.getBaseUrl();
         await this.platformService.deleteVisualComponent(baseUrl, id);
 
         this.registry.update(current => current.filter(c => String(c.id) !== String(id)));

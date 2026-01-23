@@ -347,6 +347,10 @@ export class ArchitectureVizService {
     }
 
     public clearScene() {
+        // Guard: Return early if scene hasn't been initialized yet
+        if (!this.scene) {
+            return;
+        }
         this.nodes.forEach(node => {
             this.scene.remove(node.mesh);
             if (node.labelObj) node.mesh.remove(node.labelObj);
@@ -372,6 +376,10 @@ export class ArchitectureVizService {
         colorOverride?: string,
         idOverride?: string
     ): string {
+        if (!this.scene) {
+            console.error('ArchitectureVizService: addNode called before initialize()');
+            return idOverride || crypto.randomUUID();
+        }
         const id = idOverride || crypto.randomUUID();
         const config = this.registry.getConfig(type);
 
@@ -461,6 +469,7 @@ export class ArchitectureVizService {
     }
 
     public deleteNode(id: string) {
+        if (!this.scene) return;
         const node = this.nodes.get(id);
         if (!node) return;
 
@@ -482,6 +491,7 @@ export class ArchitectureVizService {
     // --- Connection Management ---
 
     public connectNodes(fromId: string, toId: string) {
+        if (!this.scene) return;
         const fromNode = this.nodes.get(fromId);
         const toNode = this.nodes.get(toId);
         if (!fromNode || !toNode) return;
@@ -688,7 +698,9 @@ export class ArchitectureVizService {
 
     public deselect() {
         this.selectedNodeId = null;
-        this.selectionBox.visible = false;
+        if (this.selectionBox) {
+            this.selectionBox.visible = false;
+        }
         this.selectedNodeData.set(null);
     }
 
