@@ -29,8 +29,9 @@ import { Deployment, ServiceInstance } from '../../../models/service-mesh.model.
                         <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Service *</label>
                         <select formControlName="serviceId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
                             <option [value]="null">Select Service</option>
-                            <option *ngFor="let s of services()" [value]="s.id">{{ s.name }}</option>
+                            <option *ngFor="let s of standaloneServices()" [value]="s.id">{{ s.name }}</option>
                         </select>
+                        <span class="text-xs text-[rgb(var(--color-text-muted))]">Sub-modules are automatically deployed with their parent service</span>
                      </div>
 
                      <!-- Server -->
@@ -118,6 +119,7 @@ export class UpsertDeploymentDialogComponent implements OnInit {
 
     form: FormGroup;
     services = signal<ServiceInstance[]>([]);
+    standaloneServices = signal<ServiceInstance[]>([]);
     servers = signal<Host[]>([]);
     environments = signal<LookupItem[]>([]);
     isSaving = signal(false);
@@ -177,6 +179,9 @@ export class UpsertDeploymentDialogComponent implements OnInit {
                 this.platformService.getLookup(url, 'environment-types')
             ]);
             this.services.set(srvs);
+            // Filter out sub-modules from the dropdown
+            const standalone = srvs.filter(s => !s.parentServiceId);
+            this.standaloneServices.set(standalone);
             this.servers.set(hosts);
             this.environments.set(envs);
 

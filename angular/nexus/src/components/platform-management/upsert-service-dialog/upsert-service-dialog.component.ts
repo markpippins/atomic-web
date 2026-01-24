@@ -57,6 +57,16 @@ import { ComponentRegistryService } from '../../../services/component-registry.s
                      </div>
                  </div>
 
+                 <!-- Parent Service (for sub-modules) -->
+                 <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Parent Service (Optional)</label>
+                    <select formControlName="parentServiceId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
+                        <option [value]="null">-- Standalone Service --</option>
+                        <option *ngFor="let p of parentServices()" [value]="p.id">{{ p.name }}</option>
+                    </select>
+                    <span class="text-xs text-[rgb(var(--color-text-muted))]">Select a parent service to mark this as a sub-module</span>
+                 </div>
+
                  <!-- Visual Override -->
                  <div class="flex flex-col gap-1">
                     <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Visual Style Override</label>
@@ -127,6 +137,7 @@ export class UpsertServiceDialogComponent implements OnInit {
     form: FormGroup;
     frameworks = signal<Framework[]>([]);
     serviceTypes = signal<LookupItem[]>([]);
+    parentServices = signal<ServiceInstance[]>([]);
     isSaving = signal(false);
 
     constructor() {
@@ -135,6 +146,7 @@ export class UpsertServiceDialogComponent implements OnInit {
             description: [''],
             frameworkId: [null, Validators.required],
             serviceTypeId: [null, Validators.required],
+            parentServiceId: [null],
             defaultPort: [null],
             status: ['ACTIVE'],
             apiBasePath: [''],
@@ -153,6 +165,7 @@ export class UpsertServiceDialogComponent implements OnInit {
                         description: s.description,
                         frameworkId: s.framework?.id,
                         serviceTypeId: s.type?.id,
+                        parentServiceId: s.parentServiceId || null,
                         defaultPort: s.defaultPort,
                         status: s.status as any,
                         apiBasePath: s.apiBasePath,
@@ -162,6 +175,7 @@ export class UpsertServiceDialogComponent implements OnInit {
                 } else {
                     this.form.reset({
                         status: 'ACTIVE',
+                        parentServiceId: null,
                         componentOverrideId: null
                     });
                 }
@@ -178,12 +192,14 @@ export class UpsertServiceDialogComponent implements OnInit {
         if (!url) return;
 
         try {
-            const [fw, types] = await Promise.all([
+            const [fw, types, parents] = await Promise.all([
                 this.platformService.getFrameworks(url),
-                this.platformService.getLookup(url, 'service-types')
+                this.platformService.getLookup(url, 'service-types'),
+                this.platformService.getStandaloneServices(url)
             ]);
             this.frameworks.set(fw);
             this.serviceTypes.set(types);
+            this.parentServices.set(parents);
         } catch (e) {
             console.error('Failed to load options', e);
         }
@@ -206,6 +222,7 @@ export class UpsertServiceDialogComponent implements OnInit {
         // Ensure numbers are numbers
         payload.frameworkId = Number(payload.frameworkId);
         payload.serviceTypeId = Number(payload.serviceTypeId);
+        if (payload.parentServiceId) payload.parentServiceId = Number(payload.parentServiceId) || undefined;
         if (payload.defaultPort) payload.defaultPort = Number(payload.defaultPort);
         if (payload.componentOverrideId) payload.componentOverrideId = Number(payload.componentOverrideId) || undefined;
         // if null/0, it might be effectively resetting to default.

@@ -32,6 +32,7 @@ export interface ServicePayload {
     version?: string;
     status?: string;
     componentOverrideId?: number;
+    parentServiceId?: number;
 }
 
 export interface FrameworkPayload {
@@ -141,6 +142,20 @@ export class PlatformManagementService {
             await firstValueFrom(this.http.delete<void>(url));
         } catch (e) {
             this.error.set('Failed to delete service');
+            throw e;
+        } finally {
+            this.loading.set(false);
+        }
+    }
+
+    async getStandaloneServices(baseUrl: string): Promise<ServiceInstance[]> {
+        this.loading.set(true);
+        this.error.set(null);
+        try {
+            const url = `${baseUrl}/api/services/standalone`;
+            return await firstValueFrom(this.http.get<ServiceInstance[]>(url));
+        } catch (e) {
+            this.error.set('Failed to fetch standalone services');
             throw e;
         } finally {
             this.loading.set(false);

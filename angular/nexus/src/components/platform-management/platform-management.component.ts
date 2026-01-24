@@ -92,7 +92,17 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                                 [class.border-blue-400]="service.status === 'PLANNED'"
                                                 [class.opacity-50]="service.status === 'DEPRECATED' || service.status === 'ARCHIVED'"
                                             >
-                                                <td class="p-2 py-1.5" [class.text-[rgb(var(--color-text-base))]]="service.status === 'ACTIVE'" [class.text-[rgb(var(--color-text-muted))]]="service.status !== 'ACTIVE'" [class.line-through]="service.status === 'DEPRECATED'">{{ service.name }}</td>
+                                                <td class="p-2 py-1.5" [class.text-[rgb(var(--color-text-base))]]="service.status === 'ACTIVE'" [class.text-[rgb(var(--color-text-muted))]]="service.status !== 'ACTIVE'" [class.line-through]="service.status === 'DEPRECATED'">
+                                                    @if (service.parentServiceId) {
+                                                        <span class="inline-flex items-center gap-1">
+                                                            <span class="text-[rgb(var(--color-text-muted))] text-xs">└─</span>
+                                                            {{ service.name }}
+                                                            <span class="px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Sub-module</span>
+                                                        </span>
+                                                    } @else {
+                                                        {{ service.name }}
+                                                    }
+                                                </td>
                                                 <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ service.type?.name }}</td>
                                                 <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ service.framework?.name }}</td>
                                                 <td class="p-2 py-1.5">
@@ -306,7 +316,17 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                 <tbody>
                                     @for (d of deployments(); track d.id) {
                                         <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
-                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ d.service?.name }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">
+                                                @if (d.service?.parentServiceId) {
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <span class="text-[rgb(var(--color-text-muted))] text-xs">└─</span>
+                                                        {{ d.service?.name }}
+                                                        <span class="px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Sub-module</span>
+                                                    </span>
+                                                } @else {
+                                                    {{ d.service?.name }}
+                                                }
+                                            </td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ d.environment }}</td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ d.server?.hostname }}</td>
                                             <td class="p-2 py-1.5">

@@ -94,6 +94,7 @@ export interface ServiceInstance {
   createdAt?: string;
   updatedAt?: string;
   componentOverrideId?: number;
+  parentServiceId?: number;
   // componentOverride?: VisualComponent; // If we want the full object
 }
 
