@@ -202,7 +202,7 @@ export class FileExplorerComponent implements OnDestroy {
     }
 
     // Virtual organization folders that need their path passed to homeProvider
-    const virtualFolders = ['File Systems', 'Gateways', 'Host Servers', 'Search & Discovery', 'Users', 'Services'];
+    const virtualFolders = ['File Systems', 'Gateways', 'Host Servers', 'Platform Management', 'Search & Discovery', 'Users', 'Services'];
     if (virtualFolders.includes(rootName)) {
       return p; // homeProvider needs to see the full path like ['Platform Management'] or ['Gateways']
     }
@@ -221,6 +221,13 @@ export class FileExplorerComponent implements OnDestroy {
   isInGatewaysFolder = computed(() => {
     const p = this.path();
     return p.length === 1 && p[0] === 'Gateways';
+  });
+
+  // Check if renaming is allowed - only in File Systems path (which contains Local Session)
+  isRenamingAllowed = computed(() => {
+    const p = this.path();
+    // Renaming is only allowed within File Systems (e.g., ['File Systems', 'Local Session', ...])
+    return p.length > 0 && p[0] === 'File Systems';
   });
 
   sortedItems = computed(() => {
@@ -545,7 +552,8 @@ export class FileExplorerComponent implements OnDestroy {
 
     this.clickTimer = setTimeout(() => {
       this.clickTimer = null;
-      if (isRenameCandidate) {
+      // Only allow renaming in File Systems context (Local Session)
+      if (isRenameCandidate && this.isRenamingAllowed()) {
         this.onRename();
       } else {
         this.handleSingleSelection(itemName);

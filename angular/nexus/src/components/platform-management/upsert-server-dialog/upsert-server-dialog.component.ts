@@ -5,11 +5,11 @@ import { PlatformManagementService, LookupItem, Host } from '../../../services/p
 
 @Component({
     selector: 'app-upsert-server-dialog',
-    standalone: true,
     imports: [CommonModule, ReactiveFormsModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" *ngIf="isOpen()">
+    @if (isOpen()) {
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
        <div class="bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-base))] shadow-xl rounded-lg w-full max-w-2xl flex flex-col max-h-[90vh]">
           <div class="p-4 border-b border-[rgb(var(--color-border-base))] flex justify-between items-center">
             <h2 class="text-lg font-semibold text-[rgb(var(--color-text-base))]">
@@ -40,14 +40,18 @@ import { PlatformManagementService, LookupItem, Host } from '../../../services/p
                         <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Server Type *</label>
                         <select formControlName="serverTypeId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
                             <option [value]="null">Select Type</option>
-                            <option *ngFor="let t of serverTypes()" [value]="t.id">{{ t.name }}</option>
+                            @for (t of serverTypes(); track t.id) {
+                                <option [value]="t.id">{{ t.name }}</option>
+                            }
                         </select>
                      </div>
                      <div class="flex flex-col gap-1">
                         <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Environment *</label>
                         <select formControlName="environmentTypeId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
                             <option [value]="null">Select Env</option>
-                            <option *ngFor="let e of environmentTypes()" [value]="e.id">{{ e.name }}</option>
+                            @for (e of environmentTypes(); track e.id) {
+                                <option [value]="e.id">{{ e.name }}</option>
+                            }
                         </select>
                      </div>
                  </div>
@@ -56,9 +60,11 @@ import { PlatformManagementService, LookupItem, Host } from '../../../services/p
                  <div class="grid grid-cols-2 gap-4">
                      <div class="flex flex-col gap-1">
                         <label class="text-sm font-medium text-[rgb(var(--color-text-base))]">Operating System *</label>
-                         <select formControlName="operatingSystemId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
+                        <select formControlName="operatingSystemId" class="p-2 rounded border border-[rgb(var(--color-border-muted))] bg-[rgb(var(--color-surface-input))] text-[rgb(var(--color-text-base))] focus:border-[rgb(var(--color-accent-ring))]">
                             <option [value]="null">Select OS</option>
-                            <option *ngFor="let os of operatingSystems()" [value]="os.id">{{ os.name }}</option>
+                            @for (os of operatingSystems(); track os.id) {
+                                <option [value]="os.id">{{ os.name }}{{ os.version ? ' ' + os.version : '' }}{{ os.ltsFlag ? ' (LTS)' : '' }}</option>
+                            }
                         </select>
                      </div>
                      <div class="flex flex-col gap-1">
@@ -111,12 +117,15 @@ import { PlatformManagementService, LookupItem, Host } from '../../../services/p
           <div class="p-4 border-t border-[rgb(var(--color-border-base))] flex justify-end gap-3 bg-[rgb(var(--color-surface-sidebar))] rounded-b-lg">
              <button type="button" (click)="onCancel()" class="px-4 py-2 rounded text-[rgb(var(--color-text-base))] hover:bg-[rgb(var(--color-surface-hover))] border border-[rgb(var(--color-border-muted))]">Cancel</button>
              <button type="button" (click)="onSubmit()" [disabled]="form.invalid || isSaving()" class="px-4 py-2 rounded bg-[rgb(var(--color-accent-ring))] text-white hover:bg-opacity-90 disabled:opacity-50 flex items-center gap-2">
-                <span *ngIf="isSaving()" class="material-icons text-sm animate-spin">refresh</span>
+                @if (isSaving()) {
+                    <span class="material-icons text-sm animate-spin">refresh</span>
+                }
                 Save
              </button>
           </div>
        </div>
     </div>
+    }
   `
 })
 export class UpsertServerDialogComponent implements OnInit {
@@ -144,7 +153,7 @@ export class UpsertServerDialogComponent implements OnInit {
             ipAddress: ['', Validators.required],
             serverTypeId: [null, Validators.required],
             environmentTypeId: [null, Validators.required],
-            operatingSystemId: [1, Validators.required], // Default to 1
+            operatingSystemId: [null, Validators.required],
             cpuCores: [null],
             memory: [''],
             disk: [''],
@@ -175,8 +184,7 @@ export class UpsertServerDialogComponent implements OnInit {
                     });
                 } else {
                     this.form.reset({
-                        status: 'ACTIVE',
-                        operatingSystemId: 1
+                        status: 'ACTIVE'
                     });
                 }
             }
@@ -190,36 +198,36 @@ export class UpsertServerDialogComponent implements OnInit {
         if (!url) return;
 
         try {
-            // Load lookups
-            const [st, et] = await Promise.all([
+            // Load all lookups in parallel
+            const [st, et, os] = await Promise.all([
                 this.platformService.getLookup(url, 'server-types'),
-                this.platformService.getLookup(url, 'environment-types')
+                this.platformService.getLookup(url, 'environments'),
+                this.platformService.getLookup(url, 'operating-systems').catch(() => [])
             ]);
             this.serverTypes.set(st);
             this.environmentTypes.set(et);
 
-            // Try loading OS, fallback to static defaults
-            try {
-                const os = await this.platformService.getLookup(url, 'operating-systems');
-                if (os && os.length > 0) {
-                    this.operatingSystems.set(os);
-                } else {
-                    this.useDefaultOS();
-                }
-            } catch (e) {
+            // If operating systems loaded successfully, use them; otherwise use defaults
+            if (os && os.length > 0) {
+                this.operatingSystems.set(os);
+            } else {
                 this.useDefaultOS();
             }
 
         } catch (e) {
             console.error('Failed to load server options', e);
+            // Use defaults if fetching fails
+            this.useDefaultOS();
         }
     }
 
     useDefaultOS() {
         this.operatingSystems.set([
-            { id: 1, name: 'Linux' },
-            { id: 2, name: 'Windows' },
-            { id: 3, name: 'macOS' }
+            { id: 1, name: 'Windows Server', version: '2022', ltsFlag: true },
+            { id: 2, name: 'Ubuntu', version: '22.04', ltsFlag: true },
+            { id: 3, name: 'CentOS', version: '8', ltsFlag: false },
+            { id: 4, name: 'Red Hat Enterprise Linux', version: '9', ltsFlag: true },
+            { id: 5, name: 'Debian', version: '12', ltsFlag: true }
         ]);
     }
 

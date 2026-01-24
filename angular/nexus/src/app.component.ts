@@ -327,7 +327,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private getPlatformNodeForPath(path: string[]) {
     // Valid management types
-    const validTypes = ['data dictionary', 'services', 'frameworks', 'libraries', 'deployments', 'servers', 'hosts', 'service hosts', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'library categories', 'service definitions', 'languages', 'categories'];
+    const validTypes = ['data dictionary', 'services', 'frameworks', 'libraries', 'deployments', 'servers', 'hosts', 'service hosts', 'lookup tables', 'service types', 'server types', 'framework languages', 'framework categories', 'library categories', 'service definitions', 'languages', 'categories', 'operating systems', 'environments'];
     const profiles = this.hostProfileService.profiles();
     const activeProfile = this.hostProfileService.activeProfile();
 
@@ -1075,9 +1075,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Handle virtual organization folders (Platform Management, Search & Discovery, Users, Services)
     // These are top-level categories that don't have navigable children in the file explorer main area
-    const virtualOrgFolders = ['Search & Discovery', 'Users', 'Services'];
+    const virtualOrgFolders = ['Platform Management', 'Search & Discovery', 'Users', 'Services'];
     if (virtualOrgFolders.includes(rootName)) {
-      // Return homeProvider which will return empty array for these
+      // Return homeProvider which handles these paths with special logic
       return this.homeProvider;
     }
 
@@ -1304,7 +1304,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onLoadChildren = async (path: string[]) => {
     const provider = this.getProvider(path);
-    if (provider === this.homeProvider) {
+    const rootName = path[0];
+
+    // Platform Management uses homeProvider but still needs lazy loading
+    const needsLazyLoading = rootName === 'Platform Management';
+
+    if (provider === this.homeProvider && !needsLazyLoading) {
       // Home provider children are already loaded, no need to lazy load
       return;
     }
@@ -1317,7 +1322,6 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       // Calculate the provider-relative path by removing the routing prefix
       let providerPath: string[];
-      const rootName = path[0];
 
       if (rootName === 'Gateways' && path.length > 1) {
         // Path is ['Gateways', 'ServerName', ...], provider expects path without 'Gateways' and 'ServerName'
@@ -1325,6 +1329,9 @@ export class AppComponent implements OnInit, OnDestroy {
       } else if (rootName === 'File Systems' && path.length > 1) {
         // Path is ['File Systems', 'Local Session', ...], provider expects path without both prefixes
         providerPath = path.slice(2);
+      } else if (rootName === 'Platform Management') {
+        // Platform Management uses homeProvider with full path
+        providerPath = path;
       } else {
         // Legacy or other paths: just remove the root name
         providerPath = path.slice(1);

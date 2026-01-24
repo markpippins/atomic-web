@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, input, signal, effect } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input, signal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PlatformManagementService, Host } from '../../services/platform-management.service.js';
 import { ServiceInstance, Framework, Deployment, Library } from '../../models/service-mesh.model.js';
@@ -47,36 +47,63 @@ import { LookupItem } from '../../services/platform-management.service.js';
                             <!-- Services List -->
                             <div class="overflow-x-auto flex-1">
                                 <table class="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                            <th class="p-3 font-medium">Name</th>
-                                            <th class="p-3 font-medium">Type</th>
-                                            <th class="p-3 font-medium">Framework</th>
-                                            <th class="p-3 font-medium">Status</th>
-                                            <th class="p-3 font-medium text-right">Actions</th>
+                                    <thead class="bg-[rgb(var(--color-surface-muted))] text-xs text-[rgb(var(--color-text-muted))] uppercase sticky top-0 z-10">
+                                        <tr>
+                                            <th (click)="onSort('name')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                                <div class="flex items-center">
+                                                    Name
+                                                    @if (sortState().column === 'name') {
+                                                        <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                    }
+                                                </div>
+                                            </th>
+                                            <th (click)="onSort('type')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                                <div class="flex items-center">
+                                                    Type
+                                                    @if (sortState().column === 'type') {
+                                                        <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                    }
+                                                </div>
+                                            </th>
+                                            <th (click)="onSort('framework')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                                <div class="flex items-center">
+                                                    Framework
+                                                    @if (sortState().column === 'framework') {
+                                                        <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                    }
+                                                </div>
+                                            </th>
+                                            <th (click)="onSort('status')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                                <div class="flex items-center">
+                                                    Status
+                                                    @if (sortState().column === 'status') {
+                                                        <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                    }
+                                                </div>
+                                            </th>
+                                            <th class="p-2 font-semibold text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @for (service of services(); track service.id) {
                                             <tr 
-                                                class="border-b hover:bg-[rgb(var(--color-surface-hover))]"
-                                                [class.border-[rgb(var(--color-border-muted))]]="service.status !== 'PLANNED'"
+                                                class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group"
                                                 [class.border-dashed]="service.status === 'PLANNED'"
                                                 [class.border-blue-400]="service.status === 'PLANNED'"
                                                 [class.opacity-50]="service.status === 'DEPRECATED' || service.status === 'ARCHIVED'"
                                             >
-                                                <td class="p-3" [class.text-[rgb(var(--color-text-base))]]="service.status === 'ACTIVE'" [class.text-[rgb(var(--color-text-muted))]]="service.status !== 'ACTIVE'" [class.line-through]="service.status === 'DEPRECATED'">{{ service.name }}</td>
-                                                <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.type?.name }}</td>
-                                                <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ service.framework?.name }}</td>
-                                                <td class="p-3">
-                                                    <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + getServiceStatusClass(service.status)">
+                                                <td class="p-2 py-1.5" [class.text-[rgb(var(--color-text-base))]]="service.status === 'ACTIVE'" [class.text-[rgb(var(--color-text-muted))]]="service.status !== 'ACTIVE'" [class.line-through]="service.status === 'DEPRECATED'">{{ service.name }}</td>
+                                                <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ service.type?.name }}</td>
+                                                <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ service.framework?.name }}</td>
+                                                <td class="p-2 py-1.5">
+                                                    <span [class]="'px-2 py-0.5 rounded-full text-xs font-medium ' + getServiceStatusClass(service.status)">
                                                         {{ service.status }}
                                                     </span>
                                                 </td>
-                                                <td class="p-3 text-right">
-                                                    <button (click)="onManageServiceLibraries(service)" class="text-purple-500 hover:underline mr-3">Libraries</button>
-                                                    <button (click)="onEdit(service)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                    <button (click)="onDelete(service)" class="text-red-500 hover:underline">Delete</button>
+                                                <td class="p-2 py-1.5 text-right">
+                                                    <button (click)="onManageServiceLibraries(service)" class="text-purple-500 hover:underline mr-3 text-xs">Libraries</button>
+                                                    <button (click)="onEdit(service)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3 text-xs">Edit</button>
+                                                    <button (click)="onDelete(service)" class="text-red-500 hover:underline text-xs">Delete</button>
                                                 </td>
                                             </tr>
                                         } @empty {
@@ -92,27 +119,62 @@ import { LookupItem } from '../../services/platform-management.service.js';
                     @case ('libraries') {
                         <div class="overflow-x-auto flex-1">
                             <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                        <th class="p-3 font-medium">Name</th>
-                                        <th class="p-3 font-medium">Category</th>
-                                        <th class="p-3 font-medium">Language</th>
-                                        <th class="p-3 font-medium">Package</th>
-                                        <th class="p-3 font-medium">Version</th>
-                                        <th class="p-3 font-medium text-right">Actions</th>
+                                <thead class="bg-[rgb(var(--color-surface-muted))] text-xs text-[rgb(var(--color-text-muted))] uppercase sticky top-0 z-10">
+                                    <tr>
+                                        <th (click)="onSort('name')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Name
+                                                @if (sortState().column === 'name') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('category')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Category
+                                                @if (sortState().column === 'category') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('language')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Language
+                                                @if (sortState().column === 'language') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('package')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Package
+                                                @if (sortState().column === 'package') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('version')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Version
+                                                @if (sortState().column === 'version') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th class="p-2 font-semibold text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @for (lib of libraries(); track lib.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                                            <td class="p-3 text-[rgb(var(--color-text-base))]">{{ lib.name }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.category?.name || '-' }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.language?.name || '-' }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))] font-mono text-sm">{{ lib.packageName || '-' }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ lib.currentVersion || '-' }}</td>
-                                            <td class="p-3 text-right">
-                                                <button (click)="onEdit(lib)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                <button (click)="onDelete(lib)" class="text-red-500 hover:underline">Delete</button>
+                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ lib.name }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ lib.category?.name || '-' }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ lib.language?.name || '-' }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))] font-mono text-xs">{{ lib.packageName || '-' }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ lib.currentVersion || '-' }}</td>
+                                            <td class="p-2 py-1.5 text-right">
+                                                <button (click)="onEdit(lib)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3 text-xs">Edit</button>
+                                                <button (click)="onDelete(lib)" class="text-red-500 hover:underline text-xs">Delete</button>
                                             </td>
                                         </tr>
                                     } @empty {
@@ -135,25 +197,53 @@ import { LookupItem } from '../../services/platform-management.service.js';
                     @case ('frameworks') {
                          <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                        <th class="p-3 font-medium">Name</th>
-                                        <th class="p-3 font-medium">Category</th>
-                                        <th class="p-3 font-medium">Language</th>
-                                        <th class="p-3 font-medium">Version</th>
-                                        <th class="p-3 font-medium text-right">Actions</th>
+                                <thead class="bg-[rgb(var(--color-surface-muted))] text-xs text-[rgb(var(--color-text-muted))] uppercase sticky top-0 z-10">
+                                    <tr>
+                                        <th (click)="onSort('name')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Name
+                                                @if (sortState().column === 'name') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('category')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Category
+                                                @if (sortState().column === 'category') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('language')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Language
+                                                @if (sortState().column === 'language') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('version')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Version
+                                                @if (sortState().column === 'version') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th class="p-2 font-semibold text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @for (fw of frameworks(); track fw.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                                            <td class="p-3 text-[rgb(var(--color-text-base))]">{{ fw.name }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.category?.name }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.language?.name }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ fw.currentVersion || fw.latestVersion || '-' }}</td>
-                                            <td class="p-3 text-right">
-                                                <button (click)="onEdit(fw)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                <button (click)="onDelete(fw)" class="text-red-500 hover:underline">Delete</button>
+                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ fw.name }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ fw.category?.name }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ fw.language?.name }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ fw.currentVersion || fw.latestVersion || '-' }}</td>
+                                            <td class="p-2 py-1.5 text-right">
+                                                <button (click)="onEdit(fw)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3 text-xs">Edit</button>
+                                                <button (click)="onDelete(fw)" class="text-red-500 hover:underline text-xs">Delete</button>
                                             </td>
                                         </tr>
                                     } @empty {
@@ -168,31 +258,66 @@ import { LookupItem } from '../../services/platform-management.service.js';
                     @case ('deployments') {
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                        <th class="p-3 font-medium">Service</th>
-                                        <th class="p-3 font-medium">Environment</th>
-                                        <th class="p-3 font-medium">Server</th>
-                                        <th class="p-3 font-medium">Status</th>
-                                        <th class="p-3 font-medium">Version</th>
-                                        <th class="p-3 font-medium text-right">Actions</th>
+                                <thead class="bg-[rgb(var(--color-surface-muted))] text-xs text-[rgb(var(--color-text-muted))] uppercase sticky top-0 z-10">
+                                    <tr>
+                                        <th (click)="onSort('service')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Service
+                                                @if (sortState().column === 'service') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('environment')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Environment
+                                                @if (sortState().column === 'environment') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('server')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Server
+                                                @if (sortState().column === 'server') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('status')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Status
+                                                @if (sortState().column === 'status') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('version')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Version
+                                                @if (sortState().column === 'version') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th class="p-2 font-semibold text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @for (d of deployments(); track d.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                                            <td class="p-3 text-[rgb(var(--color-text-base))]">{{ d.service?.name }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ d.environment }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ d.server?.hostname }}</td>
-                                            <td class="p-3">
-                                                 <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + getStatusClass(d.status)">
+                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ d.service?.name }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ d.environment }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ d.server?.hostname }}</td>
+                                            <td class="p-2 py-1.5">
+                                                 <span [class]="'px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusClass(d.status)">
                                                     {{ d.status }}
                                                 </span>
                                             </td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ d.version }}</td>
-                                            <td class="p-3 text-right">
-                                                <button (click)="onEdit(d)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                <button (click)="onDelete(d)" class="text-red-500 hover:underline">Delete</button>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ d.version }}</td>
+                                            <td class="p-2 py-1.5 text-right">
+                                                <button (click)="onEdit(d)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3 text-xs">Edit</button>
+                                                <button (click)="onDelete(d)" class="text-red-500 hover:underline text-xs">Delete</button>
                                             </td>
                                         </tr>
                                     } @empty {
@@ -207,31 +332,66 @@ import { LookupItem } from '../../services/platform-management.service.js';
                     @case ('servers') {
                         <div class="overflow-x-auto">
                              <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-[rgb(var(--color-border-muted))] text-[rgb(var(--color-text-muted))] text-sm">
-                                        <th class="p-3 font-medium">Hostname</th>
-                                        <th class="p-3 font-medium">IP Address</th>
-                                        <th class="p-3 font-medium">Type</th>
-                                        <th class="p-3 font-medium">OS</th>
-                                        <th class="p-3 font-medium">Status</th>
-                                        <th class="p-3 font-medium text-right">Actions</th>
+                                <thead class="bg-[rgb(var(--color-surface-muted))] text-xs text-[rgb(var(--color-text-muted))] uppercase sticky top-0 z-10">
+                                    <tr>
+                                        <th (click)="onSort('hostname')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Hostname
+                                                @if (sortState().column === 'hostname') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('ipAddress')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                IP Address
+                                                @if (sortState().column === 'ipAddress') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('type')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Type
+                                                @if (sortState().column === 'type') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('os')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                OS
+                                                @if (sortState().column === 'os') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th (click)="onSort('status')" class="p-2 font-semibold cursor-pointer hover:bg-[rgb(var(--color-surface-hover))]">
+                                            <div class="flex items-center">
+                                                Status
+                                                @if (sortState().column === 'status') {
+                                                    <span class="ml-1">{{ sortState().direction === 'asc' ? '↑' : '↓' }}</span>
+                                                }
+                                            </div>
+                                        </th>
+                                        <th class="p-2 font-semibold text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @for (s of servers(); track s.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-muted))] hover:bg-[rgb(var(--color-surface-hover))]">
-                                            <td class="p-3 text-[rgb(var(--color-text-base))]">{{ s.hostname }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ s.ipAddress }}</td>
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ s.serverTypeId }}</td> 
-                                            <td class="p-3 text-[rgb(var(--color-text-muted))]">{{ s.operatingSystemId }}</td>
-                                            <td class="p-3">
-                                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500">
+                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ s.hostname }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ s.ipAddress }}</td>
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ s.serverTypeId }}</td> 
+                                            <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ s.operatingSystemId }}</td>
+                                            <td class="p-2 py-1.5">
+                                                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500">
                                                     {{ s.status }}
                                                 </span>
                                             </td>
-                                            <td class="p-3 text-right">
-                                                <button (click)="onEdit(s)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3">Edit</button>
-                                                <button (click)="onDelete(s)" class="text-red-500 hover:underline">Delete</button>
+                                            <td class="p-2 py-1.5 text-right">
+                                                <button (click)="onEdit(s)" class="text-[rgb(var(--color-accent-ring))] hover:underline mr-3 text-xs">Edit</button>
+                                                <button (click)="onDelete(s)" class="text-red-500 hover:underline text-xs">Delete</button>
                                             </td>
                                         </tr>
                                     } @empty {
@@ -268,6 +428,22 @@ import { LookupItem } from '../../services/platform-management.service.js';
                         ></app-lookup-list>
                     }
                     @case ('framework-categories') {
+                         <app-lookup-list
+                            [items]="lookupData()"
+                            [type]="managementType()"
+                            (onEdit)="onEdit($event)"
+                            (onDelete)="onDelete($event)"
+                        ></app-lookup-list>
+                    }
+                    @case ('operating-systems') {
+                         <app-lookup-list
+                            [items]="lookupData()"
+                            [type]="managementType()"
+                            (onEdit)="onEdit($event)"
+                            (onDelete)="onDelete($event)"
+                        ></app-lookup-list>
+                    }
+                    @case ('environments') {
                          <app-lookup-list
                             [items]="lookupData()"
                             [type]="managementType()"
@@ -357,14 +533,82 @@ export class PlatformManagementComponent {
     platformService = inject(PlatformManagementService);
 
     // Data Signals
-    services = signal<ServiceInstance[]>([]);
-    frameworks = signal<Framework[]>([]);
-    deployments = signal<Deployment[]>([]);
-    servers = signal<Host[]>([]);
-    libraries = signal<Library[]>([]);
+    // Data Signals (Raw)
+    private rawServices = signal<ServiceInstance[]>([]);
+    private rawFrameworks = signal<Framework[]>([]);
+    private rawDeployments = signal<Deployment[]>([]);
+    private rawServers = signal<Host[]>([]);
+    private rawLibraries = signal<Library[]>([]);
 
     loading = signal(false);
     error = signal<string | null>(null);
+
+    // Sort State
+    sortState = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
+
+    // Computed Sorted Signals
+    services = computed(() => {
+        return this.sortData(this.rawServices(), this.sortState(), (item, col) => {
+            switch (col) {
+                case 'name': return item.name;
+                case 'type': return item.type?.name;
+                case 'framework': return item.framework?.name;
+                case 'status': return item.status;
+                default: return (item as any)[col];
+            }
+        });
+    });
+
+    frameworks = computed(() => {
+        return this.sortData(this.rawFrameworks(), this.sortState(), (item, col) => {
+            switch (col) {
+                case 'name': return item.name;
+                case 'category': return item.category?.name;
+                case 'language': return item.language?.name;
+                case 'version': return item.currentVersion || item.latestVersion;
+                default: return (item as any)[col];
+            }
+        });
+    });
+
+    deployments = computed(() => {
+        return this.sortData(this.rawDeployments(), this.sortState(), (item, col) => {
+            switch (col) {
+                case 'service': return item.service?.name;
+                case 'environment': return item.environment;
+                case 'server': return item.server?.hostname;
+                case 'status': return item.status;
+                case 'version': return item.version;
+                default: return (item as any)[col];
+            }
+        });
+    });
+
+    servers = computed(() => {
+        return this.sortData(this.rawServers(), this.sortState(), (item, col) => {
+            switch (col) {
+                case 'hostname': return item.hostname;
+                case 'ipAddress': return item.ipAddress;
+                case 'type': return item.serverTypeId;
+                case 'os': return item.operatingSystemId;
+                case 'status': return item.status;
+                default: return (item as any)[col];
+            }
+        });
+    });
+
+    libraries = computed(() => {
+        return this.sortData(this.rawLibraries(), this.sortState(), (item, col) => {
+            switch (col) {
+                case 'name': return item.name;
+                case 'category': return item.category?.name;
+                case 'language': return item.language?.name;
+                case 'package': return item.packageName;
+                case 'version': return item.currentVersion;
+                default: return (item as any)[col];
+            }
+        });
+    });
 
     // Dialog State
     isServiceDialogOpen = signal(false);
@@ -402,6 +646,8 @@ export class PlatformManagementComponent {
             // Reset active tab when management type changes
             if (this.managementType()) {
                 this.activeTab.set(this.managementType() === 'services' ? 'services' : this.managementType());
+                // Reset sort on type change
+                this.sortState.set({ column: 'name', direction: 'asc' });
             }
         });
 
@@ -430,10 +676,31 @@ export class PlatformManagementComponent {
         });
     }
 
+    private sortData<T>(data: T[], sort: { column: string; direction: 'asc' | 'desc' }, getValue: (item: T, col: string) => any): T[] {
+        if (!sort.column) return data;
+
+        return [...data].sort((a, b) => {
+            const valA = getValue(a, sort.column);
+            const valB = getValue(b, sort.column);
+
+            if (valA === valB) return 0;
+
+            const comparison = valA < valB ? -1 : 1;
+            return sort.direction === 'asc' ? comparison : -comparison;
+        });
+    }
+
+    onSort(column: string) {
+        this.sortState.update(current => ({
+            column,
+            direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    }
+
     async loadData() {
         const type = this.managementType();
         const url = this.baseUrl();
-        const currentTab = this.activeTab();
+        const activeTab = this.activeTab();
 
         if (!type || !url) return;
 
@@ -442,37 +709,39 @@ export class PlatformManagementComponent {
 
         // Determine what to load based on type and active tab
         // If type is services, we might be looking at a lookup map
-        const actualType = (type === 'services' && currentTab !== 'services') ? currentTab : type;
+        const actualType = (type === 'services' && activeTab !== 'services') ? activeTab : type;
 
         try {
             switch (actualType) {
                 case 'services':
                     const s = await this.platformService.getServices(url);
-                    this.services.set(s);
+                    this.rawServices.set(s);
                     break;
                 case 'frameworks':
                     const f = await this.platformService.getFrameworks(url);
-                    this.frameworks.set(f);
+                    this.rawFrameworks.set(f);
                     break;
                 case 'deployments':
                     const d = await this.platformService.getDeployments(url);
-                    this.deployments.set(d);
+                    this.rawDeployments.set(d);
                     break;
                 case 'servers':
                     const h = await this.platformService.getServers(url);
-                    this.servers.set(h);
+                    this.rawServers.set(h);
                     break;
                 case 'service-types':
                 case 'server-types':
                 case 'framework-languages':
                 case 'framework-categories':
                 case 'library-categories':
+                case 'operating-systems':
+                case 'environments':
                     const l = await this.platformService.getLookup(url, actualType);
                     this.lookupData.set(l);
                     break;
                 case 'libraries':
                     const libs = await this.platformService.getLibraries(url);
-                    this.libraries.set(libs);
+                    this.rawLibraries.set(libs);
                     break;
             }
         } catch (e) {
@@ -510,6 +779,8 @@ export class PlatformManagementComponent {
             case 'framework-languages':
             case 'framework-categories':
             case 'library-categories':
+            case 'operating-systems':
+            case 'environments':
                 this.selectedLookupForEdit.set(null);
                 this.isLookupDialogOpen.set(true);
                 break;
@@ -547,6 +818,8 @@ export class PlatformManagementComponent {
             case 'framework-languages':
             case 'framework-categories':
             case 'library-categories':
+            case 'operating-systems':
+            case 'environments':
                 this.selectedLookupForEdit.set(item);
                 this.isLookupDialogOpen.set(true);
                 break;
@@ -584,6 +857,8 @@ export class PlatformManagementComponent {
                 case 'framework-languages':
                 case 'framework-categories':
                 case 'library-categories':
+                case 'operating-systems':
+                case 'environments':
                     await this.platformService.deleteLookup(url, actualType, Number(item.id));
                     break;
                 case 'libraries':

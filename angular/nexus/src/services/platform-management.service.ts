@@ -326,6 +326,9 @@ export class PlatformManagementService {
         else if (type === 'server-types') endpoint = 'server-types';
         else if (type === 'framework-categories') endpoint = 'framework-categories';
         else if (type === 'framework-languages') endpoint = 'framework-languages';
+        else if (type === 'library-categories') endpoint = 'library-categories';
+        else if (type === 'operating-systems') endpoint = 'operating-systems';
+        else if (type === 'environments') endpoint = 'environments';
 
         try {
             const url = `${baseUrl}/api/${endpoint}`;
@@ -389,6 +392,8 @@ export class PlatformManagementService {
             case 'framework-categories': return 'framework-categories';
             case 'framework-languages': return 'framework-languages';
             case 'library-categories': return 'library-categories';
+            case 'operating-systems': return 'operating-systems';
+            case 'environments': return 'environments';
             default: return type;
         }
     }
@@ -558,6 +563,8 @@ export interface LookupItem {
     id: number;
     name: string;
     description?: string;
+    version?: string;
+    ltsFlag?: boolean;
     activeFlag?: boolean;
     defaultComponentId?: number;
     defaultComponent?: ComponentConfig;

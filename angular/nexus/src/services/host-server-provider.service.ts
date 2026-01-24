@@ -414,6 +414,26 @@ export class HostServerProvider implements TreeProvider {
                 operations: ['manage-libcategories'],
                 metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/library-categories`, managementType: 'library-categories' },
                 lastUpdated: new Date()
+            },
+            {
+                id: `platform-dict-operatingsystems-${profile.id}`,
+                name: 'Operating Systems',
+                type: NodeType.FOLDER,
+                icon: 'computer',
+                hasChildren: false,
+                operations: ['manage-operatingsystems'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/operating-systems`, managementType: 'operating-systems' },
+                lastUpdated: new Date()
+            },
+            {
+                id: `platform-dict-environments-${profile.id}`,
+                name: 'Environments',
+                type: NodeType.FOLDER,
+                icon: 'cloud',
+                hasChildren: false,
+                operations: ['manage-environments'],
+                metadata: { hostProfileId: profile.id, url: `${baseUrl}/api/environments`, managementType: 'environments' },
+                lastUpdated: new Date()
             }
         ];
     }

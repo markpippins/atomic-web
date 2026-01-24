@@ -7,7 +7,6 @@ import { NewBookmark } from '../../models/bookmark.model.js';
 
 @Component({
   selector: 'app-folder',
-  standalone: true,
   templateUrl: './folder.component.html',
   imports: [CommonModule, AutoFocusSelectDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -72,7 +71,7 @@ export class FolderComponent {
         return; // Invalid target, do not preventDefault
       }
     }
-    
+
     event.preventDefault(); // Allow drop
     if (event.dataTransfer) {
       if (payload?.type === 'filesystem') {

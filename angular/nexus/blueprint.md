@@ -50,7 +50,11 @@ Ensured that children of the "Platform Management" node (and other Host Server n
 
 - **App Component**: Updated `homeProvider` and `buildCombinedFolderTree` to preserve the `icon` property from the provider in the `metadata` object of `FileSystemNode`.
 - **File Explorer**: Updated `getIconUrl` in `FileExplorerComponent` to prioritize using `metadata.icon` as the requested image name from `ImageService`, enabling custom icons (like 'cloud_upload', 'storage', 'dns') to be fetched instead of falling back to the item name.
+- **File Explorer Path Fix**: Added `'Platform Management'` to the `virtualFolders` array in `FileExplorerComponent.providerPath()` to ensure the full path is passed to `homeProvider.getContents()` when loading Platform Management children.
+- **Provider Routing Fix**: Added `'Platform Management'` to the `virtualOrgFolders` array in `AppComponent.getProvider()` to ensure `homeProvider` is returned instead of `TreeProviderAdapter`. This prevents the "Node not found" error that occurred when TreeProviderAdapter tried to resolve 'Platform Management' as a child node.
+- **Lazy Loading Fix**: Modified `onLoadChildren` in `AppComponent` to NOT return early for Platform Management paths. Added special handling so the function proceeds with lazy loading for Platform Management, and passes the full path (including 'Platform Management') to `homeProvider.getContents()`.
 - **Verification**: Ran build to ensure no regressions.
+
 
 ## Current Feature: Explorer Tree Refinements
 
@@ -62,7 +66,36 @@ Refining the "Platform Management" explorer tree nodes to match user requirement
 
 - Modified `HostServerProvider.ts` to reorder children of `platform` node: Deployments, Hosts, Services, System Health.
 - Renamed "Service Hosts" to "Hosts" in `fetchPlatformInfo` for consistency.
+- **Folder Rename Restriction**: Added `isRenamingAllowed` computed signal in `FileExplorerComponent` that only allows double-click rename when inside the File Systems path (e.g., Local Session). This prevents accidental renaming of Platform Management, Gateways, and Host Servers items which are managed entities.
 - Verified build success.
+
+## Current Feature: Data Dictionary Expansion
+
+Added "Operating Systems" and "Environments" to the Data Dictionary to support server management. These are lookup tables needed when adding new servers.
+
+### Implementation Status
+
+✅ **Completed (Frontend):**
+
+- **HostServerProvider**: Added `Operating Systems` and `Environments` nodes to `getDataDictionaryNodes()` with appropriate icons ('computer' and 'cloud'), API endpoints (`/api/operating-systems` and `/api/environments`), and management types.
+- **PlatformManagementComponent**: Added `operating-systems` and `environments` cases to all switch statements (loadData, onAdd, onEdit, onDelete) and template @case entries for displaying these lookup lists.
+- **AppComponent**: Added 'operating systems' and 'environments' to the `validTypes` array in `getPlatformNodeForPath()` for proper path routing to the management component.
+
+✅ **Completed (Backend - Spring Boot host-server):**
+
+- **OperatingSystem Entity**: Created new JPA entity `OperatingSystem.java` with fields: id, name, activeFlag, createdAt, updatedAt, and OneToMany relationship to Host.
+- **OperatingSystemRepository**: Created repository interface with caching support.
+- **OperatingSystemController**: Created REST controller at `/api/operating-systems` with full CRUD (GET, GET/{id}, POST, PUT/{id}, DELETE/{id}).
+- **EnvironmentTypeController**: Created REST controller at `/api/environments` with full CRUD (entity and repository already existed).
+- **Host Entity Update**: Added ManyToOne relationship from Host to OperatingSystem.
+- **SQL Seed Data**: Created `data-seed.sql` with default operating systems (Windows Server, Ubuntu, CentOS, RHEL, Debian, macOS, Alpine) and environment types (Development, Testing, Staging, Production, DR).
+
+✅ **Completed (Server Dialog Improvements):**
+
+- **UpsertServerDialogComponent**: Refactored to use modern Angular v20+ control flow (@if, @for instead of *ngIf, *ngFor).
+- **Dropdown Integration**: Server dialog now fetches Operating Systems and Environments from the backend API via `PlatformManagementService.getLookup()`.
+- **PlatformManagementService**: Added `operating-systems` and `environments` to `getLookup()` and `getLookupEndpoint()` endpoint mappings.
+- **Fallback Handling**: Dialog gracefully falls back to default OS options if the API is unavailable.
 
 ## Current Feature: Visual Editor & Graph Integration
 
