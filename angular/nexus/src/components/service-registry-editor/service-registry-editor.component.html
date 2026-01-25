@@ -137,7 +137,7 @@
                     type="text"
                     [ngModel]="formState().name"
                     (ngModelChange)="updateField('name', $event)"
-                    placeholder="Enter host profile name..."
+                    placeholder="Enter profile name..."
                     class="w-full bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-base))] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[rgb(var(--color-primary-600))]/20 focus:border-[rgb(var(--color-primary-600))] transition-all group-hover:border-[rgb(var(--color-border-prominent))]"
                   />
                 </div>
@@ -145,7 +145,7 @@
                 <div class="group">
                   <label
                     class="block text-[10px] font-bold text-[rgb(var(--color-text-subtle))] uppercase tracking-widest mb-1.5 ml-1"
-                    >Host Server URL</label
+                    >Service Registry URL</label
                   >
                   <div class="relative">
                     <input
@@ -367,7 +367,7 @@
                   [ngModel]="formState().description"
                   (ngModelChange)="updateField('description', $event)"
                   rows="4"
-                  placeholder="Additional context about this host..."
+                  placeholder="Additional context about this registry..."
                   class="w-full bg-[rgb(var(--color-surface-muted))] border border-[rgb(var(--color-border-base))] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[rgb(var(--color-primary-600))]/20 focus:border-[rgb(var(--color-primary-600))]"
                 ></textarea>
               </div>
@@ -399,11 +399,11 @@
         </svg>
       </div>
       <h3 class="text-xl font-bold text-[rgb(var(--color-text-prominent))] mb-2 tracking-tight">
-        Host Server Not Found
+        Service Registry Not Found
       </h3>
       <p class="max-w-xs text-center text-sm text-[rgb(var(--color-text-muted))]">
-        The requested host server configuration could not be located. It may have been deleted or
-        the ID is invalid.
+        The requested service registry configuration could not be located. It may have been deleted
+        or the ID is invalid.
       </p>
     </div>
   }

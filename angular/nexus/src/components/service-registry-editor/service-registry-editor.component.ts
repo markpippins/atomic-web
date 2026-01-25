@@ -41,12 +41,12 @@ const INITIAL_FORM_STATE: FormState = {
 };
 
 @Component({
-    selector: 'app-host-server-editor',
+    selector: 'app-service-registry-editor',
     imports: [CommonModule, FormsModule],
-    templateUrl: './host-server-editor.component.html',
+    templateUrl: './service-registry-editor.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HostServerEditorComponent {
+export class ServiceRegistryEditorComponent {
     profileService = inject(HostProfileService);
 
     // Input: the profile ID to edit

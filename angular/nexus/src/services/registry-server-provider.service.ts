@@ -12,8 +12,8 @@ import { ServiceMeshService } from './service-mesh.service.js';
 @Injectable({
     providedIn: 'root'
 })
-export class HostServerProvider implements TreeProvider {
-    readonly providerType = 'host-server';
+export class RegistryServerProvider implements TreeProvider {
+    readonly providerType = 'registry-server';
     private treeManager = inject(TreeManagerService);
     private http = inject(HttpClient);
     private profileService = inject(HostProfileService);

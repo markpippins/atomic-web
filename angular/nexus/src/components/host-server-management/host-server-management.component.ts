@@ -34,8 +34,8 @@ import { HostProfile } from '../../models/host-profile.model.js';
                   </div>
                   <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      (click)="editHostServer.emit(profile.name)"
-                      title="Edit Host"
+                      (click)="editServiceRegistry.emit(profile.name)"
+                      title="Edit Service Registry"
                       class="p-1.5 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-accent-solid-bg))]"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,8 +43,8 @@ import { HostProfile } from '../../models/host-profile.model.js';
                       </svg>
                     </button>
                     <button
-                      (click)="deleteHostServer.emit(profile.id)"
-                      title="Delete Host"
+                      (click)="deleteServiceRegistry.emit(profile.id)"
+                      title="Delete Service Registry"
                       class="p-1.5 rounded-md hover:bg-[rgb(var(--color-danger-bg))] text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-danger-text))]"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -71,7 +71,7 @@ import { HostProfile } from '../../models/host-profile.model.js';
               </div>
               <div class="px-5 py-3 bg-[rgb(var(--color-surface-hover-subtle))] border-t border-[rgb(var(--color-border-muted))] rounded-b-xl flex justify-end">
                 <button
-                  (click)="editHostServer.emit(profile.name)"
+                  (click)="editServiceRegistry.emit(profile.name)"
                   class="text-xs font-bold text-[rgb(var(--color-accent-solid-bg))] hover:underline uppercase tracking-wide"
                 >
                   Edit Profile
@@ -85,8 +85,8 @@ import { HostProfile } from '../../models/host-profile.model.js';
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
                 </svg>
               </div>
-              <p class="text-lg font-medium">No Host Servers Configured</p>
-              <p class="text-sm">Click "Add New Host Server" to get started.</p>
+              <p class="text-lg font-medium">No Service Registries Configured</p>
+              <p class="text-sm">Click "Add New Service Registry" to get started.</p>
             </div>
           }
         </div>
@@ -101,9 +101,9 @@ export class HostServerManagementComponent {
   profiles = this.profileService.profiles;
   toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
 
-  editHostServer = output<string>();
-  deleteHostServer = output<string>();
-  addHostServer = output<void>();
+  editServiceRegistry = output<string>();
+  deleteServiceRegistry = output<string>();
+  addServiceRegistry = output<void>();
 
   private lastProcessedActionId = 0;
   private componentStartTime = Date.now();
@@ -118,7 +118,7 @@ export class HostServerManagementComponent {
         if (isNewAction && action.id !== this.lastProcessedActionId) {
           this.lastProcessedActionId = action.id;
           if (action.name === 'newFolder') {
-            this.addHostServer.emit();
+            this.addServiceRegistry.emit();
           }
         } else {
           this.lastProcessedActionId = action.id;

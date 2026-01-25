@@ -706,15 +706,15 @@
           >
             Properties
           </div>
-        } @else if (isInHostServersFolder()) {
-          <!-- CONTEXT MENU FOR HOST SERVERS FOLDER -->
+        } @else if (isInServiceRegistriesFolder()) {
+          <!-- CONTEXT MENU FOR SERVICE REGISTRIES FOLDER -->
           @if (!cm.item) {
-            <!-- Background menu in Host Servers folder -->
+            <!-- Background menu in Service Registries folder -->
             <div
               class="px-3 py-1.5 hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer"
-              (click)="onAddHostServer()"
+              (click)="onAddServiceRegistry()"
             >
-              Add Host Server
+              Add Service Registry
             </div>
           }
         } @else if (isInGatewaysFolder()) {

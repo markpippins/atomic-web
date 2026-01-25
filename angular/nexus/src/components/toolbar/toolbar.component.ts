@@ -65,9 +65,9 @@ export class ToolbarComponent {
   isGatewayContext = input(false);
   isGatewaysNodeSelected = input(false);
   isGatewaySelected = input(false);
-  isHostServerContext = input(false);
-  isHostServersNodeSelected = input(false);
-  isHostServerSelected = input(false);
+  isServiceRegistryContext = input(false);
+  isServiceRegistriesNodeSelected = input(false);
+  isServiceRegistrySelected = input(false);
   isPlatformManagementContext = input(false);
   canSave = input(false);
 

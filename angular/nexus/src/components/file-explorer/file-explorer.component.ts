@@ -84,7 +84,7 @@ export class FileExplorerComponent implements OnDestroy {
   disconnectFromServer = output<string>();
   editServerProfile = output<string>();
   addServerProfile = output<void>();
-  addHostServer = output<void>();
+  addServiceRegistry = output<void>();
   addGateway = output<void>();
   editLocalConfig = output<void>();
 
@@ -196,13 +196,13 @@ export class FileExplorerComponent implements OnDestroy {
       return p.slice(2);
     }
 
-    // For Host Servers/ProfileName/..., slice off both Host Servers and ProfileName
-    if (rootName === 'Host Servers' && p.length > 1) {
+    // For Service Registries/ProfileName/..., slice off both Service Registries and ProfileName
+    if (rootName === 'Service Registries' && p.length > 1) {
       return p.slice(2);
     }
 
     // Virtual organization folders that need their path passed to homeProvider
-    const virtualFolders = ['File Systems', 'Gateways', 'Host Servers', 'Platform Management', 'Search & Discovery', 'Users', 'Services'];
+    const virtualFolders = ['File Systems', 'Gateways', 'Service Registries', 'Platform Management', 'Search & Discovery', 'Users', 'Services'];
     if (virtualFolders.includes(rootName)) {
       return p; // homeProvider needs to see the full path like ['Platform Management'] or ['Gateways']
     }
@@ -211,10 +211,10 @@ export class FileExplorerComponent implements OnDestroy {
     return p.slice(1);
   });
 
-  // Check if we're currently viewing the Host Servers folder (for context menu)
-  isInHostServersFolder = computed(() => {
+  // Check if we're currently viewing the Service Registries folder (for context menu)
+  isInServiceRegistriesFolder = computed(() => {
     const p = this.path();
-    return p.length === 1 && p[0] === 'Host Servers';
+    return p.length === 1 && p[0] === 'Service Registries';
   });
 
   // Check if we're currently viewing the Gateways folder (for context menu)
@@ -989,7 +989,7 @@ export class FileExplorerComponent implements OnDestroy {
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
 
-    // Use metadata.icon as a preference if available (from HostServerProvider), 
+    // Use metadata.icon as a preference if available (from RegistryServerProvider), 
     // otherwise fall back to props.imageName or default (item name).
     const customImageName = item.metadata?.['icon'] || props?.imageName;
 
@@ -1320,8 +1320,8 @@ export class FileExplorerComponent implements OnDestroy {
     this.closeContextMenu();
   }
 
-  onAddHostServer(): void {
-    this.addHostServer.emit();
+  onAddServiceRegistry(): void {
+    this.addServiceRegistry.emit();
     this.closeContextMenu();
   }
 

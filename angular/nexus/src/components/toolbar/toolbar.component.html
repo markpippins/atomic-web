@@ -326,8 +326,8 @@
         [title]="
           isGatewayContext()
             ? 'Add New Gateway'
-            : isHostServerContext()
-              ? 'Add New Host Server'
+            : isServiceRegistryContext()
+              ? 'Add New Service Registry'
               : managementType()
                 ? 'Add ' + (managementType() | slice: 0 : -1 | titlecase)
                 : 'New Item'
@@ -348,7 +348,7 @@
         </svg>
       </button>
 
-      @if (isGatewaySelected() || isHostServerSelected()) {
+      @if (isGatewaySelected() || isServiceRegistrySelected()) {
         <!-- Gateway/Host Editor Save/Reset Buttons -->
         <button
           (click)="saveClick.emit()"
@@ -391,7 +391,7 @@
         </button>
       }
 
-      @if (!isGatewayContext() && !isHostServerContext() && !isPlatformManagementContext()) {
+      @if (!isGatewayContext() && !isServiceRegistryContext() && !isPlatformManagementContext()) {
         <!-- Divider -->
         <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
 
@@ -466,11 +466,11 @@
         [disabled]="
           isGatewayContext()
             ? !isGatewaySelected()
-            : isHostServerContext()
-              ? !isHostServerSelected()
+            : isServiceRegistryContext()
+              ? !isServiceRegistrySelected()
               : !canRename()
         "
-        [title]="isGatewayContext() || isHostServerContext() ? 'Edit' : 'Rename (F2)'"
+        [title]="isGatewayContext() || isServiceRegistryContext() ? 'Edit' : 'Rename (F2)'"
         class="p-2 rounded-md hover:bg-[rgb(var(--color-surface-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg
@@ -489,7 +489,7 @@
         </svg>
       </button>
 
-      @if (!isGatewayContext() && !isHostServerContext() && !isPlatformManagementContext()) {
+      @if (!isGatewayContext() && !isServiceRegistryContext() && !isPlatformManagementContext()) {
         <button
           (click)="shareClick.emit()"
           [disabled]="!canShare()"
@@ -518,15 +518,15 @@
         [disabled]="
           isGatewayContext()
             ? !isGatewaySelected()
-            : isHostServerContext()
-              ? !isHostServerSelected()
+            : isServiceRegistryContext()
+              ? !isServiceRegistrySelected()
               : !canDelete()
         "
         [title]="
           isGatewayContext()
             ? 'Delete Gateway'
-            : isHostServerContext()
-              ? 'Delete Host Server'
+            : isServiceRegistryContext()
+              ? 'Delete Service Registry'
               : 'Delete (Del)'
         "
         class="p-2 rounded-md hover:bg-[rgb(var(--color-danger-bg-hover))] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -547,7 +547,7 @@
         </svg>
       </button>
 
-      @if (!isGatewayContext() && !isHostServerContext() && !isPlatformManagementContext()) {
+      @if (!isGatewayContext() && !isServiceRegistryContext() && !isPlatformManagementContext()) {
         <button
           (click)="magnetizeClick.emit()"
           [disabled]="!canMagnetize()"
@@ -566,7 +566,7 @@
       }
       <div class="h-6 w-px bg-[rgb(var(--color-border-muted))]"></div>
 
-      @if (!isGatewayContext() && !isHostServerContext() && !isPlatformManagementContext()) {
+      @if (!isGatewayContext() && !isServiceRegistryContext() && !isPlatformManagementContext()) {
         <!-- Copy to / Move to -->
         <div class="relative inline-block text-left">
           <button
