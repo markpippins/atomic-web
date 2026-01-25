@@ -128,6 +128,12 @@ export class SessionService implements FileSystemProvider {
         type: 'file',
         content: 'This is a virtual file system stored in your browser\'s local storage.',
         modified: '2023-08-01T09:00:00Z'
+      },
+      {
+        name: 'Search & Discovery',
+        type: 'folder',
+        children: [],
+        modified: new Date().toISOString()
       }
     ],
     modified: new Date().toISOString()

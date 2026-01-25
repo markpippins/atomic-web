@@ -1270,14 +1270,27 @@ export class AppComponent implements OnInit, OnDestroy {
     // and we want to put the modified version back
     const otherHostNodes = hostNodes.filter(n => n.name !== 'File Systems');
 
+    // Extract "Search & Discovery" from sessionTree if it exists, to place it at Home root
+    let searchDiscoveryNode: FileSystemNode | undefined;
+    if (sessionTree.children) {
+      const idx = sessionTree.children.findIndex(c => c.name === 'Search & Discovery');
+      if (idx !== -1) {
+        searchDiscoveryNode = sessionTree.children[idx];
+        // Remove it from Local Session so it doesn't appear twice
+        sessionTree.children.splice(idx, 1);
+      }
+    }
+
     // Build the final tree structure:
-    // - Other host nodes (Services, Users, Search & Discovery, Platform Management)
+    // - Other host nodes (Services, Users, Platform Management)
     // - File Systems (containing Local Session)
+    // - Search & Discovery (hoisted from Local Session)
     // - Gateways (containing broker gateways)
     // - Service Registries (containing host server profiles)
     const rootChildren = [
       ...otherHostNodes,
       ...(fileSystemsNode ? [fileSystemsNode] : [sessionTree]), // fallback: if no File Systems node, show session at root
+      ...(searchDiscoveryNode ? [searchDiscoveryNode] : []),
       ...(remoteRoots.length > 0 ? [gatewaysNode] : []), // Only show Gateways if there are broker profiles
       ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []), // Only show Service Registries if there are host profiles
     ];
