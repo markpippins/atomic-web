@@ -13,6 +13,7 @@ const SESSION_FS_STORAGE_KEY = 'file-explorer-session-fs';
  */
 function cloneNode(node: FileSystemNode): FileSystemNode {
   const newNode: FileSystemNode = {
+    id: node.id, // Include the id if it exists
     name: node.name,
     type: node.type,
     modified: node.modified,
@@ -118,22 +119,10 @@ export class SessionService implements FileSystemProvider {
         modified: '2023-10-27T13:00:00Z'
       },
       {
-        name: 'Home',
-        type: 'folder',
-        children: [],
-        modified: '2023-08-01T09:00:00Z'
-      },
-      {
         name: 'README.txt',
         type: 'file',
         content: 'This is a virtual file system stored in your browser\'s local storage.',
         modified: '2023-08-01T09:00:00Z'
-      },
-      {
-        name: 'Search & Discovery',
-        type: 'folder',
-        children: [],
-        modified: new Date().toISOString()
       }
     ],
     modified: new Date().toISOString()
@@ -156,6 +145,14 @@ export class SessionService implements FileSystemProvider {
         // Basic validation and overwrite name with config
         if (parsedTree && parsedTree.type === 'folder') {
           parsedTree.name = sessionName;
+
+          // Cleanup: Remove legacy "Search & Discovery" or confusing "Home" folders if they were persisted
+          if (parsedTree.children) {
+            parsedTree.children = parsedTree.children.filter(c =>
+              c.name !== 'Search & Discovery' && c.name !== 'Home'
+            );
+          }
+
           this.rootNode.set(parsedTree);
           return;
         }

@@ -66,6 +66,7 @@ export class TreeProviderAdapter implements FileSystemProvider {
             case 'users': return 'Users';
             case 'search': return 'Search & Discovery';
             case 'filesystems': return 'File Systems';
+            case 'servers': return 'Servers';
             default:
                 if (nodeId.startsWith('host-')) {
                     // Extract name from host-<profileId> format

@@ -5,7 +5,7 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, R
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FileExplorerComponent } from './components/file-explorer/file-explorer.component.js';
 import { SidebarComponent } from './components/sidebar/sidebar.component.js';
-import { FileSystemNode } from './models/file-system.model.js';
+import { FileSystemNode, FileType } from './models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from './services/file-system-provider.js';
 import { BrokerProfileService } from './services/broker-profile.service.js';
 import { HostProfileService } from './services/host-profile.service.js';
@@ -48,6 +48,7 @@ import { GoogleSearchResult } from './models/google-search-result.model.js';
 import { ImageSearchResult } from './models/image-search-result.model.js';
 import { YoutubeSearchResult } from './models/youtube-search-result.model.js';
 import { AcademicSearchResult } from './models/academic-search-result.model.js';
+import { NodeType } from './models/tree-node.model.js';
 import { WebResultCardComponent } from './components/stream-cards/web-result-card.component.js';
 import { ImageResultCardComponent } from './components/stream-cards/image-result-card.component.js';
 import { GeminiResultCardComponent } from './components/stream-cards/gemini-result-card.component.js';
@@ -68,7 +69,6 @@ import { GeminiSearchDialogComponent } from './components/gemini-search-dialog/g
 import { TreeManagerService } from './services/tree-manager.service.js';
 import { RegistryServerProvider } from './services/registry-server-provider.service.js';
 import { TreeProviderAdapter } from './services/tree-provider-adapter.js';
-import { NodeType } from './models/tree-node.model.js';
 import { ServiceMeshComponent } from './components/service-mesh/service-mesh.component.js';
 import { CreateUserDialogComponent } from './components/create-user/create-user-dialog.component.js';
 import { PlatformManagementComponent } from './components/platform-management/platform-management.component.js';
@@ -79,6 +79,7 @@ import { GatewayEditorComponent } from './components/gateway-editor/gateway-edit
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component.js';
 import { GatewayManagementComponent } from './components/gateway-management/gateway-management.component.js';
 import { HostServerManagementComponent } from './components/host-server-management/host-server-management.component.js';
+import { GenericTreeNode } from './models/generic-tree.model.js';
 
 interface PanePath {
   id: number;
@@ -122,6 +123,15 @@ const readOnlyProviderOps = {
   saveFileContent: () => Promise.reject(new Error('Operation not supported.')),
   hasFile: (path: string[], filename: string) => Promise.resolve(false),
   hasFolder: () => Promise.resolve(false),
+  // Methods added for GenericTreeProvider
+  getNodeContent: () => Promise.reject(new Error('Operation not supported.')),
+  saveNodeContent: () => Promise.reject(new Error('Operation not supported.')),
+  getTree: () => Promise.reject(new Error('Operation not supported.')),
+  createFolder: () => Promise.reject(new Error('Operation not supported.')),
+  removeFolder: () => Promise.reject(new Error('Operation not supported.')),
+  createNode: () => Promise.reject(new Error('Operation not supported.')),
+  deleteNode: () => Promise.reject(new Error('Operation not supported.')),
+  hasNode: () => Promise.reject(new Error('Operation not supported.')),
 };
 
 const disconnectedProvider: FileSystemProvider = {
@@ -364,7 +374,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     // Handle multi-element path
-    const pmIndex = path.findIndex(p => p.toLowerCase() === 'platform management' || p.toLowerCase() === 'infrastructure');
+    const pmIndex = path.findIndex(p => p.toLowerCase() === 'platform management');
 
     if (pmIndex !== -1) {
       // Path contains "Platform Management"
@@ -401,7 +411,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (type) {
         const profile = targetProfileName
           ? profiles.find(p => p.name === targetProfileName)
-          : (path[0].toLowerCase() !== 'platform management' && path[0].toLowerCase() !== 'infrastructure' ? profiles.find(p => p.name === path[0]) : activeProfile);
+          : (path[0].toLowerCase() !== 'platform management' ? profiles.find(p => p.name === path[0]) : activeProfile);
 
         const finalProfile = profile || activeProfile;
         if (finalProfile) {
@@ -799,25 +809,35 @@ export class AppComponent implements OnInit, OnDestroy {
     // Services, Users, Search etc are now handled by ServiceMeshComponent and no longer mapped to file system
     // this.treeAdapters.set('Services', new TreeProviderAdapter(this.hostServerProvider, 'services'));
     // this.treeAdapters.set('Users', new TreeProviderAdapter(this.hostServerProvider, 'users'));
-    // this.treeAdapters.set('Search & Discovery', new TreeProviderAdapter(this.hostServerProvider, 'search'));
     // this.treeAdapters.set('File Systems', new TreeProviderAdapter(this.hostServerProvider, 'filesystems'));
     this.treeAdapters.set('Platform Management', new TreeProviderAdapter(this.registryServerProvider, 'platform'));
 
     this.homeProvider = {
-      getContents: async (path: string[]) => {
+      getContents: async (path: string[]): Promise<FileSystemNode[]> => {
         console.log('[homeProvider.getContents] path:', path);
         // Get Host Server children (for platform categories like Services, Users, etc.)
         const hostChildren = await this.registryServerProvider.getChildren('root');
         console.log('[homeProvider.getContents] hostChildren:', hostChildren.map(c => c.name));
-        const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
-          name: node.name,
-          type: 'folder',
-          id: node.id,
-          metadata: node.metadata,
-          children: [],
-          childrenLoaded: false,
-          isServerRoot: false
-        }));
+        const hostNodes: FileSystemNode[] = hostChildren.map(node => {
+          // Convert NodeType to FileType
+          let fileType: 'folder' | 'file' | 'host-server' = 'folder';
+          if (node.type === NodeType.FILE) {
+            fileType = 'file';
+          } else if (node.type === NodeType.HOST_SERVER) {
+            fileType = 'host-server';
+          }
+
+          return {
+            name: node.name,
+            type: node.type === NodeType.HOST_SERVER ? 'host-server' :
+                  node.type === NodeType.FILE ? 'file' : 'folder',
+            id: node.id,
+            metadata: node.metadata,
+            children: [],
+            childrenLoaded: false,
+            isServerRoot: false
+          };
+        });
 
         // Get Local Session
         const sessionNode = await this.sessionFs.getFolderTree();
@@ -855,9 +875,37 @@ export class AppComponent implements OnInit, OnDestroy {
         if (path.length > 0) {
           const rootName = path[0];
 
-          // File Systems folder - contains Local Session
+          // Local Session - handle directly if it's at root level
+          const sessionName = this.localConfigService.sessionName();
+          if (rootName === sessionName) {
+            // Path is like ['Local Session', ...], delegate to session provider
+            // Adjust path to remove the root name for the session provider
+            const sessionPath = path.slice(1);
+            return this.sessionFs.getContents(sessionPath);
+          }
+
+
+          // File Systems folder
           if (rootName === 'File Systems') {
-            return [sessionNode];
+            // Return only connected gateways that offer file services
+            const mountedIds = this.mountedProfileIds();
+            const allBrokerProfiles = this.profileService.profiles();
+
+            // Filter to only return profiles that are currently mounted/connected
+            const connectedFileServiceGateways = allBrokerProfiles.filter(p =>
+              mountedIds.includes(p.id)
+            );
+
+            // Convert to FileSystemNode format
+            return connectedFileServiceGateways.map(profile => ({
+              name: profile.name,
+              type: 'folder' as FileType,
+              isServerRoot: true,
+              profileId: profile.id,
+              connected: true,
+              children: [],
+              childrenLoaded: false,
+            }));
           }
 
           // Gateways folder - contains broker gateway nodes
@@ -889,22 +937,34 @@ export class AppComponent implements OnInit, OnDestroy {
             }
 
             const nodes = await this.registryServerProvider.getChildren(currentNodeId);
-            return nodes.map(node => ({
-              name: node.name,
-              type: 'folder',
-              id: node.id,
-              metadata: {
-                ...node.metadata,
-                icon: node.icon
-              },
-              children: [], // Children will be loaded on demand
-              childrenLoaded: false, // Children are not loaded until the node is expanded
-              isServerRoot: false
-            }));
+            return nodes.map(node => {
+              // Determine the type based on NodeType enum, converting to FileType
+              let fileType: 'file' | 'folder' | 'host-server' = 'folder';
+              if (node.type === NodeType.FILE) {
+                fileType = 'file';
+              } else if (node.type === NodeType.HOST_SERVER) {
+                fileType = 'host-server';
+              } else {
+                fileType = 'folder';
+              }
+
+              return {
+                name: node.name,
+                type: fileType,
+                id: node.id,
+                metadata: {
+                  ...node.metadata,
+                  icon: node.icon
+                },
+                children: [], // Children will be loaded on demand
+                childrenLoaded: false, // Children are not loaded until the node is expanded
+                isServerRoot: false
+              };
+            });
           }
 
-          // Services, Users, Search & Discovery - show empty (managed by HostServerProvider)
-          const hostNodeNames = hostNodes.map(n => n.name).filter(n => n !== 'Platform Management');
+          // Services - show empty (managed by HostServerProvider)
+          const hostNodeNames = hostNodes.map(n => n.name).filter(n => n !== 'Platform Management' && n !== 'Search & Discovery' && n !== 'Servers' && n !== 'Users');
           if (hostNodeNames.includes(rootName)) {
             return []; // These nodes are placeholders, no children to show in main area
           }
@@ -917,7 +977,7 @@ export class AppComponent implements OnInit, OnDestroy {
         // Create "Gateways" virtual folder containing broker profiles
         const gatewaysNode: FileSystemNode = {
           name: 'Gateways',
-          type: 'folder',
+          type: 'folder' as FileType,
           children: brokerProfileNodes,
           childrenLoaded: true,
           isVirtualFolder: true,
@@ -926,7 +986,7 @@ export class AppComponent implements OnInit, OnDestroy {
         // Create "Service Registries" virtual folder containing host server profiles
         const serviceRegistriesNode: FileSystemNode = {
           name: 'Service Registries',
-          type: 'folder',
+          type: 'folder' as FileType,
           children: hostProfileNodes,
           childrenLoaded: true,
           isVirtualFolder: true,
@@ -935,23 +995,24 @@ export class AppComponent implements OnInit, OnDestroy {
         // Find the "File Systems" node and add Local Session as its child
         const fileSystemsNode = hostNodes.find(n => n.name === 'File Systems');
         if (fileSystemsNode) {
-          fileSystemsNode.children = [sessionNode];
           fileSystemsNode.childrenLoaded = true;
         }
 
-        // Filter out "File Systems" from hostNodes since we've modified it
-        const otherHostNodes = hostNodes.filter(n => n.name !== 'File Systems');
+        // Find the "Search & Discovery" node to move it to root level
+        const searchDiscoveryNode = hostNodes.find(n => n.name === 'Search & Discovery');
+
+        // Find the "Users" node
+        const usersNode = hostNodes.find(n => n.name === 'Users');
+
+        // Filter out "Users" from hostNodes to handle them separately if needed
+        const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'Users');
 
         // Build the root children:
-        // - Other host nodes (Services, Users, Search & Discovery, Platform Management)
-        // - File Systems (containing Local Session)
-        // - Gateways (containing broker gateways) - only if there are profiles
-        // - Host Servers (containing host server profiles)
+        // - Other host nodes (Services, Platform Management)
+        // - Local Session (virtual file system at root level)
         const rootChildren = [
           ...otherHostNodes,
-          ...(fileSystemsNode ? [fileSystemsNode] : [sessionNode]),
-          ...(allBrokerProfiles.length > 0 ? [gatewaysNode] : []),
-          ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []),
+          sessionNode,  // Add Local Session at root level
         ];
 
         console.log('[homeProvider.getContents] returning rootChildren:', rootChildren.map(c => c.name));
@@ -1045,17 +1106,30 @@ export class AppComponent implements OnInit, OnDestroy {
       return this.homeProvider;
     }
 
-    // Handle "File Systems" folder - Local Session is nested under it
+    // Handle Local Session at root level
+    const sessionName = this.localConfigService.sessionName();
+    if (rootName === sessionName) {
+      // Path is like ['Local Session', ...], use session provider
+      return this.sessionFs;
+    }
+
+    // Handle "File Systems" folder - contains connected gateways that offer file services
     if (rootName === 'File Systems') {
       if (path.length === 1) {
         // At the File Systems folder level itself
         return this.homeProvider;
       }
-      // Path is like ['File Systems', 'Local Session', ...]
-      const sessionName = this.localConfigService.sessionName();
-      if (path[1] === sessionName) {
-        // Return session provider, but adjust the path (skip 'File Systems')
-        return this.sessionFs;
+      // Path is like ['File Systems', 'GatewayName', ...]
+      const gatewayName = path[1];
+      const remoteProvider = this.remoteProviders().get(gatewayName);
+      if (remoteProvider) {
+        // Return the remote provider for the specific gateway
+        return remoteProvider;
+      }
+      // Gateway is known but not connected
+      const isKnownGateway = this.profileService.profiles().some(p => p.name === gatewayName);
+      if (isKnownGateway) {
+        return disconnectedProvider;
       }
       return this.homeProvider;
     }
@@ -1073,9 +1147,9 @@ export class AppComponent implements OnInit, OnDestroy {
       return this.homeProvider;
     }
 
-    // Handle virtual organization folders (Platform Management, Search & Discovery, Users, Services)
+    // Handle virtual organization folders (Platform Management, Users, Services)
     // These are top-level categories that don't have navigable children in the file explorer main area
-    const virtualOrgFolders = ['Platform Management', 'Search & Discovery', 'Users', 'Services'];
+    const virtualOrgFolders = ['Platform Management', 'Users', 'Services'];
     if (virtualOrgFolders.includes(rootName)) {
       // Return homeProvider which handles these paths with special logic
       return this.homeProvider;
@@ -1166,7 +1240,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const hostChildren = await this.registryServerProvider.getChildren('root');
     const hostNodes: FileSystemNode[] = hostChildren.map(node => ({
       name: node.name,
-      type: 'folder',
+      type: 'folder' as FileType,
       id: node.id,
       metadata: {
         ...node.metadata,
@@ -1198,7 +1272,7 @@ export class AppComponent implements OnInit, OnDestroy {
             // Fallback to a disconnected-style node on error
             remoteRoots.push({
               name: profile.name,
-              type: 'folder',
+              type: 'folder' as FileType,
               isServerRoot: true,
               profileId: profile.id,
               connected: false,
@@ -1209,7 +1283,7 @@ export class AppComponent implements OnInit, OnDestroy {
           // This case indicates an inconsistency (mounted but no provider). Show as disconnected.
           remoteRoots.push({
             name: profile.name,
-            type: 'folder',
+            type: 'folder' as FileType,
             isServerRoot: true,
             profileId: profile.id,
             connected: false,
@@ -1220,7 +1294,7 @@ export class AppComponent implements OnInit, OnDestroy {
         // Profile is not connected
         remoteRoots.push({
           name: profile.name,
-          type: 'folder',
+          type: 'folder' as FileType,
           isServerRoot: true,
           profileId: profile.id,
           connected: false,
@@ -1232,17 +1306,21 @@ export class AppComponent implements OnInit, OnDestroy {
     // Create "Gateways" parent node for broker gateways
     const gatewaysNode: FileSystemNode = {
       name: 'Gateways',
-      type: 'folder',
+      type: 'folder' as FileType,
       children: remoteRoots,
       childrenLoaded: true,
       isVirtualFolder: true, // Mark as a virtual organizational folder
     };
 
-    // Find the "File Systems" node and add Local Session as its child
+    // Find the "File Systems" node
     const fileSystemsNode = hostNodes.find(n => n.name === 'File Systems');
     if (fileSystemsNode) {
-      fileSystemsNode.children = [sessionTree];
       fileSystemsNode.childrenLoaded = true;
+    }
+
+    // Prepare the Local Session to be added at root level
+    if (sessionTree.children) {
+      sessionTree.children = sessionTree.children.filter((c: FileSystemNode) => c.name !== 'Search & Discovery');
     }
 
     // Build host server profile nodes for the Service Registries folder
@@ -1260,7 +1338,7 @@ export class AppComponent implements OnInit, OnDestroy {
     // Create "Service Registries" parent node
     const serviceRegistriesNode: FileSystemNode = {
       name: 'Service Registries',
-      type: 'folder',
+      type: 'folder' as FileType,
       children: hostProfileNodes,
       childrenLoaded: true,
       isVirtualFolder: true,
@@ -1268,36 +1346,23 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Filter out "File Systems" from hostNodes since we've modified it
     // and we want to put the modified version back
-    const otherHostNodes = hostNodes.filter(n => n.name !== 'File Systems');
-
-    // Extract "Search & Discovery" from sessionTree if it exists, to place it at Home root
-    let searchDiscoveryNode: FileSystemNode | undefined;
-    if (sessionTree.children) {
-      const idx = sessionTree.children.findIndex(c => c.name === 'Search & Discovery');
-      if (idx !== -1) {
-        searchDiscoveryNode = sessionTree.children[idx];
-        // Remove it from Local Session so it doesn't appear twice
-        sessionTree.children.splice(idx, 1);
-      }
-    }
+    const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'File Systems');
 
     // Build the final tree structure:
     // - Other host nodes (Services, Users, Platform Management)
     // - File Systems (containing Local Session)
-    // - Search & Discovery (hoisted from Local Session)
     // - Gateways (containing broker gateways)
     // - Service Registries (containing host server profiles)
     const rootChildren = [
       ...otherHostNodes,
       ...(fileSystemsNode ? [fileSystemsNode] : [sessionTree]), // fallback: if no File Systems node, show session at root
-      ...(searchDiscoveryNode ? [searchDiscoveryNode] : []),
       ...(remoteRoots.length > 0 ? [gatewaysNode] : []), // Only show Gateways if there are broker profiles
       ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []), // Only show Service Registries if there are host profiles
     ];
 
     return {
       name: 'Home',
-      type: 'folder',
+      type: 'folder' as FileType,
       children: rootChildren,
       childrenLoaded: true,
     };

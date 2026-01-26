@@ -202,7 +202,7 @@ export class FileExplorerComponent implements OnDestroy {
     }
 
     // Virtual organization folders that need their path passed to homeProvider
-    const virtualFolders = ['File Systems', 'Gateways', 'Service Registries', 'Platform Management', 'Search & Discovery', 'Users', 'Services'];
+    const virtualFolders = ['File Systems', 'Gateways', 'Service Registries', 'Platform Management', 'Users', 'Services'];
     if (virtualFolders.includes(rootName)) {
       return p; // homeProvider needs to see the full path like ['Platform Management'] or ['Gateways']
     }

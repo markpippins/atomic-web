@@ -56,7 +56,16 @@ export class RegistryServerProvider implements TreeProvider {
                     metadata: {},
                     lastUpdated: new Date()
                 },
-
+                {
+                    id: 'search',
+                    name: 'Search & Discovery',
+                    type: NodeType.FOLDER,
+                    icon: 'search',
+                    hasChildren: true,
+                    operations: [],
+                    metadata: {},
+                    lastUpdated: new Date()
+                },
                 {
                     id: 'filesystems',
                     name: 'File Systems',
@@ -153,7 +162,7 @@ export class RegistryServerProvider implements TreeProvider {
                 },
                 {
                     id: `platform-servers-${profile.id}`,
-                    name: 'Hosts',
+                    name: 'Servers',
                     type: NodeType.FOLDER,
                     icon: 'storage',
                     hasChildren: false,
@@ -292,7 +301,7 @@ export class RegistryServerProvider implements TreeProvider {
             },
             {
                 id: `platform-servers-${profile.id}`,
-                name: 'Hosts',
+                name: 'Servers',
                 type: NodeType.FOLDER,
                 icon: 'storage',
                 hasChildren: false,
