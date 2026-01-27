@@ -1005,7 +1005,7 @@ export class AppComponent implements OnInit, OnDestroy {
         const usersNode = hostNodes.find(n => n.name === 'Users');
 
         // Filter out "Users" from hostNodes to handle them separately if needed
-        const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'Users');
+        const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'Users' && n.name !== 'Search & Discovery');
 
         // Build the root children:
         // - Other host nodes (Services, Platform Management)
@@ -1346,7 +1346,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Filter out "File Systems" from hostNodes since we've modified it
     // and we want to put the modified version back
-    const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'File Systems');
+    const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'File Systems' && n.name !== 'Search & Discovery');
 
     // Build the final tree structure:
     // - Other host nodes (Services, Users, Platform Management)
