@@ -830,7 +830,7 @@ export class AppComponent implements OnInit, OnDestroy {
           return {
             name: node.name,
             type: node.type === NodeType.HOST_SERVER ? 'host-server' :
-                  node.type === NodeType.FILE ? 'file' : 'folder',
+              node.type === NodeType.FILE ? 'file' : 'folder',
             id: node.id,
             metadata: node.metadata,
             children: [],
@@ -1355,7 +1355,8 @@ export class AppComponent implements OnInit, OnDestroy {
     // - Service Registries (containing host server profiles)
     const rootChildren = [
       ...otherHostNodes,
-      ...(fileSystemsNode ? [fileSystemsNode] : [sessionTree]), // fallback: if no File Systems node, show session at root
+      ...(fileSystemsNode ? [fileSystemsNode] : []),
+      sessionTree, // Always show Local Session at root
       ...(remoteRoots.length > 0 ? [gatewaysNode] : []), // Only show Gateways if there are broker profiles
       ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []), // Only show Service Registries if there are host profiles
     ];

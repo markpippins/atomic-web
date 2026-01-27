@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, computed, effect, inject, V
 import { CommonModule, DatePipe } from '@angular/common';
 import { FileSystemNode } from '../../models/file-system.model.js';
 import { FileSystemProvider, ItemReference } from '../../services/file-system-provider.js';
+import { LocalConfigService } from '../../services/local-config.service.js';
 import { ImageService } from '../../services/image.service.js';
 import { SortCriteria, SortKey } from '../toolbar/toolbar.component.js';
 import { FolderComponent } from '../folder/folder.component.js';
@@ -49,6 +50,7 @@ export class FileExplorerComponent implements OnDestroy {
   private dragDropService = inject(DragDropService);
   private folderPropertiesService = inject(FolderPropertiesService);
   private textEditorService = inject(TextEditorService);
+  private localConfigService = inject(LocalConfigService);
   private injector = inject(Injector);
 
   // Inputs & Outputs for multi-pane communication
@@ -223,11 +225,14 @@ export class FileExplorerComponent implements OnDestroy {
     return p.length === 1 && p[0] === 'Gateways';
   });
 
-  // Check if renaming is allowed - only in File Systems path (which contains Local Session)
+  // Check if renaming is allowed - only in File Systems path or Local Session
   isRenamingAllowed = computed(() => {
     const p = this.path();
-    // Renaming is only allowed within File Systems (e.g., ['File Systems', 'Local Session', ...])
-    return p.length > 0 && p[0] === 'File Systems';
+    const sessionName = this.localConfigService.sessionName();
+    // Renaming is allowed within File Systems or the Local Session root
+    if (p.length > 0 && p[0] === 'File Systems') return true;
+    if (p.length > 0 && p[0] === sessionName) return true;
+    return false;
   });
 
   sortedItems = computed(() => {
