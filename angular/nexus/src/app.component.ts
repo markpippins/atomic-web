@@ -288,10 +288,19 @@ export class AppComponent implements OnInit, OnDestroy {
   pane1Path = computed(() => this.panePaths().find(p => p.id === 1)?.path ?? []);
   pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
   activePanePath = computed(() => this.activePaneId() === 1 ? this.pane1Path() : this.pane2Path());
-  activeRootName = computed(() => this.activePanePath()[0] ?? this.localConfigService.sessionName());
+  activeRootName = computed(() => {
+    if (this.currentViewMode() === 'service-mesh') {
+      return 'Service Mesh';
+    }
+    return this.activePanePath()[0] ?? this.localConfigService.sessionName();
+  });
 
   // Derive display path (without server/session name) for address bar
   activeDisplayPath = computed(() => {
+    if (this.currentViewMode() === 'service-mesh') {
+      const selected = this.serviceMeshService.selectedService();
+      return selected ? [selected.name] : [];
+    }
     const path = this.activePanePath();
     return path.length > 1 ? path.slice(1) : [];
   });
