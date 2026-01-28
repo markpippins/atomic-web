@@ -156,7 +156,7 @@ export class GenericTreeServiceProvider extends GenericTreeProvider {
     // Build the root tree
     return {
       id: 'root',
-      name: 'Home',
+      name: 'Nexus',
       type: 'folder',
       children: [
         ...hostNodes,

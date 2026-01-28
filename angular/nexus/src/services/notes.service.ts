@@ -54,7 +54,7 @@ export class NotesService {
   }
 
   private getNoteInfoFromPath(path: string[]): { id: string; source: string; key: string } {
-    const source = path[0] ?? 'Home';
+    const source = path[0] ?? 'Nexus';
     let key: string;
     if (path.length === 0) {
       key = '__HOME_NOTE__';
@@ -187,7 +187,7 @@ export class NotesService {
   }
 
   private getNoteFullPath(note: Note): string {
-    if (note.source === 'Home' && note.key === '__HOME_NOTE__') {
+    if (note.source === 'Nexus' && note.key === '__HOME_NOTE__') {
       return ''; // Root path
     }
     // Reconstruct the full path string used by FolderPropertiesService

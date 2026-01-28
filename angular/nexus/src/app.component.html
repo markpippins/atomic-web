@@ -132,6 +132,7 @@
           [canCopyToMoveTo]="canCutCopyShareDelete()"
           [canPaste]="canPaste()"
           [canRename]="canRename()"
+          [canImport]="canImport()"
           [canShare]="canCutCopyShareDelete()"
           [canDelete]="canCutCopyShareDelete()"
           [canMagnetize]="canMagnetize()"
@@ -149,6 +150,7 @@
           [isSavedItemsVisible]="isSavedItemsVisible()"
           [isRssFeedVisible]="isRssFeedVisible()"
           [isStreamVisible]="isStreamVisible()"
+          [isHomeContext]="isHomeContext()"
           [canSave]="editorIsDirty()"
           (newFolderClick)="
             isGatewayContext()
@@ -158,6 +160,7 @@
                 : onToolbarAction('newFolder')
           "
           (newFileClick)="onToolbarAction('newFile')"
+          (importClick)="onToolbarImport()"
           (saveClick)="onSaveGateway()"
           (resetClick)="onResetGateway()"
           (filesUploaded)="onToolbarAction('upload', $event)"
@@ -1277,4 +1280,25 @@
       (close)="isDeleteServiceRegistryConfirmOpen.set(false)"
     ></app-confirm-dialog>
   }
+  @if (isImportDependencyWarningOpen()) {
+    <app-confirm-dialog
+      title="Import Dependency Warning"
+      message="Please note that ordering of imports is important. Frameworks should be imported first, followed by Services, and finally Servers."
+      confirmButtonText="I Understand"
+      [showDontShowAgainOption]="true"
+      (dontShowAgainChange)="importWarningDontShowAgain.set($event)"
+      (confirm)="onConfirmImportWarning()"
+      (close)="isImportDependencyWarningOpen.set(false)"
+    ></app-confirm-dialog>
+  }
+
+  <!-- Hidden File Input for Imports -->
+  <input
+    #importFileInput
+    type="file"
+    accept=".json"
+    class="hidden"
+    style="display: none"
+    (change)="onImportFileSelected($event)"
+  />
 </div>

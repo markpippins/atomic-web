@@ -361,7 +361,7 @@ export class SidebarComponent implements OnDestroy {
     if (!root) return null;
 
     if (path.length === 0) {
-      // An empty path corresponds to the root of the tree itself ('Home')
+      // An empty path corresponds to the root of the tree itself ('Nexus')
       return root;
     }
 
@@ -400,7 +400,7 @@ export class SidebarComponent implements OnDestroy {
     }
 
     const rootNodeName = path[0];
-    // The folderTree is the 'Home' node. Its children are the roots we care about.
+    // The folderTree is the 'Nexus' node. Its children are the roots we care about.
     const rootNodeInTree = this.folderTree()?.children?.find(c => c.name === rootNodeName);
 
     if (rootNodeInTree?.isServerRoot) {

@@ -13,11 +13,11 @@ export interface Toast {
 export class ToastService {
   toasts = signal<Toast[]>([]);
 
-  show(message: string, type: 'success' | 'error' | 'info' = 'success', duration: number = 4000): void {
+  show(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success', duration: number = 4000): void {
     const newToast: Toast = {
       id: Date.now() + Math.random(),
       message,
-      type,
+      type: type === 'warning' ? 'info' : type, // Map warning to info for now or update Toast interface
       duration,
     };
 
@@ -26,6 +26,22 @@ export class ToastService {
     setTimeout(() => {
       this.remove(newToast.id);
     }, duration);
+  }
+
+  showSuccess(message: string): void {
+    this.show(message, 'success');
+  }
+
+  showError(message: string): void {
+    this.show(message, 'error');
+  }
+
+  showInfo(message: string): void {
+    this.show(message, 'info');
+  }
+
+  showWarning(message: string): void {
+    this.show(message, 'warning');
   }
 
   remove(id: number): void {

@@ -146,10 +146,10 @@ export class SessionService implements FileSystemProvider {
         if (parsedTree && parsedTree.type === 'folder') {
           parsedTree.name = sessionName;
 
-          // Cleanup: Remove legacy "Search & Discovery" or confusing "Home" folders if they were persisted
+          // Cleanup: Remove legacy or virtual folders if they were persisted
           if (parsedTree.children) {
             parsedTree.children = parsedTree.children.filter(c =>
-              c.name !== 'Search & Discovery' && c.name !== 'Home'
+              !['Search & Discovery', 'Home', 'Service Registries', 'Host Servers', 'Gateways', 'Platform Management'].includes(c.name)
             );
           }
 

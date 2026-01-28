@@ -34,7 +34,8 @@ export class RegistryServerProvider implements TreeProvider {
 
     canHandle(nodeId: string): boolean {
         return nodeId === 'root' ||
-            nodeId.startsWith('host-') ||
+            nodeId === 'service-registries' ||
+            nodeId.startsWith('registry-') ||
             nodeId.startsWith('service-') ||
             nodeId.startsWith('users') ||
             nodeId.startsWith('search') ||
@@ -105,6 +106,27 @@ export class RegistryServerProvider implements TreeProvider {
                     return this.fetchDeploymentsForService(profile, serviceId);
                 }
             }
+            return [];
+        }
+
+        if (nodeId === 'service-registries') {
+            const profiles = this.profileService.profiles();
+            return profiles.map(profile => ({
+                id: `registry-${profile.id}`,
+                name: profile.name,
+                type: NodeType.FOLDER, // Represents the profile root
+                icon: 'dns',
+                hasChildren: true,
+                operations: ['edit-registry', 'delete-registry'],
+                metadata: { profile },
+                lastUpdated: new Date()
+            }));
+        }
+
+        if (nodeId.startsWith('registry-')) {
+            const profileId = nodeId.replace('registry-', '');
+            const profile = this.profileService.profiles().find(p => p.id === profileId);
+            if (profile) return this.fetchPlatformInfo(profile);
             return [];
         }
 

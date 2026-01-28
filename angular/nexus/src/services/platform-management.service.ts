@@ -38,7 +38,7 @@ export interface ServicePayload {
 export interface FrameworkPayload {
     name: string;
     description?: string;
-    vendorId: number;
+    vendorId?: number;
     categoryId: number;
     languageId: number;
     currentVersion?: string;

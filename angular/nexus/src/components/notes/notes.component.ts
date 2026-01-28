@@ -63,7 +63,7 @@ export class NotesComponent implements OnDestroy {
     this.isLoading.set(true);
     try {
       const note = await this.notesService.getNote(this.path());
-      const folderName = this.path().length > 0 ? this.path()[this.path().length - 1] : 'Home';
+      const folderName = this.path().length > 0 ? this.path()[this.path().length - 1] : 'Nexus';
       this.noteContent.set(note?.content ?? `# Notes for ${folderName}\n\nThis note is empty. Start typing...`);
     } catch(e) {
       console.error('Failed to load note:', e);

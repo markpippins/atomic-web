@@ -29,6 +29,7 @@ export interface UiPreferences {
   detailPaneSavedHeight: number | null;
   theme: Theme;
   fontSize: FontSize;
+  showImportDependencyWarning: boolean;
 }
 
 const DEFAULT_PREFERENCES: UiPreferences = {
@@ -55,6 +56,7 @@ const DEFAULT_PREFERENCES: UiPreferences = {
   detailPaneSavedHeight: null,
   theme: 'theme-light',
   fontSize: 'base',
+  showImportDependencyWarning: true,
 };
 
 @Injectable({
@@ -87,6 +89,7 @@ export class UiPreferencesService {
   public readonly detailPaneSavedHeight = computed(() => this.preferences().detailPaneSavedHeight);
   public readonly theme = computed(() => this.preferences().theme);
   public readonly fontSize = computed(() => this.preferences().fontSize);
+  public readonly showImportDependencyWarning = computed(() => this.preferences().showImportDependencyWarning);
   public readonly currentPreferences = this.preferences.asReadonly();
 
   constructor() {
@@ -209,6 +212,10 @@ export class UiPreferencesService {
 
   setTheme(theme: Theme): void {
     this.preferences.update(p => ({ ...p, theme }));
+  }
+
+  setImportDependencyWarning(show: boolean): void {
+    this.preferences.update(p => ({ ...p, showImportDependencyWarning: show }));
   }
 
   // --- Bulk update method for preferences dialog ---

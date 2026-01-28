@@ -12,6 +12,7 @@ import { HostProfileService } from './services/host-profile.service.js';
 import { DetailPaneComponent } from './components/detail-pane/detail-pane.component.js';
 import { SessionService } from './services/in-memory-file-system.service.js';
 import { BrokerProfile } from './models/broker-profile.model.js';
+import { PlatformManagementService, ServicePayload, FrameworkPayload, Host } from './services/platform-management.service.js';
 import { RemoteFileSystemService } from './services/remote-file-system.service.js';
 import { FsService } from './services/fs.service.js';
 import { ImageService } from './services/image.service.js';
@@ -183,7 +184,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private treeManager = inject(TreeManagerService);
   private registryServerProvider = inject(RegistryServerProvider);
   private serviceMeshService = inject(ServiceMeshService);
-  public vizService = inject(ArchitectureVizService);  // Made public for template access
+  public vizService = inject(ArchitectureVizService);
 
   private initialAutoConnectAttempted = false;
 
@@ -199,6 +200,8 @@ export class AppComponent implements OnInit, OnDestroy {
   isComplexSearchDialogOpen = signal(false);
   isGeminiSearchDialogOpen = signal(false);
   isCreateUserDialogOpen = signal(false);
+  isImportDependencyWarningOpen = signal(false);
+  importWarningDontShowAgain = signal(false);
   profileForCreateUser = signal<BrokerProfile | undefined>(undefined);
   selectedDetailItem = signal<FileSystemNode | null>(null);
   connectionStatus = signal<ConnectionStatus>('disconnected');
@@ -288,19 +291,10 @@ export class AppComponent implements OnInit, OnDestroy {
   pane1Path = computed(() => this.panePaths().find(p => p.id === 1)?.path ?? []);
   pane2Path = computed(() => this.panePaths().find(p => p.id === 2)?.path ?? []);
   activePanePath = computed(() => this.activePaneId() === 1 ? this.pane1Path() : this.pane2Path());
-  activeRootName = computed(() => {
-    if (this.currentViewMode() === 'service-mesh') {
-      return 'Service Mesh';
-    }
-    return this.activePanePath()[0] ?? this.localConfigService.sessionName();
-  });
+  activeRootName = computed(() => this.activePanePath()[0] ?? this.localConfigService.sessionName());
 
   // Derive display path (without server/session name) for address bar
   activeDisplayPath = computed(() => {
-    if (this.currentViewMode() === 'service-mesh') {
-      const selected = this.serviceMeshService.selectedService();
-      return selected ? [selected.name] : [];
-    }
     const path = this.activePanePath();
     return path.length > 1 ? path.slice(1) : [];
   });
@@ -420,7 +414,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (type) {
         const profile = targetProfileName
           ? profiles.find(p => p.name === targetProfileName)
-          : (path[0].toLowerCase() !== 'platform management' ? profiles.find(p => p.name === path[0]) : activeProfile);
+          : (path[0] === 'Service Registries' && path.length > 1 ? profiles.find(p => p.name === path[1]) : (path[0].toLowerCase() !== 'platform management' ? profiles.find(p => p.name === path[0]) : activeProfile));
 
         const finalProfile = profile || activeProfile;
         if (finalProfile) {
@@ -624,6 +618,8 @@ export class AppComponent implements OnInit, OnDestroy {
   pane2FilterQuery = signal('');
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
 
+  isHomeContext = computed(() => this.activePanePath().length === 0);
+
   isActionableContext = computed(() => {
     const path = this.activePanePath();
     if (path.length === 0) {
@@ -651,6 +647,190 @@ export class AppComponent implements OnInit, OnDestroy {
   canRename = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount === 1);
   canPaste = computed(() => this.isActionableContext() && !!this.clipboardService.clipboard());
   canMagnetize = computed(() => this.isActionableContext() && this.activePaneStatus().selectedItemsCount > 0);
+
+  // Import capability
+  canImport = computed(() => {
+    const activeId = this.activePaneId();
+    const node = activeId === 1 ? this.pane1PlatformNode() : this.pane2PlatformNode();
+    if (!node) return false;
+
+    // Enable for Frameworks, Services, and Servers
+    return ['frameworks', 'services', 'servers'].includes(node.type || '');
+  });
+
+  @ViewChild('importFileInput') importFileInput!: ElementRef<HTMLInputElement>;
+  private platformManagementService = inject(PlatformManagementService);
+
+  onToolbarImport(): void {
+    if (this.canImport()) {
+      if (this.uiPreferencesService.showImportDependencyWarning()) {
+        this.isImportDependencyWarningOpen.set(true);
+      } else {
+        this.importFileInput.nativeElement.click();
+      }
+    }
+  }
+
+  onConfirmImportWarning(): void {
+    if (this.importWarningDontShowAgain()) {
+      this.uiPreferencesService.setImportDependencyWarning(false);
+    }
+    this.isImportDependencyWarningOpen.set(false);
+    this.importFileInput.nativeElement.click();
+  }
+
+  onImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text === 'string') {
+          const data = JSON.parse(text);
+          const activeId = this.activePaneId();
+          const node = activeId === 1 ? this.pane1PlatformNode() : this.pane2PlatformNode();
+
+          if (!node || !node.baseUrl || !Array.isArray(data)) {
+            this.toastService.showError('Invalid import data or context.');
+            return;
+          }
+
+          const baseUrl = node.baseUrl;
+          this.toastService.showInfo(`Importing ${data.length} items...`);
+
+          let successes = 0;
+          let failures = 0;
+
+          // Pre-load lookups based on context
+          let serverTypes: any[] = [];
+          let environmentTypes: any[] = [];
+          let operatingSystems: any[] = [];
+          let serviceTypes: any[] = [];
+          let frameworks: any[] = [];
+          let frameworkCategories: any[] = [];
+          let frameworkLanguages: any[] = [];
+
+          try {
+            if (node.type === 'servers') {
+              const [st, et, os] = await Promise.all([
+                this.platformManagementService.getLookup(baseUrl, 'server-types'),
+                this.platformManagementService.getLookup(baseUrl, 'environments'),
+                this.platformManagementService.getLookup(baseUrl, 'operating-systems')
+              ]);
+              serverTypes = st;
+              environmentTypes = et;
+              operatingSystems = os;
+            } else if (node.type === 'services') {
+              const [fw, st] = await Promise.all([
+                this.platformManagementService.getFrameworks(baseUrl),
+                this.platformManagementService.getLookup(baseUrl, 'service-types')
+              ]);
+              frameworks = fw;
+              serviceTypes = st;
+            } else if (node.type === 'frameworks') {
+              const [fc, fl] = await Promise.all([
+                this.platformManagementService.getLookup(baseUrl, 'framework-categories'),
+                this.platformManagementService.getLookup(baseUrl, 'framework-languages')
+              ]);
+              frameworkCategories = fc;
+              frameworkLanguages = fl;
+            }
+          } catch (err) {
+            console.error('Failed to load lookups', err);
+            this.toastService.showError('Failed to load necessary reference data for import.');
+            return;
+          }
+
+          for (const item of data) {
+            try {
+              if (node.type === 'frameworks') {
+                // Map strings to IDs
+                const category = frameworkCategories.find(c => c.name === item.category);
+                const language = frameworkLanguages.find(l => l.name === item.language);
+
+                // Remove string fields that conflict with backend relationships
+                const { category: _c, language: _l, ...cleanedItem } = item;
+
+                const payload: FrameworkPayload = {
+                  ...cleanedItem,
+                  categoryId: category ? category.id : item.categoryId,
+                  languageId: language ? language.id : item.languageId,
+                  vendorId: item.vendorId || undefined
+                };
+                await this.platformManagementService.createFramework(baseUrl, payload);
+
+              } else if (node.type === 'services') {
+                // Map strings to IDs
+                const framework = frameworks.find(f => f.name === item.framework);
+                const type = serviceTypes.find(t => t.name === item.type);
+
+                if (!framework && !item.frameworkId) {
+                  throw new Error(`Framework '${item.framework}' not found`);
+                }
+
+                // Remove string fields
+                const { framework: _f, type: _t, ...cleanedItem } = item;
+
+                const payload: ServicePayload = {
+                  ...cleanedItem,
+                  frameworkId: framework ? Number(framework.id) : item.frameworkId,
+                  serviceTypeId: type ? type.id : item.serviceTypeId
+                };
+                await this.platformManagementService.createService(baseUrl, payload);
+
+              } else if (node.type === 'servers') {
+                // Map strings to IDs
+                const st = serverTypes.find(t => t.name === item.type);
+                const et = environmentTypes.find(e => e.name === item.environment);
+                const os = operatingSystems.find(o => o.name === item.operatingSystem);
+
+                // Remove string fields
+                const { type: _t, environment: _e, operatingSystem: _o, ...cleanedItem } = item;
+
+                // If mappings fail, fallback to existing IDs if present, or let it fail gracefully (or send what we have)
+                const payload: Partial<Host> = {
+                  ...cleanedItem,
+                  serverTypeId: st ? st.id : item.serverTypeId,
+                  environmentTypeId: et ? et.id : item.environmentTypeId,
+                  operatingSystemId: os ? os.id : item.operatingSystemId
+                };
+
+                // Cleanup string fields that shouldn't be sent if we have IDs? 
+                // The Host interface has 'status' as string, which is fine.
+                // But fields like 'type', 'environment', 'operatingSystem' (if they exist in item) are not part of Host interface for creation (Host entity has relationships).
+                // However, the Service/Controller might ignore unknown fields.
+                // IMPORTANT: 'type' in Host interface is 'serverTypeId' (number). 
+                // The interface I imported for Host has: serverTypeId: number
+
+                await this.platformManagementService.createServer(baseUrl, payload);
+              }
+              successes++;
+            } catch (err) {
+              console.error('Import error for item', item, err);
+              failures++;
+            }
+          }
+
+          if (failures === 0) {
+            this.toastService.showSuccess(`Successfully imported ${successes} items.`);
+          } else {
+            this.toastService.showWarning(`Imported ${successes} items. Failed to import ${failures} items.`);
+          }
+
+          // trigger refresh
+          this.triggerRefresh();
+        }
+      } catch (err) {
+        this.toastService.showError(`Error parsing file: ${(err as Error).message}`);
+      }
+      // Reset
+      input.value = '';
+    };
+    reader.readAsText(file);
+  }
 
   // --- Split View Resizing ---
   pane1Width = signal(this.uiPreferencesService.splitViewPaneWidth() ?? 50); // percentage
@@ -927,58 +1107,6 @@ export class AppComponent implements OnInit, OnDestroy {
             return hostProfileNodes;
           }
 
-          // Handle "Infrastructure" virtual folder
-          if (rootName === 'Infrastructure') {
-            // Create "Gateways" virtual folder containing broker profiles
-            const gatewaysNode: FileSystemNode = {
-              name: 'Gateways',
-              type: 'folder' as FileType,
-              children: brokerProfileNodes,
-              childrenLoaded: true,
-              isVirtualFolder: true,
-            };
-
-            // Find the "File Systems" node
-            const fileSystemsNode = hostNodes.find(n => n.name === 'File Systems');
-            if (fileSystemsNode) {
-              fileSystemsNode.childrenLoaded = true;
-            }
-
-            return [
-              ...(fileSystemsNode ? [fileSystemsNode] : []),
-              gatewaysNode
-            ];
-          }
-
-          // Handle sub-paths for Infrastructure children
-          if (path.length > 1 && path[0] === 'Infrastructure') {
-            const subNodeName = path[1];
-            // Delegate to existing logic by pretending root is the subNode
-            // We can just recursively call getContents with slice(1)? 
-            // No, because getContents logic depends on rootName variable which is path[0].
-            // We can just duplicate the logic for File Systems and Gateways here, or refactor.
-            // Refactoring is risky. Let's redirect.
-
-            if (subNodeName === 'Gateways') {
-              return brokerProfileNodes;
-            }
-            if (subNodeName === 'File Systems') {
-              // Return only connected gateways that offer file services
-              const mountedIds = this.mountedProfileIds();
-              const allBrokerProfiles = this.profileService.profiles();
-              const connectedFileServiceGateways = allBrokerProfiles.filter(p => mountedIds.includes(p.id));
-              return connectedFileServiceGateways.map(profile => ({
-                name: profile.name,
-                type: 'folder' as FileType,
-                isServerRoot: true,
-                profileId: profile.id,
-                connected: true,
-                children: [],
-                childrenLoaded: false,
-              }));
-            }
-          }
-
           // Platform Management folder - flat structure defaulting to primary registry
           if (rootName === 'Platform Management') {
             let currentNodeId = 'platform';
@@ -987,11 +1115,6 @@ export class AppComponent implements OnInit, OnDestroy {
               // Traverse children starting from platform root
               for (let i = 1; i < path.length; i++) {
                 const segment = path[i];
-                // If the segment is "Service Registries", handle it specially
-                if (i === 1 && segment === 'Service Registries') {
-                  return hostProfileNodes;
-                }
-
                 const children = await this.registryServerProvider.getChildren(currentNodeId);
                 const match = children.find(c => c.name === segment);
                 if (match) {
@@ -1003,7 +1126,7 @@ export class AppComponent implements OnInit, OnDestroy {
             }
 
             const nodes = await this.registryServerProvider.getChildren(currentNodeId);
-            const mappedNodes = nodes.map(node => {
+            return nodes.map(node => {
               // Determine the type based on NodeType enum, converting to FileType
               let fileType: 'file' | 'folder' | 'host-server' = 'folder';
               if (node.type === NodeType.FILE) {
@@ -1027,20 +1150,6 @@ export class AppComponent implements OnInit, OnDestroy {
                 isServerRoot: false
               };
             });
-
-            // If at the root of Platform Management, add Service Registries
-            if (path.length === 1) {
-              const serviceRegistriesNode: FileSystemNode = {
-                name: 'Service Registries',
-                type: 'folder' as FileType,
-                children: hostProfileNodes,
-                childrenLoaded: true,
-                isVirtualFolder: true,
-              };
-              return [serviceRegistriesNode, ...mappedNodes];
-            }
-
-            return mappedNodes;
           }
 
           // Services - show empty (managed by HostServerProvider)
@@ -1054,35 +1163,46 @@ export class AppComponent implements OnInit, OnDestroy {
         }
 
         // Root path [] - return all children
-
-        // Create "Infrastructure" virtual folder
-        const infrastructureNode: FileSystemNode = {
-          name: 'Infrastructure',
+        // Create "Gateways" virtual folder containing broker profiles
+        const gatewaysNode: FileSystemNode = {
+          name: 'Gateways',
           type: 'folder' as FileType,
+          children: brokerProfileNodes,
           childrenLoaded: true,
           isVirtualFolder: true,
-          // Children will be loaded via getContents(['Infrastructure'])
-          children: []
         };
 
-        // Filter out "Search & Discovery" node 
-        // Filter out "Users" node
-        // Filter out "File Systems" (moved to Infrastructure)
-        // Platform Management is kept but content is modified above
-        const otherHostNodes = hostNodes.filter((n: FileSystemNode) =>
-          n.name !== 'Users' &&
-          n.name !== 'Search & Discovery' &&
-          n.name !== 'File Systems'
-        );
+        // Create "Service Registries" virtual folder containing host server profiles
+        const serviceRegistriesNode: FileSystemNode = {
+          name: 'Service Registries',
+          type: 'folder' as FileType,
+          children: hostProfileNodes,
+          childrenLoaded: true,
+          isVirtualFolder: true,
+        };
 
-        // Build the root children:
-        // - Infrastructure
-        // - Local Session
-        // - Other host nodes (Platform Management, Services)
+
+
+        // Find the "File Systems" node and add Local Session as its child
+        const fileSystemsNode = hostNodes.find(n => n.name === 'File Systems');
+        if (fileSystemsNode) {
+          fileSystemsNode.childrenLoaded = true;
+        }
+
+        // Find the "Search & Discovery" node to move it to root level
+        const searchDiscoveryNode = hostNodes.find(n => n.name === 'Search & Discovery');
+
+        // Find the "Users" node
+        const usersNode = hostNodes.find(n => n.name === 'Users');
+
+        // Filter out "Users" and "Service Registries" (handled manually) from hostNodes
+        const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'Users' && n.name !== 'Search & Discovery' && n.name !== 'Service Registries' && n.id !== 'service-registries');
+
         const rootChildren = [
-          infrastructureNode,
-          sessionNode,  // Add Local Session at root level
           ...otherHostNodes,
+          serviceRegistriesNode, // Add Service Registries (virtual, populated)
+          ...(brokerProfileNodes.length > 0 ? [gatewaysNode] : []),
+          sessionNode,  // Add Local Session at root level
         ];
 
         console.log('[homeProvider.getContents] returning rootChildren:', rootChildren.map(c => c.name));
@@ -1155,44 +1275,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (path.length === 0) return this.homeProvider;
     const rootName = path[0];
 
-    // Handle "Infrastructure" virtual folder routing
-    if (rootName === 'Infrastructure') {
-      if (path.length === 1) return this.homeProvider;
-
-      const subCategory = path[1];
-
-      // Handle Infrastructure/Gateways
-      if (subCategory === 'Gateways') {
-        if (path.length === 2) return this.homeProvider;
-
-        const serverName = path[2];
-        const remoteProvider = this.remoteProviders().get(serverName);
-        if (remoteProvider) return remoteProvider;
-
-        const isServerProfile = this.profileService.profiles().some(p => p.name === serverName);
-        if (isServerProfile) return disconnectedProvider;
-
-        return this.homeProvider;
-      }
-
-      // Handle Infrastructure/File Systems
-      if (subCategory === 'File Systems') {
-        if (path.length === 2) return this.homeProvider;
-
-        const gatewayName = path[2];
-        const remoteProvider = this.remoteProviders().get(gatewayName);
-        if (remoteProvider) return remoteProvider;
-
-        const isKnownGateway = this.profileService.profiles().some(p => p.name === gatewayName);
-        if (isKnownGateway) return disconnectedProvider;
-
-        return this.homeProvider;
-      }
-
-      return this.homeProvider;
-    }
-
-    // Handle "Gateways" virtual folder (Legacy/Fallback)
+    // Handle "Gateways" virtual folder - broker gateways are nested under it
     if (rootName === 'Gateways') {
       if (path.length === 1) {
         // At the Gateways folder level itself - return home provider 
@@ -1289,22 +1372,12 @@ export class AppComponent implements OnInit, OnDestroy {
   getImageService = (path: string[]): ImageService => {
     let effectiveRootName = path.length > 0 ? path[0] : this.localConfigService.sessionName();
 
-    // Handle "Infrastructure" folder
-    if (effectiveRootName === 'Infrastructure' && path.length > 1) {
-      const subCategory = path[1];
-      if (subCategory === 'Gateways' && path.length > 2) {
-        effectiveRootName = path[2];
-      } else if (subCategory === 'File Systems' && path.length > 2) {
-        effectiveRootName = path[2];
-      }
-    }
-
-    // Handle "Gateways" virtual folder (Legacy)
+    // Handle "Gateways" virtual folder - server name is at path[1]
     if (effectiveRootName === 'Gateways' && path.length > 1) {
       effectiveRootName = path[1];
     }
 
-    // Handle "File Systems" folder (Legacy)
+    // Handle "File Systems" folder - Local Session is at path[1]
     if (effectiveRootName === 'File Systems' && path.length > 1) {
       effectiveRootName = path[1];
     }
@@ -1461,71 +1534,21 @@ export class AppComponent implements OnInit, OnDestroy {
       isVirtualFolder: true,
     };
 
-    // Filter out "File Systems" and "Platform Management" from hostNodes since we're restructuring them
-    const otherHostNodes = hostNodes.filter((n: FileSystemNode) =>
-      n.name !== 'File Systems' &&
-      n.name !== 'Search & Discovery' &&
-      n.name !== 'Platform Management'
-    );
-
-    // Find the original Platform Management node to preserve its ID and metadata if needed
-    let platformManagementNode = hostNodes.find(n => n.name === 'Platform Management');
-
-
-
-    if (platformManagementNode) {
-      // If Platform Management exists, we need to ensure it has children array initialized
-      // and add Service Registries to it.
-      // Since we filtered it out of otherHostNodes, we reconstruct it here.
-      // Note: Platform Management children are usually loaded on demand (childrenLoaded: false).
-      // If we inject Service Registries, we might need to change how onLoadChildren works for it,
-      // or just add it as a virtual child if we mark it as loaded? 
-      // Better approach: We can't easily mix static (Service Registries) and dynamic (PM children) content 
-      // unless we load PM children now or implement a special provider logic.
-      // For now, let's append Service Registries to the ROOT of Platform Management if we can.
-      // But wait, `getContents` logic handles PM children.
-      // Let's create a visual composition here. We can mark PM as childrenLoaded=false 
-      // but that hides Service Registries until expansion. 
-      // If we want Service Registries to be visible *under* PM, PM needs to show children.
-      // User request: "move the service registries node to platform management."
-      // We can just conceptually place it there. But for the tree view, we simply need to return it as a child.
-
-      // Let's modify the provider logic separately. For the tree structure here:
-      // We will just keep Platform Management in the root list for now, but we need to *modify* it.
-      // BUT, `buildCombinedFolderTree` returns the whole tree structure for the side panel. 
-      // If we want `Service Registries` to be a child of `Platform Management`, we can't easily do it 
-      // if PM is lazy loaded. 
-      // HACK: Let's assume for `buildCombinedFolderTree` we treat PM as a folder that *will* contain it.
-      // Actually, checking `homeProvider.getContents` logic for PM: it maps children from registry.
-      // We probably need to update `getContents` to inject `Service Registries` when path is `['Platform Management']`.
-    }
-
-    // Let's handle the "Infrastructure" node first as it is purely virtual.
-    const infrastructureNode: FileSystemNode = {
-      name: 'Infrastructure',
-      type: 'folder' as FileType,
-      children: [
-        ...(fileSystemsNode ? [fileSystemsNode] : []),
-        gatewaysNode
-      ],
-      childrenLoaded: true,
-      isVirtualFolder: true
-    };
-
-    // Re-add Platform Management to the root list, but we will handle its content injection in getContents
-    // Actually, checking the "otherHostNodes" filter above, I removed PM. I should put it back.
-    const platformManagementNodeRef = hostNodes.find(n => n.name === 'Platform Management');
+    // Filter out "File Systems" from hostNodes since we've modified it
+    // and we want to put the modified version back
+    const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'File Systems' && n.name !== 'Search & Discovery');
 
     // Build the final tree structure:
-    // - Infrastructure (File Systems, Gateways)
-    // - Platform Management (will contain Service Registries via getContents)
-    // - Local Session
-    // - Other host nodes (Services, Users, etc)
+    // - Other host nodes (Services, Users, Platform Management)
+    // - File Systems (containing Local Session)
+    // - Gateways (containing broker gateways)
+    // - Service Registries (containing host server profiles)
     const rootChildren = [
-      infrastructureNode,
-      ...(platformManagementNodeRef ? [platformManagementNodeRef] : []),
-      sessionTree, // Always show Local Session at root
       ...otherHostNodes,
+      ...(fileSystemsNode ? [fileSystemsNode] : []),
+      sessionTree, // Always show Local Session at root
+      ...(remoteRoots.length > 0 ? [gatewaysNode] : []), // Only show Gateways if there are broker profiles
+      ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []), // Only show Service Registries if there are host profiles
     ];
 
     return {
@@ -1569,11 +1592,7 @@ export class AppComponent implements OnInit, OnDestroy {
       // Calculate the provider-relative path by removing the routing prefix
       let providerPath: string[];
 
-      if (rootName === 'Infrastructure' && path.length > 2) {
-        // Path is ['Infrastructure', 'Gateways', 'ServerName', ...] or ['Infrastructure', 'File Systems', 'GatewayName', ...]
-        // Provider expects path relative to server root
-        providerPath = path.slice(3);
-      } else if (rootName === 'Gateways' && path.length > 1) {
+      if (rootName === 'Gateways' && path.length > 1) {
         // Path is ['Gateways', 'ServerName', ...], provider expects path without 'Gateways' and 'ServerName'
         providerPath = path.slice(2);
       } else if (rootName === 'File Systems' && path.length > 1) {

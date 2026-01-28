@@ -59,6 +59,7 @@ export class ToolbarComponent {
   isSavedItemsVisible = input(true);
   isRssFeedVisible = input(true);
   isStreamVisible = input(true);
+  isHomeContext = input(false);
 
   // Management context
   managementType = input<string | undefined>(undefined);
@@ -123,6 +124,10 @@ export class ToolbarComponent {
   resetCamera = output<void>();
   clearGraph = output<void>();
   graphSubViewChange = output<'canvas' | 'creator'>();
+
+  // Import capability
+  canImport = input(false);
+  importClick = output<void>();
 
   fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
   colorInput = viewChild<ElementRef<HTMLInputElement>>('colorInput');

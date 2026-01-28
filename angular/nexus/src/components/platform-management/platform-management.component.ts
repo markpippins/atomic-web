@@ -722,7 +722,12 @@ export class PlatformManagementComponent {
         const url = this.baseUrl();
         const activeTab = this.activeTab();
 
-        if (!type || !url) return;
+        if (!type || !url) {
+            console.warn('[PlatformManagement] loadData skipped - missing type or url', { type, url });
+            return;
+        }
+
+        console.log('[PlatformManagement] loadData starting', { type, url, activeTab });
 
         this.loading.set(true);
         this.error.set(null);
@@ -734,7 +739,9 @@ export class PlatformManagementComponent {
         try {
             switch (actualType) {
                 case 'services':
+                    console.log('[PlatformManagement] Fetching services from', `${url}/api/services`);
                     const s = await this.platformService.getServices(url);
+                    console.log('[PlatformManagement] Services loaded', s.length);
                     this.rawServices.set(s);
                     break;
                 case 'frameworks':

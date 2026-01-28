@@ -15,9 +15,11 @@ export class ConfirmDialogComponent {
   title = input.required<string>();
   message = input.required<string>();
   confirmButtonText = input('OK');
-  
+  showDontShowAgainOption = input(false);
+
   confirm = output<void>();
   close = output<void>();
+  dontShowAgainChange = output<boolean>();
 
   onConfirm(): void {
     this.confirm.emit();
