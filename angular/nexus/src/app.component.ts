@@ -224,6 +224,9 @@ export class AppComponent implements OnInit, OnDestroy {
   isStreamPaneCollapsed = this.uiPreferencesService.isStreamPaneCollapsed;
   isStreamActiveSearchEnabled = this.uiPreferencesService.isStreamActiveSearchEnabled;
 
+  // --- Content Status Bar (CRUD screens) ---
+  contentStatusInfo = signal<{ type: string; count: number } | null>(null);
+
   // Keep track of each pane's path
   panePaths = signal<PanePath[]>([{ id: 1, path: [] }]);
 
@@ -308,6 +311,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   pane1PlatformNode = computed(() => this.getPlatformNodeForPath(this.pane1Path()));
   pane2PlatformNode = computed(() => this.getPlatformNodeForPath(this.pane2Path()));
+  activePanePlatformNode = computed(() => this.activePaneId() === 1 ? this.pane1PlatformNode() : this.pane2PlatformNode());
 
   // Host Server Profile Editor Detection
   // When path is ['Host Servers', 'Profile Name'], we show the editor

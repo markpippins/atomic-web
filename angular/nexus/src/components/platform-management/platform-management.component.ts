@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, input, signal, effect, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, input, signal, effect, computed, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PlatformManagementService, Host } from '../../services/platform-management.service.js';
 import { ServiceInstance, Framework, Deployment, Library } from '../../models/service-mesh.model.js';
@@ -549,6 +549,9 @@ export class PlatformManagementComponent {
     baseUrl = input.required<string>();
     toolbarAction = input<{ name: string; payload?: any; id: number } | null>(null);
 
+    // Status info output for parent component
+    statusInfo = output<{ type: string; count: number }>();
+
     private lastProcessedActionId = 0;
 
     platformService = inject(PlatformManagementService);
@@ -700,6 +703,50 @@ export class PlatformManagementComponent {
                     // Mark as processed so we don't accidentally process it if logic changes
                     this.lastProcessedActionId = action.id;
                 }
+            }
+        });
+
+        // Emit status info when data changes
+        effect(() => {
+            const type = this.managementType();
+            let count = 0;
+            let displayType = type;
+
+            switch (type) {
+                case 'services':
+                    count = this.services().length;
+                    displayType = 'Services';
+                    break;
+                case 'frameworks':
+                    count = this.frameworks().length;
+                    displayType = 'Frameworks';
+                    break;
+                case 'deployments':
+                    count = this.deployments().length;
+                    displayType = 'Deployments';
+                    break;
+                case 'servers':
+                    count = this.servers().length;
+                    displayType = 'Servers';
+                    break;
+                case 'libraries':
+                    count = this.libraries().length;
+                    displayType = 'Libraries';
+                    break;
+                case 'service-types':
+                case 'server-types':
+                case 'framework-languages':
+                case 'framework-categories':
+                case 'library-categories':
+                case 'operating-systems':
+                case 'environments':
+                    count = this.lookupData().length;
+                    displayType = type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    break;
+            }
+
+            if (type) {
+                this.statusInfo.emit({ type: displayType, count });
             }
         });
     }

@@ -256,6 +256,7 @@
                         [managementType]="pane1PlatformNode()!.type"
                         [baseUrl]="pane1PlatformNode()!.baseUrl"
                         [toolbarAction]="activePaneId() === 1 ? toolbarAction() : null"
+                        (statusInfo)="contentStatusInfo.set($event)"
                       ></app-platform-management>
                     } @else {
                       <app-file-explorer
@@ -350,6 +351,7 @@
                         [managementType]="pane2PlatformNode()!.type"
                         [baseUrl]="pane2PlatformNode()!.baseUrl"
                         [toolbarAction]="activePaneId() === 2 ? toolbarAction() : null"
+                        (statusInfo)="contentStatusInfo.set($event)"
                       ></app-platform-management>
                     } @else {
                       <app-file-explorer
@@ -389,6 +391,19 @@
                 }
               </div>
             </div>
+
+            <!-- Content Status Bar (CRUD screens only) -->
+            @if (activePanePlatformNode() && contentStatusInfo()) {
+              <div
+                class="h-6 px-4 flex items-center justify-between bg-[rgb(var(--color-surface-muted))] border-t border-[rgb(var(--color-border-muted))] text-xs text-[rgb(var(--color-text-muted))] flex-shrink-0"
+              >
+                <span class="font-medium">{{ contentStatusInfo()!.type }}</span>
+                <span
+                  >{{ contentStatusInfo()!.count }}
+                  {{ contentStatusInfo()!.count === 1 ? 'item' : 'items' }}</span
+                >
+              </div>
+            }
 
             @if (isStreamVisible()) {
               @if (!isStreamPaneCollapsed()) {
