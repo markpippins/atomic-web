@@ -87,6 +87,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                     <tbody>
                                         @for (service of services(); track service.id) {
                                             <tr 
+                                                (dblclick)="onEdit(service)"
                                                 class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group"
                                                 [class.border-dashed]="service.status === 'PLANNED'"
                                                 [class.border-blue-400]="service.status === 'PLANNED'"
@@ -176,7 +177,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                 </thead>
                                 <tbody>
                                     @for (lib of libraries(); track lib.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                        <tr (dblclick)="onEdit(lib)" class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ lib.name }}</td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ lib.category?.name || '-' }}</td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ lib.language?.name || '-' }}</td>
@@ -246,7 +247,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                 </thead>
                                 <tbody>
                                     @for (fw of frameworks(); track fw.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                        <tr (dblclick)="onEdit(fw)" class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ fw.name }}</td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ fw.category?.name }}</td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ fw.language?.name }}</td>
@@ -315,7 +316,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                 </thead>
                                 <tbody>
                                     @for (d of deployments(); track d.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                        <tr (dblclick)="onEdit(d)" class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">
                                                 @if (d.service?.parentServiceId) {
                                                     <span class="inline-flex items-center gap-1">
@@ -399,7 +400,7 @@ import { LookupItem } from '../../services/platform-management.service.js';
                                 </thead>
                                 <tbody>
                                     @for (s of servers(); track s.id) {
-                                        <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+                                        <tr (dblclick)="onEdit(s)" class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))]">{{ s.hostname }}</td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ s.ipAddress }}</td>
                                             <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ s.serverTypeId }}</td> 
@@ -672,8 +673,15 @@ export class PlatformManagementComponent {
         });
 
         effect(() => {
-            // Load data whenever management type OR active tab changes
-            this.loadData();
+            // Explicitly read signals to establish dependencies
+            const type = this.managementType();
+            const url = this.baseUrl();
+            const tab = this.activeTab();
+
+            // Load data whenever management type, base URL, OR active tab changes
+            if (type && url) {
+                this.loadData();
+            }
         });
 
         effect(() => {

@@ -33,7 +33,7 @@ import { LookupItem } from '../../../services/platform-management.service.js';
         </thead>
         <tbody>
           @for (item of sortedItems(); track item.id) {
-            <tr class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
+            <tr (dblclick)="onEdit.emit(item)" class="border-b border-[rgb(var(--color-border-base))] hover:bg-[rgb(var(--color-surface-hover))] cursor-pointer group">
               <td class="p-2 py-1.5 text-[rgb(var(--color-text-base))] font-medium">{{ item.name }}</td>
               <td class="p-2 py-1.5 text-[rgb(var(--color-text-muted))]">{{ item.description || '-' }}</td>
               <td class="p-2 py-1.5 text-right whitespace-nowrap">

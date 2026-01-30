@@ -1203,7 +1203,12 @@ export class AppComponent implements OnInit, OnDestroy {
           serviceRegistriesNode, // Add Service Registries (virtual, populated)
           ...(brokerProfileNodes.length > 0 ? [gatewaysNode] : []),
           sessionNode,  // Add Local Session at root level
+          ...(usersNode ? [usersNode] : []),
+          ...(searchDiscoveryNode ? [searchDiscoveryNode] : [])
         ];
+
+        // Sort alphabetically
+        rootChildren.sort((a, b) => a.name.localeCompare(b.name));
 
         console.log('[homeProvider.getContents] returning rootChildren:', rootChildren.map(c => c.name));
         return rootChildren;
@@ -1550,6 +1555,9 @@ export class AppComponent implements OnInit, OnDestroy {
       ...(remoteRoots.length > 0 ? [gatewaysNode] : []), // Only show Gateways if there are broker profiles
       ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []), // Only show Service Registries if there are host profiles
     ];
+
+    // Sort alphabetically
+    rootChildren.sort((a, b) => a.name.localeCompare(b.name));
 
     return {
       name: 'Home',

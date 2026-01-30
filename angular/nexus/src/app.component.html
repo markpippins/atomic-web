@@ -233,6 +233,7 @@
                         [resetTrigger]="activePaneId() === 1 ? editorResetTrigger() : null"
                         (saved)="loadFolderTree()"
                         (dirtyStateChange)="activePaneId() === 1 ? editorIsDirty.set($event) : null"
+                        (connectGateway)="onConnectToServer($event)"
                       ></app-gateway-editor>
                     } @else if (isServiceRegistriesNodeSelected() && activePaneId() === 1) {
                       <app-host-server-management
@@ -248,6 +249,7 @@
                         (addGateway)="onAddGateway()"
                         (editGateway)="onEditGatewayByName($event)"
                         (deleteGateway)="onDeleteGatewayById($event)"
+                        (connectGateway)="onConnectToServer($event)"
                       ></app-gateway-management>
                     } @else if (pane1PlatformNode()) {
                       <app-platform-management
@@ -325,6 +327,7 @@
                         [resetTrigger]="activePaneId() === 2 ? editorResetTrigger() : null"
                         (saved)="loadFolderTree()"
                         (dirtyStateChange)="activePaneId() === 2 ? editorIsDirty.set($event) : null"
+                        (connectGateway)="onConnectToServer($event)"
                       ></app-gateway-editor>
                     } @else if (isServiceRegistriesNodeSelected() && activePaneId() === 2) {
                       <app-host-server-management
@@ -340,6 +343,7 @@
                         (addGateway)="onAddGateway()"
                         (editGateway)="onEditGatewayByName($event)"
                         (deleteGateway)="onDeleteGatewayById($event)"
+                        (connectGateway)="onConnectToServer($event)"
                       ></app-gateway-management>
                     } @else if (pane2PlatformNode()) {
                       <app-platform-management

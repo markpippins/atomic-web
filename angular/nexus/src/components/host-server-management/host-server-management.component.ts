@@ -14,7 +14,7 @@ import { HostProfile } from '../../models/host-profile.model.js';
       <div class="flex-1 overflow-auto p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           @for (profile of profiles(); track profile.id) {
-            <div class="group relative flex flex-col bg-[rgb(var(--color-surface-muted))] rounded-xl border border-[rgb(var(--color-border-base))] hover:border-[rgb(var(--color-accent-ring))] hover:shadow-md transition-all duration-300">
+            <div (dblclick)="editServiceRegistry.emit(profile.name)" class="group relative flex flex-col bg-[rgb(var(--color-surface-muted))] rounded-xl border border-[rgb(var(--color-border-base))] hover:border-[rgb(var(--color-accent-ring))] hover:shadow-md transition-all duration-300">
               <div class="p-5 flex-1">
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex items-center gap-3">

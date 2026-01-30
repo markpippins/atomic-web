@@ -34,6 +34,16 @@ import { BrokerProfile } from '../../models/broker-profile.model.js';
                   </div>
                   <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
+                      (click)="connectGateway.emit(profile.id)"
+                      [disabled]="isMounted(profile.id)"
+                      [title]="isMounted(profile.id) ? 'Already Connected' : 'Connect to Gateway'"
+                      class="p-1.5 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-success-text))] disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </button>
+                    <button
                       (click)="editGateway.emit(profile.name)"
                       title="Edit Gateway"
                       class="p-1.5 rounded-md hover:bg-[rgb(var(--color-surface-hover))] text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-accent-solid-bg))]"
@@ -105,6 +115,7 @@ export class GatewayManagementComponent {
   editGateway = output<string>();
   deleteGateway = output<string>();
   addGateway = output<void>();
+  connectGateway = output<string>();
 
   private lastProcessedActionId = 0;
   private componentStartTime = Date.now();
