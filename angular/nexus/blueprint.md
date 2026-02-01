@@ -297,3 +297,59 @@ This feature adds the ability to manage the underlying metadata of the service m
   - `UpsertFrameworkDialog`: specific form for adding/editing Frameworks.
   - `UpsertDeploymentDialog`: specific form for adding/editing Deployments (including Service, Server, Environment lookups).
   - `UpsertServerDialog`: specific form for adding/editing Hosts (including Type, Enviroment, OS lookups).
+
+## Current Feature: Double-Click to Edit
+
+Enabled double-click interactions in Nexus CRUD screens to open the edit dialog for items, improving user workflow efficiency.
+
+### Implementation Status
+
+✅ **Completed:**
+
+- **HostServerManagementComponent**: Added double-click handler to Service Registry cards.
+- **PlatformManagementComponent**: Added double-click handlers to tables for:
+  - Services
+  - Libraries
+  - Frameworks
+  - Deployments
+  - Servers
+- **LookupListComponent**: Added double-click handler to Data Dictionary lookup item rows.
+
+## Current Feature: Connect Buttons
+
+Added explicit "Connect" buttons to the Gateway Management card view and the Gateway Editor detail view to improve accessibility of the connection workflow.
+
+### Implementation Status
+
+✅ **Completed:**
+
+- **GatewayManagementComponent**:
+  - Added `connectGateway` output event.
+  - Added "Connect" button to gateway cards (visible on hover), disabled if already connected.
+- **GatewayEditorComponent**:
+  - Added `connectGateway` output event.
+  - Added "Connect" button to the editor header if the gateway is disconnected.
+- **AppComponent**:
+  - Wired `(connectGateway)` events from both components to the existing `onConnectToServer` handler.
+  - This triggers the standard Login Dialog workflow.
+
+## Current Feature: Content Status Bar
+
+Added a content status bar between the main content area and the Idea Stream that displays contextual information about the current CRUD screen.
+
+### Implementation Status
+
+✅ **Completed:**
+
+- **PlatformManagementComponent**:
+  - Added `statusInfo` output event.
+  - Added effect to emit status info (type and count) when data changes.
+- **AppComponent**:
+  - Added `contentStatusInfo` signal to store status bar data.
+  - Added `activePanePlatformNode` computed to detect if active pane shows a CRUD screen.
+  - Wired `(statusInfo)` event from platform-management components.
+- **Template**:
+  - Added status bar div between content and Idea Stream.
+  - Shows only when active pane displays a platform management component.
+  - Displays data type (e.g., "Services", "Frameworks") and item count.
+

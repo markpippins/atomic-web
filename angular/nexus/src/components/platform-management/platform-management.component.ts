@@ -572,7 +572,15 @@ export class PlatformManagementComponent {
 
     // Computed Sorted Signals
     services = computed(() => {
-        return this.sortData(this.rawServices(), this.sortState(), (item, col) => {
+        const raw = this.rawServices();
+        const sort = this.sortState();
+
+        // Separate standalone (parent) services from sub-modules
+        const standalone = raw.filter(s => !s.parentServiceId);
+        const subModules = raw.filter(s => s.parentServiceId);
+
+        // Sort standalone services
+        const sortedStandalone = this.sortData(standalone, sort, (item, col) => {
             switch (col) {
                 case 'name': return item.name;
                 case 'type': return item.type?.name;
@@ -581,6 +589,31 @@ export class PlatformManagementComponent {
                 default: return (item as any)[col];
             }
         });
+
+        // Build the grouped list: parent followed by its children
+        const result: ServiceInstance[] = [];
+        for (const parent of sortedStandalone) {
+            result.push(parent);
+            // Find and sort sub-modules for this parent
+            const children = subModules.filter(s => s.parentServiceId === Number(parent.id));
+            const sortedChildren = this.sortData(children, sort, (item, col) => {
+                switch (col) {
+                    case 'name': return item.name;
+                    case 'type': return item.type?.name;
+                    case 'framework': return item.framework?.name;
+                    case 'status': return item.status;
+                    default: return (item as any)[col];
+                }
+            });
+            result.push(...sortedChildren);
+        }
+
+        // Add any orphaned sub-modules (parent not in list) at the end
+        const placedIds = new Set(result.map(s => s.id));
+        const orphans = subModules.filter(s => !placedIds.has(s.id));
+        result.push(...orphans);
+
+        return result;
     });
 
     frameworks = computed(() => {
