@@ -1183,10 +1183,7 @@ export class AppComponent implements OnInit, OnDestroy {
                 name: node.name,
                 type: fileType,
                 id: node.id,
-                metadata: {
-                  ...node.metadata,
-                  icon: node.icon
-                },
+                metadata: node.metadata,
                 children: [], // Children will be loaded on demand
                 childrenLoaded: false, // Children are not loaded until the node is expanded
                 isServerRoot: false
@@ -1490,10 +1487,7 @@ export class AppComponent implements OnInit, OnDestroy {
       name: node.name,
       type: 'folder' as FileType,
       id: node.id,
-      metadata: {
-        ...node.metadata,
-        icon: node.icon
-      },
+      metadata: node.metadata,
       children: [],
       childrenLoaded: false,
       isServerRoot: false

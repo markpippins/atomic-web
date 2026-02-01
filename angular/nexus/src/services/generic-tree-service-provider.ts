@@ -37,7 +37,7 @@ export class GenericTreeServiceProvider extends GenericTreeProvider {
   async getTree(): Promise<GenericTreeNode> {
     // Build a combined tree similar to buildCombinedFolderTree but using GenericTreeNode
     const sessionTree = await this.sessionFs.getFolderTree();
-    
+
     // Convert sessionTree (FileSystemNode) to GenericTreeNode
     const convertToGenericNode = (node: any): GenericTreeNode => {
       const genericNode: GenericTreeNode = {
@@ -47,7 +47,7 @@ export class GenericTreeServiceProvider extends GenericTreeProvider {
         children: node.children ? node.children.map(convertToGenericNode) : undefined,
         childrenLoaded: node.childrenLoaded,
         metadata: node.metadata,
-        icon: node.metadata?.icon,
+
         status: node.metadata?.status,
         isVirtualNode: node.isVirtualFolder,
         isServerRoot: node.isServerRoot,
@@ -58,7 +58,7 @@ export class GenericTreeServiceProvider extends GenericTreeProvider {
         isMagnet: node.isMagnet,
         magnetFile: node.magnetFile
       };
-      
+
       return genericNode;
     };
 
@@ -69,7 +69,7 @@ export class GenericTreeServiceProvider extends GenericTreeProvider {
     const hostNodes: GenericTreeNode[] = hostChildren.map(node => {
       // Convert NodeType to GenericNodeType
       let genericType: 'folder' | 'file' | 'service' | 'user' | 'host-server' | 'gateway' | 'registry' | 'platform' | 'search' | 'virtual-folder' | string = 'folder';
-      
+
       switch (node.type) {
         case NodeType.SERVICE:
           genericType = 'service';
@@ -100,7 +100,7 @@ export class GenericTreeServiceProvider extends GenericTreeProvider {
         children: [],
         childrenLoaded: false,
         metadata: node.metadata,
-        icon: node.icon,
+
         status: node.status?.toString(),
         isServerRoot: false
       };

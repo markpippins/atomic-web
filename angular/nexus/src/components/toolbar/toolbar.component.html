@@ -1,7 +1,7 @@
 <div
   class="flex items-center px-4 h-12 border-b border-[rgb(var(--color-border-base))] bg-[rgb(var(--color-surface-muted))]"
 >
-  @if (!isHomeContext() && showAllControls()) {
+  @if ((!isHomeContext() && showAllControls()) || isPlatformManagementContext()) {
     @if (viewMode() === 'service-mesh' && meshViewMode() === 'graph') {
       <!-- Service Mesh Graph Controls -->
       <div class="flex items-center space-x-2">

@@ -976,11 +976,10 @@ export class FileExplorerComponent implements OnDestroy {
       return serviceToUse.getIconUrl({ ...item, name: 'cloud' });
     }
 
-    // Use metadata.icon as a preference if available (from RegistryServerProvider), 
-    // otherwise fall back to props.imageName or default (item name).
-    const customImageName = item.metadata?.['icon'] || props?.imageName;
+    // Use custom image name from folder properties if set, otherwise use folder name.
+    const customImageName = props?.imageName;
 
-    // For all other folders, request an icon based on its name or custom properties.
+    // Request icon based on folder name or custom properties.
     return serviceToUse.getIconUrl(item, customImageName);
   }
 

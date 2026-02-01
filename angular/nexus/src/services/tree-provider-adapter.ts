@@ -14,7 +14,7 @@ export class TreeProviderAdapter implements FileSystemProvider {
             name: node.name,
             type: node.type === NodeType.FILE ? 'file' : 'folder',
             id: node.id,
-            metadata: { ...node.metadata, ...(node.icon ? { icon: node.icon } : {}) },
+            metadata: node.metadata,
             children: [], // Don't populate children initially - they will be loaded on demand
             childrenLoaded: false, // Children are not loaded until the node is expanded
             isServerRoot: false // node.type === NodeType.ROOT ?
@@ -61,7 +61,7 @@ export class TreeProviderAdapter implements FileSystemProvider {
 
     private getNodeNameFromId(nodeId: string): string {
         // Simple mapping based on known node IDs
-        switch(nodeId) {
+        switch (nodeId) {
             case 'platform': return 'Platform Management';
             case 'users': return 'Users';
             case 'search': return 'Search & Discovery';
