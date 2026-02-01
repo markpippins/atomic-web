@@ -224,6 +224,17 @@ export class AppComponent implements OnInit, OnDestroy {
   isStreamPaneCollapsed = this.uiPreferencesService.isStreamPaneCollapsed;
   isStreamActiveSearchEnabled = this.uiPreferencesService.isStreamActiveSearchEnabled;
 
+  shouldShowStreamPane = computed(() => {
+    if (!this.isStreamVisible()) return false;
+
+    const path = this.activePanePath();
+    if (path.length > 0 && path[0] === 'Platform Management') {
+      return false;
+    }
+
+    return true;
+  });
+
   // --- Content Status Bar (CRUD screens) ---
   contentStatusInfo = signal<{ type: string; count: number } | null>(null);
 
@@ -623,6 +634,33 @@ export class AppComponent implements OnInit, OnDestroy {
   activeFilterQuery = computed(() => this.activePaneId() === 1 ? this.pane1FilterQuery() : this.pane2FilterQuery());
 
   isHomeContext = computed(() => this.activePanePath().length === 0);
+
+  // Toolbar visibility signals
+  showExtendedControls = computed(() => {
+    const path = this.activePanePath();
+    const sessionName = this.localConfigService.sessionName();
+
+    // sessionName or File Systems as root
+    if (path.length === 0 || path[0] === sessionName || path[0] === 'File Systems') {
+      return true;
+    }
+
+    return false;
+  });
+
+  showAllToolbarControls = computed(() => {
+    return true;
+  });
+
+  isStreamToolbarVisible = computed(() => {
+    const path = this.activePanePath();
+    if (path.length === 0) return false;
+
+    const root = path[0];
+    const sessionName = this.localConfigService.sessionName();
+
+    return root === sessionName || root === 'File Systems' || root === 'Gateways';
+  });
 
   isActionableContext = computed(() => {
     const path = this.activePanePath();
@@ -1199,20 +1237,31 @@ export class AppComponent implements OnInit, OnDestroy {
         // Find the "Users" node
         const usersNode = hostNodes.find(n => n.name === 'Users');
 
-        // Filter out "Users" and "Service Registries" (handled manually) from hostNodes
-        const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'Users' && n.name !== 'Search & Discovery' && n.name !== 'Service Registries' && n.id !== 'service-registries');
+        // Filter out nodes we want to order manually
+        const otherHostNodes = hostNodes.filter((n: FileSystemNode) =>
+          n.name !== 'Users' &&
+          n.name !== 'Search & Discovery' &&
+          n.name !== 'Service Registries' &&
+          n.id !== 'service-registries' &&
+          n.name !== 'File Systems' &&
+          n.name !== 'Platform Management'
+        );
+
+        const platformNode = hostNodes.find(n => n.name === 'Platform Management');
 
         const rootChildren = [
           ...otherHostNodes,
-          serviceRegistriesNode, // Add Service Registries (virtual, populated)
-          ...(brokerProfileNodes.length > 0 ? [gatewaysNode] : []),
-          sessionNode,  // Add Local Session at root level
+          ...(fileSystemsNode ? [fileSystemsNode] : []),
+          gatewaysNode,
+          ...(platformNode ? [platformNode] : []),
+          serviceRegistriesNode,
+          sessionNode,
           ...(usersNode ? [usersNode] : []),
           ...(searchDiscoveryNode ? [searchDiscoveryNode] : [])
         ];
 
-        // Sort alphabetically
-        rootChildren.sort((a, b) => a.name.localeCompare(b.name));
+        // Sort alphabetically (case-insensitive)
+        rootChildren.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
         console.log('[homeProvider.getContents] returning rootChildren:', rootChildren.map(c => c.name));
         return rootChildren;
@@ -1543,25 +1592,27 @@ export class AppComponent implements OnInit, OnDestroy {
       isVirtualFolder: true,
     };
 
-    // Filter out "File Systems" from hostNodes since we've modified it
-    // and we want to put the modified version back
-    const otherHostNodes = hostNodes.filter((n: FileSystemNode) => n.name !== 'File Systems' && n.name !== 'Search & Discovery');
+    // Filter out specific nodes for manual ordering
+    const otherHostNodes = hostNodes.filter((n: FileSystemNode) =>
+      n.name !== 'File Systems' &&
+      n.name !== 'Search & Discovery' &&
+      n.name !== 'Platform Management'
+    );
 
-    // Build the final tree structure:
-    // - Other host nodes (Services, Users, Platform Management)
-    // - File Systems (containing Local Session)
-    // - Gateways (containing broker gateways)
-    // - Service Registries (containing host server profiles)
+    const platformNode = hostNodes.find(n => n.name === 'Platform Management');
+
+    // Build the final tree structure alphabetically
     const rootChildren = [
       ...otherHostNodes,
       ...(fileSystemsNode ? [fileSystemsNode] : []),
-      sessionTree, // Always show Local Session at root
-      ...(remoteRoots.length > 0 ? [gatewaysNode] : []), // Only show Gateways if there are broker profiles
-      ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []), // Only show Service Registries if there are host profiles
+      gatewaysNode,
+      ...(platformNode ? [platformNode] : []),
+      ...(allHostProfiles.length > 0 ? [serviceRegistriesNode] : []),
+      sessionTree,
     ];
 
-    // Sort alphabetically
-    rootChildren.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort alphabetically (case-insensitive)
+    rootChildren.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
     return {
       name: 'Home',

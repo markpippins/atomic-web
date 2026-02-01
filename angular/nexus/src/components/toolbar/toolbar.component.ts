@@ -72,6 +72,10 @@ export class ToolbarComponent {
   isPlatformManagementContext = input(false);
   canSave = input(false);
 
+  // Visibility flags
+  showExtendedControls = input(true);
+  showAllControls = input(true);
+
   // Service Mesh / Graph inputs
   graphInteractionMode = input<'camera' | 'edit'>('camera');
   isSimulationActive = input(false);

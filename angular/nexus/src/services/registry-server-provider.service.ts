@@ -48,17 +48,6 @@ export class RegistryServerProvider implements TreeProvider {
         if (nodeId === 'root') {
             return [
                 {
-                    id: 'users',
-                    name: 'Users',
-                    type: NodeType.FOLDER,
-                    icon: 'group',
-                    hasChildren: true,
-                    operations: [],
-                    metadata: {},
-                    lastUpdated: new Date()
-                },
-
-                {
                     id: 'filesystems',
                     name: 'File Systems',
                     type: NodeType.FOLDER,
@@ -83,7 +72,7 @@ export class RegistryServerProvider implements TreeProvider {
 
 
 
-        // If we have a service node, return its deployments
+        // If we have a service node, return its sub-modules AND deployments
         if (nodeId.startsWith('service-')) {
             // Extract profileId and serviceId from the nodeId
             // nodeId format: service-{profileId}-{serviceId}
@@ -94,7 +83,12 @@ export class RegistryServerProvider implements TreeProvider {
 
                 const profile = this.profileService.profiles().find(p => p.id === profileId);
                 if (profile) {
-                    return this.fetchDeploymentsForService(profile, serviceId);
+                    // Fetch both sub-modules AND deployments
+                    const [subModules, deployments] = await Promise.all([
+                        this.fetchSubModulesForService(profile, serviceId),
+                        this.fetchDeploymentsForService(profile, serviceId)
+                    ]);
+                    return [...subModules, ...deployments];
                 }
             }
             return [];
@@ -163,6 +157,16 @@ export class RegistryServerProvider implements TreeProvider {
             const baseUrl = this.getBaseUrl(profile);
 
             return [
+                {
+                    id: 'users',
+                    name: 'Users',
+                    type: NodeType.FOLDER,
+                    icon: 'group',
+                    hasChildren: true,
+                    operations: [],
+                    metadata: {},
+                    lastUpdated: new Date()
+                },
                 {
                     id: `platform-deployments-${profile.id}`,
                     name: 'Deployments',
@@ -472,8 +476,8 @@ export class RegistryServerProvider implements TreeProvider {
                 baseUrl = baseUrl.slice(0, -1);
             }
 
-            // Fetch services from the Host Server API
-            const servicesUrl = `${baseUrl}/api/services`;
+            // Fetch only standalone services (those without a parent) for top-level display
+            const servicesUrl = `${baseUrl}/api/services/standalone`;
             const servicesResponse: ServiceInstance[] = await firstValueFrom(this.http.get<ServiceInstance[]>(servicesUrl));
 
             // Fetch deployments to get the health status
@@ -541,7 +545,55 @@ export class RegistryServerProvider implements TreeProvider {
             }));
         } catch (e) {
             console.error(`Failed to fetch deployments for service ${serviceId} from Host Server ${profile.name}`, e);
-            throw e;
+            return []; // Return empty array instead of throwing to allow sub-modules to still display
+        }
+    }
+
+    private async fetchSubModulesForService(profile: HostProfile, serviceId: string): Promise<TreeNode[]> {
+        try {
+            const baseUrl = this.getBaseUrl(profile);
+            const subModulesUrl = `${baseUrl}/api/services/${serviceId}/sub-modules`;
+            const subModulesResponse: ServiceInstance[] = await firstValueFrom(
+                this.http.get<ServiceInstance[]>(subModulesUrl)
+            );
+
+            if (subModulesResponse.length === 0) {
+                return [];
+            }
+
+            // Fetch deployments to determine health status for each sub-module
+            const deploymentsUrl = `${baseUrl}/api/deployments`;
+            let deploymentsResponse: Deployment[] = [];
+            try {
+                deploymentsResponse = await firstValueFrom(this.http.get<Deployment[]>(deploymentsUrl));
+            } catch (e) {
+                console.warn('Failed to fetch deployments for sub-module health status', e);
+            }
+
+            return subModulesResponse.map(service => {
+                const serviceDeployments = deploymentsResponse.filter(d => d.service?.id === service.id);
+                const healthStatus = this.getOverallHealthStatus(serviceDeployments);
+
+                return {
+                    id: `service-${profile.id}-${service.id}`,
+                    name: service.name,
+                    type: NodeType.SERVICE,
+                    icon: 'extension', // Different icon for sub-modules
+                    hasChildren: true, // Sub-modules can also have deployments or nested sub-modules
+                    operations: ['restart', 'view-logs', 'check-health'],
+                    status: this.mapHealthStatusToNodeStatus(healthStatus),
+                    metadata: {
+                        ...service,
+                        hostProfileId: profile.id,
+                        deployments: serviceDeployments,
+                        isSubModule: true
+                    },
+                    lastUpdated: new Date()
+                };
+            });
+        } catch (e) {
+            console.error(`Failed to fetch sub-modules for service ${serviceId}`, e);
+            return [];
         }
     }
 
