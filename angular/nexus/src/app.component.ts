@@ -375,6 +375,11 @@ export class AppComponent implements OnInit, OnDestroy {
       return null;
     }
 
+    // Explicitly exclude "Search & Discovery" paths to prevent masking user folders
+    if (path[0] === 'Search & Discovery') {
+      return null;
+    }
+
     console.log('[AppComponent] getPlatformNodeForPath', { path, profilesCount: profiles.length, activeProfile: activeProfile?.name });
 
     // Handle single-element path (direct child of root - e.g., ["Services"])

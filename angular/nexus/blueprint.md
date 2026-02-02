@@ -353,3 +353,14 @@ Added a content status bar between the main content area and the Idea Stream tha
   - Shows only when active pane displays a platform management component.
   - Displays data type (e.g., "Services", "Frameworks") and item count.
 
+## Current Feature: Search & Discovery Conflict Fix
+
+Fixed a bug where folder names in "Search & Discovery" that matched Platform Management nodes (e.g., "Services", "Libraries") were being hijacked and causing the CRUD management screen to appear instead of the folder contents.
+
+### Implementation Status
+
+✅ **Completed:**
+
+- **AppComponent**: Updated `getPlatformNodeForPath` to explicitly ignore paths starting with "Search & Discovery", ensuring they are treated as standard file explorer paths.
+
+
