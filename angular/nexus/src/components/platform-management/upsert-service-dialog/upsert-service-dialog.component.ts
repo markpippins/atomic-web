@@ -11,7 +11,7 @@ import { ComponentRegistryService } from '../../../services/component-registry.s
     imports: [CommonModule, ReactiveFormsModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" *ngIf="isOpen()">
+    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" *ngIf="isOpen()" (window:keydown.escape)="onCancel()">
        <div class="bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border-base))] shadow-xl rounded-lg w-full max-w-2xl flex flex-col max-h-[90vh]">
           <div class="p-4 border-b border-[rgb(var(--color-border-base))] flex justify-between items-center">
             <h2 class="text-lg font-semibold text-[rgb(var(--color-text-base))]">

@@ -9,7 +9,7 @@ import { Library } from '../../../models/service-mesh.model.js';
     imports: [CommonModule, ReactiveFormsModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" (click)="onCancel()">
+        <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" (click)="onCancel()" (window:keydown.escape)="onCancel()">
             <div class="bg-[rgb(var(--color-surface-dialog))] rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
                 <!-- Header -->
                 <div class="flex items-center justify-between p-4 border-b border-[rgb(var(--color-border-base))]">

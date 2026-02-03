@@ -9,7 +9,7 @@ import { Library, ServiceLibrary, ServiceInstance, DependencyScope } from '../..
     imports: [CommonModule, FormsModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-            <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" (click)="onClose()">
+            <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" (click)="onClose()" (window:keydown.escape)="onClose()">
             <div class="bg-[rgb(var(--color-surface-dialog))] rounded-lg shadow-xl w-full max-w-3xl mx-4 max-h-[85vh] overflow-hidden flex flex-col" (click)="$event.stopPropagation()">
                 <!-- Header -->
                 <div class="flex items-center justify-between p-4 border-b border-[rgb(var(--color-border-base))]">
