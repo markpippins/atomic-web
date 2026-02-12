@@ -68,7 +68,7 @@
             class="flex-grow flex items-center bg-[rgb(var(--color-background))] rounded-md border border-[rgb(var(--color-border-muted))] px-2 py-1 text-sm"
           >
             <button
-              (click)="navigatePathActivePane(-1)"
+              (click)="navigatePathActivePane(0)"
               class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer"
             >
               {{ activeRootName() }}
@@ -78,7 +78,7 @@
             }
             @for (segment of activeDisplayPath(); track segment; let i = $index) {
               <button
-                (click)="navigatePathActivePane(i)"
+                (click)="navigatePathActivePane(i + 1)"
                 class="text-[rgb(var(--color-accent-text))] hover:underline cursor-pointer"
               >
                 {{ segment }}

@@ -11,6 +11,7 @@ export interface FileSystemNode {
   isServerRoot?: boolean;
   profileId?: string;
   connected?: boolean;
+  healthStatus?: 'UP' | 'DOWN' | 'UNKNOWN' | 'CHECKING';
   // Properties for magnet folders
   id?: string; // Optional for backward compatibility, but should be present for TreeNodes
   metadata?: Record<string, any>;

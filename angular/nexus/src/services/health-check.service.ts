@@ -18,6 +18,7 @@ export class HealthCheckService {
   private localConfigService = inject(LocalConfigService);
 
   private serviceStatuses = signal<Map<string, ServiceStatus>>(new Map());
+  public readonly statusMap = this.serviceStatuses.asReadonly();
   private serviceTimers = new Map<string, any>();
 
   getServiceStatus(baseUrl: string): ServiceStatus {

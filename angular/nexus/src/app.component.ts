@@ -1089,6 +1089,7 @@ export class AppComponent implements OnInit, OnDestroy {
             isServerRoot: true,
             profileId: p.id,
             connected: isConnected,
+            healthStatus: this.healthCheckService.getServiceStatus(p.imageUrl),
             modified: isConnected ? new Date().toISOString() : undefined,
             children: [],
             childrenLoaded: false,
@@ -1103,6 +1104,7 @@ export class AppComponent implements OnInit, OnDestroy {
           isServerRoot: true,
           profileId: p.id,
           connected: true, // Host servers are considered connected if they exist
+          healthStatus: this.healthCheckService.getServiceStatus(p.imageUrl),
           children: [],
           childrenLoaded: false,
         }));
@@ -1139,6 +1141,7 @@ export class AppComponent implements OnInit, OnDestroy {
               isServerRoot: true,
               profileId: profile.id,
               connected: true,
+              healthStatus: this.healthCheckService.getServiceStatus(profile.imageUrl),
               children: [],
               childrenLoaded: false,
             }));
@@ -1300,6 +1303,7 @@ export class AppComponent implements OnInit, OnDestroy {
       // the tree view is always in sync with the application's connection state.
       this.profileService.profiles(); // Dependency
       this.mountedProfiles(); // Dependency
+      this.healthCheckService.statusMap(); // Dependency
       this.loadFolderTree();
 
       // Handles auto-connecting on startup, once profiles are loaded.
@@ -1513,6 +1517,7 @@ export class AppComponent implements OnInit, OnDestroy {
               isServerRoot: true,
               profileId: profile.id,
               connected: true,
+              healthStatus: this.healthCheckService.getServiceStatus(profile.imageUrl),
             });
           } catch (e) {
             console.error(`Failed to get folder tree for ${profile.name}`, e);
@@ -1523,6 +1528,7 @@ export class AppComponent implements OnInit, OnDestroy {
               isServerRoot: true,
               profileId: profile.id,
               connected: false,
+              healthStatus: this.healthCheckService.getServiceStatus(profile.imageUrl),
               children: [],
             });
           }
@@ -1534,6 +1540,7 @@ export class AppComponent implements OnInit, OnDestroy {
             isServerRoot: true,
             profileId: profile.id,
             connected: false,
+            healthStatus: this.healthCheckService.getServiceStatus(profile.imageUrl),
             children: [],
           });
         }
@@ -1545,6 +1552,7 @@ export class AppComponent implements OnInit, OnDestroy {
           isServerRoot: true,
           profileId: profile.id,
           connected: false,
+          healthStatus: this.healthCheckService.getServiceStatus(profile.imageUrl),
           children: [],
         });
       }
@@ -1578,6 +1586,7 @@ export class AppComponent implements OnInit, OnDestroy {
       isServerRoot: true,
       profileId: p.id,
       connected: true, // Host servers are considered connected if they exist
+      healthStatus: this.healthCheckService.getServiceStatus(p.imageUrl),
       children: [],
       childrenLoaded: false,
     }));

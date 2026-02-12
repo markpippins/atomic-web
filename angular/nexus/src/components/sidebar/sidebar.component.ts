@@ -354,6 +354,13 @@ export class SidebarComponent implements OnDestroy {
   onTreeContextMenu(event: { event: MouseEvent; path: string[]; node: FileSystemNode; }): void {
     event.event.preventDefault();
     event.event.stopPropagation();
+
+    // Only show context menu in file system trees, not in other areas like service mesh
+    if (this.viewMode() !== 'file-explorer') {
+      this.contextMenu.set(null); // Close any existing menu
+      return;
+    }
+
     this.contextMenu.set({ x: event.event.clientX, y: event.event.clientY, path: event.path, node: event.node });
   }
 
@@ -377,6 +384,12 @@ export class SidebarComponent implements OnDestroy {
   onSidebarAreaContextMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
+
+    // Only show context menu in file system trees, not in other areas like service mesh
+    if (this.viewMode() !== 'file-explorer') {
+      this.contextMenu.set(null); // Close any existing menu
+      return;
+    }
 
     this.contextMenu.set(null); // Close any existing menu
 

@@ -195,6 +195,13 @@ Fixed an issue where "Services", "Hosts", and "Deployments" management screens w
 - **Fix**: Moved `<app-platform-management>` to its own `@else if (pane1PlatformNode())` block, restoring visibility for all platform management nodes.
 - **Verified**: Build successful.
 
+### Fixed Navigation Breadcrumb Bug
+
+Fixed an issue where clicking on a breadcrumb in the address bar would navigate to the parent of the intended destination.
+
+- **Diagnosis**: The index passed to `navigatePathActivePane` was calculated based on the display path (which excludes the root), but the function expects an index relative to the full path.
+- **Fix**: Updated `app.component.html` to pass `0` for the root segment and `i + 1` for subsequent segments, ensuring the path is sliced correctly to include the targeted folder.
+
 ## Previous Feature: Gateway Editing Experience Integration
 
 Integrating the gateway editor directly into the Nexus Explorer view to allow inline editing of gateway profiles when a gateway node is selected.
@@ -363,4 +370,16 @@ Fixed a bug where folder names in "Search & Discovery" that matched Platform Man
 
 - **AppComponent**: Updated `getPlatformNodeForPath` to explicitly ignore paths starting with "Search & Discovery", ensuring they are treated as standard file explorer paths.
 
+
+## Current Feature: CRUD Keyboard Shortcuts
+
+Enabled keyboard shortcuts for CRUD management screens to improve accessibility and workflow efficiency.
+
+### Implementation Status
+
+✅ **Completed:**
+
+- **PlatformManagementComponent**: Added `tabindex="0"` and `(keydown.enter)` listener to all data tables (Services, Libraries, Frameworks, Deployments, Servers) to allow opening the edit dialog via Enter key.
+- **LookupListComponent**: Added `tabindex="0"` and `(keydown.enter)` listener to lookup item rows.
+- **Upsert Dialogs**: Added `(window:keydown.escape)` listener to all 7 upsert/management dialogs to allow closing them via Escape key.
 
