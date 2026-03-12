@@ -82,26 +82,32 @@ export class SidebarComponent implements OnDestroy {
   private unlistenMouseUp: (() => void) | null = null;
 
   // --- Vertical Resizing State for internal panes ---
-  treePaneHeight = signal(this.uiPreferencesService.sidebarTreeHeight() ?? 400);
+  // We keep treePaneHeight around only if we want to refer to it, but now Tree will be flex-1
+  // We use local signals for chat and notes to allow them to have fixed heights
   chatPaneHeight = signal(this.uiPreferencesService.sidebarChatHeight() ?? 250);
+  notesPaneHeight = signal(250); // Default to 250px
 
-  isResizingTree = signal(false);
   isResizingChat = signal(false);
+  isResizingNotes = signal(false);
 
-  private unlistenTreeMouseMove: (() => void) | null = null;
-  private unlistenTreeMouseUp: (() => void) | null = null;
   private unlistenChatMouseMove: (() => void) | null = null;
   private unlistenChatMouseUp: (() => void) | null = null;
+  private unlistenNotesMouseMove: (() => void) | null = null;
+  private unlistenNotesMouseUp: (() => void) | null = null;
 
   isChatPaneCollapsed = this.uiPreferencesService.isChatPaneCollapsed;
   isNotesPaneCollapsed = this.uiPreferencesService.isNotesPaneCollapsed;
 
   @ViewChild('contentContainer') contentContainerEl!: ElementRef<HTMLDivElement>;
 
+  // Tree always takes full flex space so it expands when chat or notes collapse
   isTreeFlex = computed(() => {
-    const chatIsEffectivelyHidden = !this.isChatVisible() || this.isChatPaneCollapsed();
-    const notesIsEffectivelyHidden = !this.isNotesVisible() || this.isNotesPaneCollapsed();
-    return chatIsEffectivelyHidden && notesIsEffectivelyHidden;
+    return true;
+  });
+
+  // Chat has fixed height unless overridden by collapse
+  isChatFlex = computed(() => {
+    return false;
   });
 
   // --- Context Menu State ---
@@ -165,76 +171,34 @@ export class SidebarComponent implements OnDestroy {
 
   // --- Vertical resize methods ---
   startTreeResize(event: MouseEvent): void {
-    this.isResizingTree.set(true);
-    const container = this.contentContainerEl.nativeElement;
-    const containerRect = container.getBoundingClientRect();
-    event.preventDefault();
-
-    this.unlistenTreeMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-      let newTreeHeight = e.clientY - containerRect.top;
-
-      const minHeight = 100;
-
-      let occupiedByOtherPanes = 0;
-      if (this.isChatVisible()) {
-        if (this.isChatPaneCollapsed()) {
-          // Collapsed chat pane is just its header height (h-7 = 1.75rem = 28px)
-          occupiedByOtherPanes += 28;
-        } else {
-          occupiedByOtherPanes += this.chatPaneHeight();
-        }
-      }
-
-      if (this.isNotesVisible() && !this.isNotesPaneCollapsed()) {
-        // Leave at least 100px for the notes pane
-        occupiedByOtherPanes += 100;
-      }
-
-      const maxHeight = containerRect.height - occupiedByOtherPanes;
-
-      if (newTreeHeight < minHeight) newTreeHeight = minHeight;
-      if (newTreeHeight > maxHeight) newTreeHeight = maxHeight;
-
-      this.treePaneHeight.set(newTreeHeight);
-    });
-
-    this.unlistenTreeMouseUp = this.renderer.listen('document', 'mouseup', () => {
-      this.stopTreeResize();
-    });
-  }
-
-  private stopTreeResize(): void {
-    if (!this.isResizingTree()) return;
-    this.isResizingTree.set(false);
-    if (this.unlistenTreeMouseMove) {
-      this.unlistenTreeMouseMove();
-      this.unlistenTreeMouseMove = null;
-    }
-    if (this.unlistenTreeMouseUp) {
-      this.unlistenTreeMouseUp();
-      this.unlistenTreeMouseUp = null;
-    }
-    this.uiPreferencesService.setSidebarTreeHeight(this.treePaneHeight());
-  }
-
-  startChatResize(event: MouseEvent): void {
+    // This resizer is between Tree and Chat.
+    // Since Tree is flex-1 and on top, dragging this resizer UP (smaller clientY) increases Chat's height.
     this.isResizingChat.set(true);
     const container = this.contentContainerEl.nativeElement;
     const containerRect = container.getBoundingClientRect();
     event.preventDefault();
 
     this.unlistenChatMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
-      const totalHeightFromTop = e.clientY - containerRect.top;
-      let newHeight = totalHeightFromTop - this.treePaneHeight();
+      // The space below this resizer is Chat + Chat-Notes Resizer + Notes
+      let occupiedBelowBase = 0;
+      if (this.isNotesVisible()) {
+        if (this.isNotesPaneCollapsed()) {
+          occupiedBelowBase += 24; // h-6
+        } else {
+          occupiedBelowBase += this.notesPaneHeight();
+        }
+      }
+
+      // Height of Chat = Container Bottom - Mouse Y - occupiedBelowBase
+      let newChatHeight = (containerRect.bottom - occupiedBelowBase) - e.clientY;
 
       const minHeight = 100;
-      const notesMinHeight = (this.isNotesVisible() && !this.isNotesPaneCollapsed()) ? 100 : 0;
-      const maxHeight = containerRect.height - this.treePaneHeight() - notesMinHeight;
+      const maxHeight = containerRect.height - occupiedBelowBase - 100; // Leave 100px for Tree
 
-      if (newHeight < minHeight) newHeight = minHeight;
-      if (newHeight > maxHeight) newHeight = maxHeight;
+      if (newChatHeight < minHeight) newChatHeight = minHeight;
+      if (newChatHeight > maxHeight) newChatHeight = maxHeight;
 
-      this.chatPaneHeight.set(newHeight);
+      this.chatPaneHeight.set(newChatHeight);
     });
 
     this.unlistenChatMouseUp = this.renderer.listen('document', 'mouseup', () => {
@@ -254,6 +218,49 @@ export class SidebarComponent implements OnDestroy {
       this.unlistenChatMouseUp = null;
     }
     this.uiPreferencesService.setSidebarChatHeight(this.chatPaneHeight());
+  }
+
+  startChatResize(event: MouseEvent): void {
+    // This resizer is between Chat and Notes.
+    // Dragging UP increases Notes height.
+    this.isResizingNotes.set(true);
+    const container = this.contentContainerEl.nativeElement;
+    const containerRect = container.getBoundingClientRect();
+    event.preventDefault();
+
+    this.unlistenNotesMouseMove = this.renderer.listen('document', 'mousemove', (e: MouseEvent) => {
+      let newNotesHeight = containerRect.bottom - e.clientY;
+
+      const minHeight = 100;
+      // Chat is above this. Need to leave space for Chat and Tree.
+      let chatOccupied = 0;
+      if (this.isChatVisible()) {
+        chatOccupied = this.isChatPaneCollapsed() ? 24 : this.chatPaneHeight();
+      }
+      const maxHeight = containerRect.height - chatOccupied - 100; // 100px for Tree
+
+      if (newNotesHeight < minHeight) newNotesHeight = minHeight;
+      if (newNotesHeight > maxHeight) newNotesHeight = maxHeight;
+
+      this.notesPaneHeight.set(newNotesHeight);
+    });
+
+    this.unlistenNotesMouseUp = this.renderer.listen('document', 'mouseup', () => {
+      this.stopNotesResize();
+    });
+  }
+
+  private stopNotesResize(): void {
+    if (!this.isResizingNotes()) return;
+    this.isResizingNotes.set(false);
+    if (this.unlistenNotesMouseMove) {
+      this.unlistenNotesMouseMove();
+      this.unlistenNotesMouseMove = null;
+    }
+    if (this.unlistenNotesMouseUp) {
+      this.unlistenNotesMouseUp();
+      this.unlistenNotesMouseUp = null;
+    }
   }
 
   toggleChatPaneCollapse(): void {
@@ -519,7 +526,7 @@ export class SidebarComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stopResize();
-    this.stopTreeResize();
     this.stopChatResize();
+    this.stopNotesResize();
   }
 }
